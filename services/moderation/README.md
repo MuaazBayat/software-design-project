@@ -21,7 +21,7 @@ This API allows you to detect and censor profanity in text. There are two types 
 **Install Python packages**
 
 ```bash
-pip install fastapi uvicorn better-profanity supabase
+pip install fastapi uvicorn better-profanity supabase python-dotenv
 ```
 
 **Environment variables**
@@ -30,12 +30,13 @@ Create a `.env` file:
 
 ```env
 SUPABASE_URL=your-supabase-project-url
-SUPABASE_KEY=your-supabase-anonymouse-key
+SUPABASE_KEY=your-supabase-anonymous-key
 ```
 
 ## 4. Database Setup (Already Created)
 
-Ran this SQL in Supabase SQL editor:
+This has already been done for our penpal app. If you want to recreate the database run this
+SQL in Supabase SQL editor:
 
 ```sql
 -- External users table
