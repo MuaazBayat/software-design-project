@@ -1,0 +1,4 @@
+sphinx==8.0.2
+furo==2024.7.18         # Nice theme
+sphinx-autodoc-typehints==2.0.0
+myst-parser==3.0.1      # For Markdown support
