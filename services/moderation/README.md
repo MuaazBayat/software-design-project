@@ -30,12 +30,12 @@ Create a `.env` file:
 
 ```env
 SUPABASE_URL=your-supabase-project-url
-SUPABASE_KEY=your-supabase-service-role-key
+SUPABASE_KEY=your-supabase-anonymouse-key
 ```
 
-## 4. Database Setup (Supabase SQL)
+## 4. Database Setup (Already Created)
 
-Run this SQL in your Supabase SQL editor:
+Ran this SQL in Supabase SQL editor:
 
 ```sql
 -- External users table
