@@ -12,6 +12,9 @@ We use a **feature-branch workflow**:
 - **`develop`** → Latest merged work, ready for QA.  
 - **Feature branches** → For new features or fixes.  
 
+Since our docker tags fail with `\` in the branch name, we have opted to use `-` instead.  
+An example branch is `feature-myfeature`
+
 We use conventional branches and conventional commits. Check out the docs on them [here](https://conventional-branch.github.io/) and [here](https://www.conventionalcommits.org/en/v1.0.0/).
 **Naming your branch**  
 Please use this format:
