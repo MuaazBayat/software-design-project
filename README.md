@@ -1,4 +1,4 @@
-#GlobeTalk - SDP Project
+# GlobeTalk - SDP Project
 Final year comp sci project at the University of the Witwatersrand
 
 #Docs
