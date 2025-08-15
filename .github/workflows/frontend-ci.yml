@@ -1,8 +1,5 @@
 name: 🐳 Frontend - Docker Build & Push
 
-env:
-  FRONTEND_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-frontend:${{ github.ref_name || 'pr-test' }}
-  
 on:
   push:
     branches:
@@ -28,6 +25,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Set Docker image tag
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "FRONTEND_IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-frontend:$SHORT_SHA" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_LATEST=${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-frontend:latest" >> $GITHUB_ENV
 
       - name: Build & Push Frontend
         run: |
