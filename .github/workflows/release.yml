@@ -1,0 +1,56 @@
+name: ☁️ Deploy to Cloud Run
+
+env:
+  TAG: ${{ github.event.release.tag_name || 'release-test' }}
+  FRONTEND_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-frontend:${{ github.event.release.tag_name || 'release-test' }}
+  
+on:
+  release:
+    types: [published]  # Trigger when a GitHub release is published
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build & push Docker image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}" \
+            --build-arg CLERK_SECRET_KEY="${{ secrets.CLERK_SECRET_KEY }}" \
+            -t $FRONTEND_IMAGE \
+            -f services/frontend/frontend.Dockerfile \
+            services/frontend/.
+          docker push $FRONTEND_IMAGE
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Deploy frontend Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-frontend'
+          image: ${{ env.FRONTEND_IMAGE }}
+          flags: '--allow-unauthenticated --port=3000'
+          container_port: 3000
+
+      # If required, use the Cloud Run url output in later steps
+      - name: Show Output
+        run: echo ${{ steps.deploy.outputs.url }}

@@ -216,3 +216,5 @@ services/core/ve/
 services/matchmaking/ve/
 services/messaging/ve/
 services/moderation/ve/
+# Act things
+repo.secrets
