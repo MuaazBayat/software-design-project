@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath("../"))
 
 # -- Project information -----------------------------------------------------
 project = "GlobeTalk"
-author = "P Diddy"
+author = "Globe Talk PTY Ltd"
 copyright = f"{datetime.now().year}, {author}"
 release = "0.1"
 

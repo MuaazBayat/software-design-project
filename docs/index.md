@@ -1,4 +1,4 @@
-# Welcome to the GlobeTalk Monorepo docs site
+# Home
 
 This documentation covers multiple projects within our monorepo.
 
@@ -12,4 +12,4 @@ See the frontend documentation [here](frontend/frontend.md).
 
 frontend/frontend
 matchmaking/matchmaking
-shared/libs
+contribution/contribution
