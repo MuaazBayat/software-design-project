@@ -16,11 +16,6 @@ on:
       - develop
     paths:
       - 'services/frontend/**'
-  inputs:
-      version:
-        required: false
-        type: string
-        description: 'Optional version tag for the Docker image. If not provided, will use branch name or commit SHA'
   secrets:
     DOCKER_HUB_USERNAME:
       required: true
