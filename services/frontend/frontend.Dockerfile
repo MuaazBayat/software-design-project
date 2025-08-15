@@ -10,6 +10,7 @@ COPY package*.json ./
 RUN npm install
 
 # Cppy all the files
+COPY components ./components
 COPY . .
 
 # Pass secrets as build args
