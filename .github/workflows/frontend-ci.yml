@@ -16,11 +16,6 @@ on:
       - develop
     paths:
       - 'services/frontend/**'
-  secrets:
-    DOCKER_HUB_USERNAME:
-      required: true
-    DOCKER_HUB_TOKEN:
-      required: true
 
 jobs:
   docker-build-push:
