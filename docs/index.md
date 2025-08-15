@@ -1,12 +1,15 @@
-# Welcome to the GlobeTalk Monorepo docs site
+# Home
 
 This documentation covers multiple projects within our monorepo.
 
+See the frontend documentation [here](frontend/frontend.md).
+
 ## Contents
+
 ```{toctree}
 :maxdepth: 2
-:caption: Projects
+:caption: Services
 
-python-service/index
-frontend/index
-rust-lib/index
+frontend/frontend
+matchmaking/matchmaking
+contribution/contribution

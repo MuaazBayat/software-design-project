@@ -7,3 +7,14 @@ actions-test-pr-created:
 
 actions-test-release-created:
 	act -W '.github/workflows/release.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+build-docs:
+	cd docs && \
+	python3 -m venv venv && \
+	source venv/bin/activate && \
+	pip install -r requirements.txt && \
+	cd .. && \
+	sphinx-build -b html docs/ _build/html
+
+view-docs:
+	open _build/html/index.html
