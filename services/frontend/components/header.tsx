@@ -1,5 +1,6 @@
 import { UserButton, SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Button } from "@/components/ui/button";
+import { SyncProfile } from "@/lib/SyncProfile";
 
  export default function Header(){
     return(
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
         </SignedOut>
         <SignedIn>
         <UserButton />
+        <SyncProfile /> 
         </SignedIn>
         </div>
         </header>
