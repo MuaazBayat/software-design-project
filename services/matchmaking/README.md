@@ -43,7 +43,6 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 ```
 
-Environment Configuration:
 
 Add your Supabase credentials to a `.env` file in the project root:
 
@@ -97,8 +96,11 @@ CREATE TABLE match_records (
 The simplified matching process:
 
 1.Get all active users
+
 2.Exclude previous matches if requested
+
 3.Select first available match
+
 4.Create match record
 
 ##  API Endpoints
@@ -190,7 +192,7 @@ Retrieves all matches for a specific user. This endpoint:
 
 * Returns full match details including status and creation time
 
-# Parameters:
+ Parameters: 
 
 `user_id`: ID of the user to retrieve matches for
 
@@ -229,7 +231,7 @@ curl -X 'GET' \
 ### Complete Match
 
 #### `PUT /matches/{match_id}/complete`
-`
+
 
 Marks a match as completed. This endpoint:
 
@@ -237,7 +239,7 @@ Marks a match as completed. This endpoint:
 
 * Preserves the match record for historical purposes
 
-* *ypically called when a conversation naturally ends
+* typically called when a conversation naturally ends
 
 Parameters:
 
