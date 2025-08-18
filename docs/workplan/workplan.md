@@ -50,7 +50,3 @@
 
 ---
 
-## Tracking (Minimal)
-
-* Create one **Issue** per bullet; set **Epic** (Matching/Messaging/Profiles/Moderation/Docs/QA)
-* Move by **Status**; attach PR + quick evidence link (GIF/demo URL)
