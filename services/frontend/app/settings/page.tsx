@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useUser } from '@clerk/nextjs'; // remove if you're not using Clerk
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,30 +9,68 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { X } from 'lucide-react';
 
+// ---- Types matching your API ----
+type Profile = {
+  anonymous_handle: string;
+  bio: string | null;
+  interests: string[] | null;
+  // ...other fields exist but we don't need them on this page
+};
+
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+
 export default function SettingsPage() {
+  const { user } = useUser(); // remove if not using Clerk
+  const userId = user?.id || ''; // <-- your API expects user_id in path
+
+  const API_BASE = "http://127.0.0.1:8000"
+  const [loading, setLoading] = useState(true);
   const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
-
-  // ---- Handle validation ----
-  const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
   const handleValid = HANDLE_RE.test(handle);
 
-  function onHandleChange(v: string) {
-    // lowercase, allow only a–z, 0–9, underscore; limit length
-    const next = v.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20);
-    setHandle(next);
-  }
+  // ---------- Load profile ----------
+  useEffect(() => {
+    if (!API_BASE || !userId) return;
+    const ctrl = new AbortController();
 
-  // ---- Tags (interests) ----
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/profiles/${userId}`, {
+          method: 'GET',
+          signal: ctrl.signal,
+        });
+
+        if (res.status === 404) {
+          // No profile yet — leave fields empty, allow Save to create
+          setLoading(false);
+          return;
+        }
+        if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+
+        const data: Profile = await res.json();
+        setHandle(data.anonymous_handle ?? '');
+        setBio(data.bio ?? '');
+        setInterests(Array.isArray(data.interests) ? data.interests : []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => ctrl.abort();
+  }, [API_BASE, userId]);
+
+  // ---------- Interests (tags) helpers ----------
   function addTagFromInput() {
     const v = tagInput.trim();
     if (!v) return;
     if (!interests.includes(v)) setInterests((prev) => [...prev, v]);
     setTagInput('');
   }
-
   function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -41,15 +80,57 @@ export default function SettingsPage() {
       setInterests((prev) => prev.slice(0, -1));
     }
   }
-
   function removeTag(tag: string) {
     setInterests((prev) => prev.filter((t) => t !== tag));
   }
 
-  function handleSave() {
-    // Wire up to your API later (e.g., POST /api/settings)
-    console.log({ handle, bio, interests });
-    alert('Saved (demo). Check console for payload.');
+  // ---------- Save (PUT; if 404 then POST) ----------
+  async function handleSave() {
+    if (!API_BASE || !userId) return;
+    const updatePayload = {
+      anonymous_handle: handle || undefined,
+      bio: bio || '',
+      interests,
+    };
+
+    // Try UPDATE first
+    const putRes = await fetch(`${API_BASE}/profiles/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatePayload),
+    });
+
+    if (putRes.status === 404) {
+      // Create if not exists — API requires clerk_id + anonymous_handle
+      const createPayload = {
+        clerk_id: userId,                // using Clerk user.id as your unique id
+        anonymous_handle: handle || 'user_' + userId.slice(0, 6),
+        bio: bio || '',
+        interests,
+      };
+      const postRes = await fetch(`${API_BASE}/profiles/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createPayload),
+      });
+      if (!postRes.ok) {
+        const t = await postRes.text();
+        alert(`Create failed: ${postRes.status}\n${t}`);
+        return;
+      }
+    } else if (!putRes.ok) {
+      const t = await putRes.text();
+      alert(`Update failed: ${putRes.status}\n${t}`);
+      return;
+    }
+
+    alert('Saved!');
+  }
+
+  // ---------- Handle formatting ----------
+  function onHandleChange(v: string) {
+    const next = v.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20);
+    setHandle(next);
   }
 
   return (
@@ -58,7 +139,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
         {/* Handle */}
-        <div className="mt-6 space-y-2">
+        <div className="mt-6 space-y-2 opacity-100">
           <Label htmlFor="handle" className="text-base">Handle</Label>
           <div className="relative max-w-md">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
@@ -68,15 +149,14 @@ export default function SettingsPage() {
               onChange={(e) => onHandleChange(e.target.value)}
               placeholder="your_handle"
               className="pl-7"
+              disabled={loading}
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            3–20 characters; letters, numbers, and underscores only.
+            3–20 characters; letters, numbers, underscores.
           </p>
           {!handleValid && handle.length > 0 && (
-            <p className="text-sm text-destructive">
-              Invalid handle format.
-            </p>
+            <p className="text-sm text-destructive">Invalid handle format.</p>
           )}
         </div>
 
@@ -91,10 +171,8 @@ export default function SettingsPage() {
             onChange={(e) => setBio(e.target.value)}
             placeholder="Write a short paragraph about yourself…"
             className="min-h-[120px]"
+            disabled={loading}
           />
-          <p className="text-sm text-muted-foreground">
-            A short paragraph that appears on your profile.
-          </p>
         </div>
 
         <Separator className="my-8" />
@@ -134,21 +212,18 @@ export default function SettingsPage() {
               onKeyDown={handleTagKeyDown}
               placeholder="Type an interest and press Enter"
               className="max-w-md"
+              disabled={loading}
             />
-            <Button type="button" variant="secondary" onClick={addTagFromInput}>
+            <Button type="button" variant="secondary" onClick={addTagFromInput} disabled={loading}>
               Add
             </Button>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            Press <kbd className="rounded bg-muted px-1 text-xs">Enter</kbd> to add.
-          </p>
         </div>
 
         {/* Save */}
         <div className="mt-10 flex justify-end">
-          <Button onClick={handleSave} disabled={!handleValid}>
-            Save
+          <Button onClick={handleSave} disabled={loading || !handleValid}>
+            {loading ? 'Loading…' : 'Save'}
           </Button>
         </div>
       </div>
