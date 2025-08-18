@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { X } from 'lucide-react';
+import Link from 'next/link';
 
 // ---- Types matching your API ----
 type Profile = {
@@ -222,6 +223,9 @@ export default function SettingsPage() {
 
         {/* Save */}
         <div className="mt-10 flex justify-end">
+            <Button asChild variant="outline">
+    <Link href="/">Home</Link>
+  </Button>
           <Button onClick={handleSave} disabled={loading || !handleValid}>
             {loading ? 'Loading…' : 'Save'}
           </Button>
