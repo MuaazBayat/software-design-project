@@ -19,3 +19,4 @@ scrum-docs/sprint1
 userstories-userjournals/userstories-userjournals
 workplan/workplan
 
+data_design_doc/globetalk_data_design
