@@ -20,10 +20,10 @@ from core.database import supabase
 app = FastAPI(title="GlobeTalk Core API")
 
 from fastapi.middleware.cors import CORSMiddleware
-
+ALLOWED_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|globetalk-frontend-388957617777\.us-central1\.run\.app)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$",
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_methods=["*"],      # includes OPTIONS/POST/PUT
     allow_headers=["*"],      # includes content-type, authorization, etc.
     allow_credentials=False,  # keep False with wildcards; use explicit list if True
