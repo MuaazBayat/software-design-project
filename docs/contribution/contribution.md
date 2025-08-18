@@ -42,3 +42,37 @@ The easiest way to get started with the docs is by using the makefile in the roo
 If all is well it should work and on successfully merging into develop it will get deployed to our livesite at [https://software-design-project.readthedocs.io/en/latest/](https://software-design-project.readthedocs.io/en/latest/).
 
 To alter readthedocs settings contact muaaz for access.
+
+### Microservices
+We have opted for a microservices arhcitecture within our Github mono Repo. The reason is simple: **We have a skilled team** of 6 members who are more than
+capable of building out features on their own. We thus do not want to step on each others toes when we start moving fast.
+We prefer to keep our services seperate in order to cater for this speed and agility.
+
+We have setup team of 3:
+- Team 1: Muaaz and Muhammad Hoosen  
+- Team 2: Arno and Sufyaan  
+- Team 3: Rameez and Huzaifah  
+
+The teams have been setup this way to compliment each others technical abilities.
+Each team will be responsible for certain services, namely:  
+
+Team 1:
+- Core
+- Moderation
+
+Team 2:
+- Messaging
+
+Team 3:
+- Matchmaking
+- Profile
+
+All teams will work on the frontend service.
+
+### Our services
+
+#### Core
+The core service is the main backend which will hold any business logic outside the scope of the smaller function specific microservices.
+
+#### Moderation
+The moderation service is the 

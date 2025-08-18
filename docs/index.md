@@ -13,4 +13,9 @@ See the frontend documentation [here](frontend/frontend.md).
 frontend/frontend
 matchmaking/matchmaking
 contribution/contribution
+technologyStack/technologyStack
 gitmethodology/methodology
+scrum-docs/sprint1
+userstories-userjournals/userstories-userjournals
+workplan/workplan
+

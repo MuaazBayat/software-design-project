@@ -3,7 +3,8 @@
 # These models define the expected data structure for requests and responses,
 # ensuring data validation and generating documentation.
 
-from pydantic import BaseModel
+
+from pydantic import BaseModel,Field
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -11,20 +12,20 @@ from datetime import datetime
 # --- Profile Models ---
 class ProfileBase(BaseModel):
     """Base model for user profiles, containing common fields."""
-    age_range: str
-    primary_language: str
-    secondary_languages: Optional[List[str]] = []
-    time_zone: str
-    country_code: str
+    age_range: Optional[str] = None
+    primary_language: Optional[str] = None
+    secondary_languages: List[str] = Field(default_factory=list)
+    time_zone: Optional[str] = None
+    country_code: Optional[str] = None
     bio: Optional[str] = None
-    interests: Optional[List[str]] = []
+    interests: List[str] = Field(default_factory=list)
 
 class ProfileCreate(ProfileBase):
     """
     Model for creating a new profile.
-    Requires a user_id and an anonymous_handle.
+    Requires a clerk_id and an anonymous_handle.
     """
-    user_id: str
+    clerk_id: str
     anonymous_handle: str
 
 class ProfileUpdate(ProfileBase):
@@ -49,4 +50,4 @@ class Profile(ProfileCreate):
     """
     created_at: datetime
     updated_at: datetime
-    last_active: datetime
+    last_active: Optional[datetime]
