@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs'; // remove if you're not using Clerk
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
