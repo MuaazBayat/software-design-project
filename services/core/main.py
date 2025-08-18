@@ -19,7 +19,15 @@ from core.database import supabase
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
 
+from fastapi.middleware.cors import CORSMiddleware
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$",
+    allow_methods=["*"],      # includes OPTIONS/POST/PUT
+    allow_headers=["*"],      # includes content-type, authorization, etc.
+    allow_credentials=False,  # keep False with wildcards; use explicit list if True
+)
 # --- Supabase Client Dependency ---
 
 def get_supabase() -> Client:
@@ -55,7 +63,7 @@ async def create_profile(
             500 Internal Server Error: If the database operation fails.
     """
     # First, check if a profile for this user ID already exists to prevent duplicates.
-    existing_profile = db.table("user_profiles").select("user_id").eq("user_id", profile_data.user_id).execute()
+    existing_profile = db.table("user_profiles").select("clerk_id").eq("clerk_id", profile_data.clerk_id).execute()
     if existing_profile.data:
         raise HTTPException(status_code=400, detail="Profile for this user already exists.")
 
@@ -69,9 +77,9 @@ async def create_profile(
     return response.data[0]
 
 
-@app.get("/profiles/{user_id}", response_model=Profile)
+@app.get("/profiles/{clerk_id}", response_model=Profile)
 async def get_profile(
-    user_id: str, 
+    clerk_id: str, 
     db: Client = Depends(get_supabase)
 ):
     """
@@ -89,18 +97,18 @@ async def get_profile(
         HTTPException:
             404 Not Found: If no profile is found for the given user_id.
     """
-    # Select all columns from the 'user_profiles' table where the user_id matches.
-    response = db.table("user_profiles").select("*").eq("user_id", user_id).execute()
-    
+    # Select all columns from the 'user_profiles' table where the clerk_id matches.
+    response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+
     if not response.data:
         raise HTTPException(status_code=404, detail="Profile not found.")
         
     return response.data[0]
 
 
-@app.put("/profiles/{user_id}", response_model=Profile)
+@app.put("/profiles/{clerk_id}", response_model=Profile)
 async def update_profile(
-    user_id: str, 
+    clerk_id: str, 
     profile_data: ProfileUpdate, 
     db: Client = Depends(get_supabase)
 ):
@@ -124,7 +132,7 @@ async def update_profile(
     # Update the profile data in the Supabase table.
     # The `dict(exclude_unset=True)` method creates a dictionary containing only
     # the fields that were actually provided in the request body.
-    response = db.table("user_profiles").update(profile_data.dict(exclude_unset=True)).eq("user_id", user_id).execute()
+    response = db.table("user_profiles").update(profile_data.dict(exclude_unset=True)).eq("clerk_id", clerk_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Profile not found or no changes were made.")

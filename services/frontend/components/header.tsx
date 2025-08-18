@@ -1,5 +1,8 @@
 import { UserButton, SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Button } from "@/components/ui/button";
+import { SyncProfile } from "@/lib/SyncProfile";
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
 
  export default function Header(){
     return(
@@ -15,7 +18,14 @@ import { Button } from "@/components/ui/button";
         </SignUpButton>
         </SignedOut>
         <SignedIn>
-        <UserButton />
+            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/2">
+            <Link href="/settings" aria-label="Open settings">
+              <Settings className="h-5 w-5" />
+            </Link>
+          </Button>
+      <UserButton>
+      </UserButton>
+        <SyncProfile /> 
         </SignedIn>
         </div>
         </header>
