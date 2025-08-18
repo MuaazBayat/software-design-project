@@ -11,6 +11,8 @@ See the frontend documentation [here](frontend/frontend.md).
 :caption: Services
 
 frontend/frontend
+devoverview/devoverview
+core/core
 matchmaking/matchmaking
 contribution/contribution
 technologyStack/technologyStack
