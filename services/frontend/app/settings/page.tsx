@@ -10,19 +10,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 
-// ---- Types matching your API ----
+
 type Profile = {
   anonymous_handle: string;
   bio: string | null;
   interests: string[] | null;
-  // ...other fields exist but we don't need them on this page
+
 };
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export default function SettingsPage() {
   const { user } = useUser(); // remove if not using Clerk
-  const userId = user?.id || ''; // <-- your API expects user_id in path
+  const userId = user?.id || ''; 
 
   const API_BASE = "http://127.0.0.1:8000"
   const [loading, setLoading] = useState(true);
