@@ -77,9 +77,9 @@ async def create_profile(
     return response.data[0]
 
 
-@app.get("/profiles/{user_id}", response_model=Profile)
+@app.get("/profiles/{clerk_id}", response_model=Profile)
 async def get_profile(
-    user_id: str, 
+    clerk_id: str, 
     db: Client = Depends(get_supabase)
 ):
     """
@@ -97,18 +97,18 @@ async def get_profile(
         HTTPException:
             404 Not Found: If no profile is found for the given user_id.
     """
-    # Select all columns from the 'user_profiles' table where the user_id matches.
-    response = db.table("user_profiles").select("*").eq("user_id", user_id).execute()
-    
+    # Select all columns from the 'user_profiles' table where the clerk_id matches.
+    response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+
     if not response.data:
         raise HTTPException(status_code=404, detail="Profile not found.")
         
     return response.data[0]
 
 
-@app.put("/profiles/{user_id}", response_model=Profile)
+@app.put("/profiles/{clerk_id}", response_model=Profile)
 async def update_profile(
-    user_id: str, 
+    clerk_id: str, 
     profile_data: ProfileUpdate, 
     db: Client = Depends(get_supabase)
 ):
@@ -132,7 +132,7 @@ async def update_profile(
     # Update the profile data in the Supabase table.
     # The `dict(exclude_unset=True)` method creates a dictionary containing only
     # the fields that were actually provided in the request body.
-    response = db.table("user_profiles").update(profile_data.dict(exclude_unset=True)).eq("user_id", user_id).execute()
+    response = db.table("user_profiles").update(profile_data.dict(exclude_unset=True)).eq("clerk_id", clerk_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Profile not found or no changes were made.")
