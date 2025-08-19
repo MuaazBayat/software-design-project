@@ -17,6 +17,8 @@ contribution/contribution
 technologyStack/technologyStack
 gitmethodology/methodology
 scrum-docs/sprint1
+core/core
+devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
 data_design_doc/globetalk_data_design
