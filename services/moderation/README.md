@@ -17,11 +17,19 @@ This API allows you to detect and censor profanity in text. There are two types 
 * Store logs of all checks in **Supabase**.
 
 ## 3. Requirements
-
-**Install Python packages**
+Navigate to the matchmaking directory:
 
 ```bash
-pip install fastapi uvicorn better-profanity supabase python-dotenv
+cd services/moderation
+```
+
+Create a virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate    
+python -m pip install -U pip
+python -m pip install -r requirements.txt
 ```
 
 **Environment variables**
@@ -48,21 +56,87 @@ create table external_users (
 );
 
 -- Internal users table
-create table internal_users (
-    id uuid primary key default gen_random_uuid(),
-    name text,
-    violation_count int default 0
+CREATE TABLE user_profiles (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Authentication & Session
+    anonymous_handle VARCHAR(50) UNIQUE NOT NULL, -- Generated handle
+    password_hash VARCHAR(255) NOT NULL,
+    session_token VARCHAR(255),
+    last_active TIMESTAMP WITH TIME ZONE,
+    
+    -- Profile Information
+    age_range age_range_enum NOT NULL, -- '18-25', '26-35', '36-45', '46+'
+    primary_language language_code NOT NULL, -- ISO 639-1
+    secondary_languages language_code[],
+    time_zone VARCHAR(50) NOT NULL, -- IANA time zone
+    country_code CHAR(2) NOT NULL, -- ISO 3166-1 alpha-2
+    region VARCHAR(100), -- State/province (optional)
+    
+    -- Cultural Profile
+    bio TEXT CHECK (char_length(bio) <= 500),
+    interests TEXT[] CHECK (array_length(interests, 1) <= 10),
+    favorite_local_fact TEXT CHECK (char_length(favorite_local_fact) <= 200),
+    
+    -- Preferences
+    preferred_correspondence_type correspondence_enum DEFAULT 'either', -- 'one-time', 'long-term', 'either'
+    max_active_conversations INTEGER DEFAULT 3 CHECK (max_active_conversations <= 10),
+    preferred_time_zone_distance INTEGER DEFAULT 6, -- Hours difference preference
+    
+    -- Privacy & Safety
+    account_status status_enum DEFAULT 'active', -- 'active', 'suspended', 'banned', 'deleted'
+    privacy_level privacy_enum DEFAULT 'standard', -- 'minimal', 'standard', 'detailed'
+    blocked_users UUID[],
+    reported_count INTEGER DEFAULT 0,
+    
+    CONSTRAINT valid_languages CHECK (primary_language = ANY(secondary_languages) = false)
 );
 
+-- Indexes
+CREATE INDEX idx_user_profiles_matching ON user_profiles 
+    (account_status, country_code, primary_language, age_range) 
+    WHERE account_status = 'active';
+CREATE INDEX idx_user_profiles_time_zone ON user_profiles (time_zone);
+CREATE INDEX idx_user_profiles_last_active ON user_profiles (last_active);
+
 -- Usage logs table
-create table usage_logs (
-    id uuid primary key default gen_random_uuid(),
-    user_type text not null, -- 'internal' or 'external'
-    user_id uuid not null,
-    text text not null,
-    contains_profanity boolean not null,
-    created_at timestamptz default now()
+CREATE TABLE moderation_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Target Information
+    target_type target_type_enum NOT NULL, -- 'user', 'message', 'match'
+    target_id UUID NOT NULL,
+    reported_user_id UUID REFERENCES user_profiles(user_id),
+    reporting_user_id UUID REFERENCES user_profiles(user_id),
+    
+    -- Report Details
+    violation_type violation_type_enum NOT NULL, -- 'spam', 'harassment', 'inappropriate_content', 'fake_profile', 'other'
+    violation_description TEXT,
+    severity_level severity_enum DEFAULT 'low', -- 'low', 'medium', 'high', 'critical'
+    automated_detection BOOLEAN DEFAULT false,
+    
+    -- Resolution
+    status report_status_enum DEFAULT 'open', -- 'open', 'under_review', 'resolved', 'dismissed'
+    moderator_id UUID,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    resolution_action action_enum, -- 'no_action', 'warning', 'content_removal', 'temporary_ban', 'permanent_ban'
+    resolution_notes TEXT,
+    appeal_status appeal_status_enum DEFAULT 'none', -- 'none', 'pending', 'approved', 'denied'
+    
+    -- Evidence
+    evidence_message_ids UUID[],
+    evidence_screenshots TEXT[], -- Base64 encoded screenshots (if any)
+    system_context JSONB -- Additional context for automated reports
 );
+
+-- Indexes
+CREATE INDEX idx_moderation_logs_status ON moderation_logs (status, created_at);
+CREATE INDEX idx_moderation_logs_target ON moderation_logs (target_type, target_id);
+CREATE INDEX idx_moderation_logs_reported_user ON moderation_logs (reported_user_id, created_at);
+CREATE INDEX idx_moderation_logs_severity ON moderation_logs (severity_level, status);
 ```
 
 ## 5. Running the API
@@ -96,7 +170,7 @@ Only **one** of these headers should be provided.
 
 ```json
 {
-  "text": "This is a bad word example"
+  "text": "This is a <bad word> example"
 }
 ```
 
@@ -105,7 +179,7 @@ Only **one** of these headers should be provided.
 ```json
 {
   "contains_profanity": true,
-  "censored_text": "This is a **** word example"
+  "censored_text": "This is a **** example"
 }
 ```
 
@@ -129,7 +203,7 @@ curl -X POST "http://127.0.0.1:8000/check" \
 }
 ```
 
-This will increment the `violation_count` in the `internal_users` table if profanity is detected.
+This will increment the `reported_count` in the `user_profiles` table if profanity is detected.
 
 ### External User Request
 
@@ -167,13 +241,3 @@ Example error:
   "detail": "Usage limit reached"
 }
 ```
-
-## 9. Logging
-
-Every request is stored in the `usage_logs` table with:
-
-* User type (`internal` / `external`)
-* User ID
-* Original text
-* Whether profanity was found
-* Timestamp
