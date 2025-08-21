@@ -4,6 +4,8 @@ from better_profanity import profanity
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+from datetime import datetime
+import uuid
 
 # Load .env file
 load_dotenv()
@@ -51,32 +53,52 @@ def check_profanity(
         user_type = "external"
         user_id = user["id"]
 
-    # Internal user flow
+    # Internal user flow - UPDATED
     elif x_user_id:
-        user_res = supabase.table("internal_users").select("*").eq("id", x_user_id).execute()
+        # Query user_profiles table instead of internal_users
+        user_res = supabase.table("user_profiles").select("*").eq("user_id", x_user_id).execute()
         if not user_res.data:
-            raise HTTPException(status_code=404, detail="Internal user not found")
+            raise HTTPException(status_code=404, detail="User not found")
         user = user_res.data[0]
+        
         user_type = "internal"
-        user_id = user["id"]
+        user_id = user["user_id"]
 
     # Check profanity
     has_profanity = profanity.contains_profanity(body.text)
     censored = profanity.censor(body.text)
 
-    # For internal users, increment violations if profanity found
+    # For internal users, create moderation log if profanity found - UPDATED
     if user_type == "internal" and has_profanity:
-        supabase.table("internal_users").update({
-            "violation_count": user["violation_count"] + 1
-        }).eq("id", user_id).execute()
-
-    # Log usage
-    supabase.table("usage_logs").insert({
-        "user_type": user_type,
-        "user_id": user_id,
-        "text": body.text,
-        "contains_profanity": has_profanity
-    }).execute()
+        # Create a moderation log entry
+        moderation_log_entry = {
+            "target_type": "message",
+            "target_id": str(uuid.uuid4()),  # Generate a unique ID for this text check
+            "reported_user_id": user_id,
+            "reporting_user_id": None,  # System-generated report
+            "violation_type": "inappropriate_content",
+            "violation_description": f"Profanity detected in text: '{censored}'",
+            "severity_level": "low",  # Adjust based on your business rules
+            "automated_detection": True,
+            "status": "resolved",  # Auto-resolved since it's automated
+            "resolution_action": "content_removal",
+            "resolution_notes": "Profanity automatically detected and censored",
+            "reviewed_at": datetime.utcnow().isoformat(),
+            "system_context": {
+                "original_text_length": len(body.text),
+                "censored_text": censored,
+                "detection_method": "better_profanity"
+            }
+        }
+        
+        # Insert moderation log
+        supabase.table("moderation_logs").insert(moderation_log_entry).execute()
+        
+        # Increment reported_count for the user
+        supabase.table("user_profiles").update({
+            "reported_count": user["reported_count"] + 1,
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("user_id", user_id).execute()
 
     return {
         "contains_profanity": has_profanity,
