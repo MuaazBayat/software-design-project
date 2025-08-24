@@ -1,0 +1,90 @@
+name: 🐞 Bug Report
+description: Report a problem or unexpected behavior
+title: '[Bug]: '
+labels:
+  - bug
+  - needs-triage
+assignees:
+  - your-github-username
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐞 Bug Report
+        Please fill out the following details to help us reproduce and fix the issue faster.
+
+  - type: input
+    id: title
+    attributes:
+      label: Short Description
+      description: A short summary of the bug.
+      placeholder: e.g. App crashes when opening the chat screen
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a step-by-step guide so we can reproduce the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The app should load without errors.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: The app crashes and shows an error message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Videos
+      description: Drag and drop screenshots or videos here (or paste image URLs).
+      placeholder: |
+        ![Screenshot](image-url)
+        (Attach any relevant images or videos showing the issue.)
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is the issue?
+      options:
+        - 🟢 Low (minor bug, no major impact)
+        - 🟡 Medium (affects some features)
+        - 🔴 High (blocks major functionality)
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, app version, etc.
+      placeholder: e.g., iOS 16.2, Chrome 110, App v2.3.0
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any extra info, error logs, or context.
+      placeholder: e.g., Error logs or related issues.
