@@ -3,7 +3,11 @@ name: ☁️ Deploy to Cloud Run
 env:
   TAG: ${{ github.event.release.tag_name || 'release-test' }}
   FRONTEND_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-frontend:${{ github.event.release.tag_name || 'release-test' }}
-  
+  CORE_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-core:${{ github.event.release.tag_name || 'release-test' }}
+  MATCHMAKING_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-matchmaking:${{ github.event.release.tag_name || 'release-test' }}
+  MESSAGING_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-messaging:${{ github.event.release.tag_name || 'release-test' }}
+  MODERATION_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-moderation:${{ github.event.release.tag_name || 'release-test' }}
+
 on:
   release:
     types: [published]  # Trigger when a GitHub release is published
@@ -22,7 +26,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build & push Docker image
+      - name: Build & push Frontend Docker images
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -32,6 +36,43 @@ jobs:
             -f services/frontend/frontend.Dockerfile \
             services/frontend/.
           docker push $FRONTEND_IMAGE
+      
+      - name: Build & Push Core Docker Image
+        run: |
+          docker buildx build --no-cache \
+            --platform linux/amd64 \
+            -t $CORE_IMAGE \
+            -f services/core/core.Dockerfile \
+            services/core \
+            --push
+
+          
+      - name: Build & push Matchmaking Docker images
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $MATCHMAKING_IMAGE \
+            -f services/matchmaking/matchmaking.Dockerfile \
+            services/matchmaking/.
+          docker push $MATCHMAKING_IMAGE
+      
+      - name: Build & push Messaging Docker images
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $MESSAGING_IMAGE \
+            -f services/messaging/messaging.Dockerfile \
+            services/messaging/.
+          docker push $MESSAGING_IMAGE
+
+      - name: Build & push Moderation Docker images
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $MODERATION_IMAGE \
+            -f services/moderation/moderation.Dockerfile \
+            services/moderation/.
+          docker push $MODERATION_IMAGE
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -43,7 +84,7 @@ jobs:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
       - name: Deploy frontend Cloud Run
-        id: deploy
+        id: deploy-frontend
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: 'globetalk-frontend'
@@ -51,6 +92,86 @@ jobs:
           flags: '--allow-unauthenticated --port=3000'
           container_port: 3000
 
+      - name: Deploy core Cloud Run
+        id: deploy-core
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-core'
+          image: ${{ env.CORE_IMAGE }}
+          env_vars: |-
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            CORE_URL=${{ secrets.CORE_URL}}
+            MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }}
+            MESSAGING_URL=${{ secrets.MESSAGING_URL }}
+            MODERATION_URL=${{ secrets.MODERATION_URL}}
+          flags: '--allow-unauthenticated --port=8000'
+          container_port: 8000
+      
+      - name: Deploy matchmaking Cloud Run
+        id: deploy-matchmaking
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-matchmaking'
+          image: ${{ env.MATCHMAKING_IMAGE }}
+          env_vars: |-
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            CORE_URL=${{ secrets.CORE_URL}}
+            MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }}
+            MESSAGING_URL=${{ secrets.MESSAGING_URL }}
+            MODERATION_URL=${{ secrets.MODERATION_URL}}
+          flags: '--allow-unauthenticated --port=8000'
+          container_port: 8000
+        
+      - name: Deploy messaging Cloud Run
+        id: deploy-messaging
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-messaging'
+          image: ${{ env.MESSAGING_IMAGE }}
+          env_vars: |-
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            CORE_URL=${{ secrets.CORE_URL}}
+            MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }}
+            MESSAGING_URL=${{ secrets.MESSAGING_URL }}
+            MODERATION_URL=${{ secrets.MODERATION_URL}}
+          flags: '--allow-unauthenticated --port=8000'
+          container_port: 8000
+      
+      - name: Deploy moderation Cloud Run
+        id: deploy-moderation
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-moderation'
+          image: ${{ env.MODERATION_IMAGE }}
+          env_vars: |-
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            CORE_URL=${{ secrets.CORE_URL}}
+            MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }}
+            MESSAGING_URL=${{ secrets.MESSAGING_URL }}
+            MODERATION_URL=${{ secrets.MODERATION_URL}}
+          flags: '--allow-unauthenticated --port=8000'
+          container_port: 8000
+
       # If required, use the Cloud Run url output in later steps
       - name: Show Output
-        run: echo ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "Deployment finished!"
+          echo "Frontend deployed at:"
+          echo "${{ steps.deploy-frontend.outputs.url }}"
+          echo "Core deployed at:"
+          echo "${{ steps.deploy-core.outputs.url }}"
+          echo "Matchmaking deployed at:"
+          echo "${{ steps.deploy-matchmaking.outputs.url }}"
+          echo "Messaging deployed at:"
+          echo "${{ steps.deploy-messaging.outputs.url }}"
+          echo "Moderation deployed at:"
+          echo "${{ steps.deploy-moderation.outputs.url }}"
+
