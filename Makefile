@@ -2,8 +2,20 @@
 .PHONY: actions-test-release-created
 
 #TODO: fix this to use the correct workflow file
-actions-test-pr-created:
+actions-test-frontend-ci:
 	act -W '.github/workflows/frontend-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-test-messaging-ci:
+	act -W '.github/workflows/messaging-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-test-core-ci:
+	act -W '.github/workflows/core-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-test-moderation-ci:
+	act -W '.github/workflows/moderation-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-test-matchmaking-ci:
+	act -W '.github/workflows/matchmaking-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
 
 actions-test-release-created:
 	act -W '.github/workflows/release.yml' --secret-file repo.secrets --container-architecture=linux/amd64
