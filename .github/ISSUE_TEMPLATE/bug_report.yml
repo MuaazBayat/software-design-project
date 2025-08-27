@@ -2,8 +2,7 @@ name: "🐞 Bug report"
 description: Report a bug with steps, expected vs actual, and evidence
 title: "[Bug]: <short summary>"
 labels: ["bug"]
-projects:
-  - GlobeTalk
+projects: ["MuaazBayat/4"]
 assignees:
   - Momo3945
 body:
