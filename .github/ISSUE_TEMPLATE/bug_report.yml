@@ -31,7 +31,6 @@ body:
         - P0 — blocking / no workaround
         - P1 — major / workaround exists
         - P2 — moderate
-        - P3 — low / cosmetic
       default: 2
     validations:
       required: true
@@ -74,18 +73,24 @@ body:
     validations:
       required: false
 
-  - type: textarea
+  - type: dropdown
     id: env
     attributes:
-      label: Environment
-      description: Where did this happen?
-      placeholder: |
-        - OS: macOS 14.5
-        - Browser/App: Chrome 128 / iOS App v1.2.3
-        - Account / role: example@domain.com
-        - Build/Commit: abc123
+      label: Browser / App
+      description: Which environment did this happen on?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Opera
+        - Brave
+        - iOS App
+        - Android App
+        - Other
     validations:
-      required: false
+      required: true
+
 
   - type: checkboxes
     id: sanity
