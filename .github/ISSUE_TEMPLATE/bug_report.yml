@@ -1,37 +1,98 @@
-name: Bug intake
-on:
-  issues:
-    types: [opened, edited]
+name: "🐞 Bug report"
+description: Report a bug with steps, expected vs actual, and evidence
+title: "[Bug]: <short summary>"
+labels: ["bug"]
+projects:
+  - GlobeTalk
+assignees:
+  - Momo3945
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please fill in the details below.
+        👉 You can **drag & drop screenshots/GIFs/videos** right into the “Evidence” box,
+        or paste images from your clipboard. For larger videos, paste a link.
 
-permissions:
-  issues: write
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One short sentence describing the bug
+      placeholder: e.g. "Clicking Send does nothing on the messaging page"
+    validations:
+      required: true
 
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Ensure bug label and evidence hint
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issue = context.payload.issue;
-            // Ensure 'bug' label
-            const hasBug = issue.labels.some(l => (typeof l === 'string' ? l : l.name) === 'bug');
-            if (!hasBug) {
-              await github.rest.issues.addLabels({
-                ...context.repo,
-                issue_number: issue.number,
-                labels: ['bug']
-              });
-            }
-            // Nudge for missing evidence: look for an image/video link or markdown embed
-            const body = issue.body || '';
-            const hasEmbed = /!\[.*\]\(.*\)/.test(body);
-            const hasLink = /(https?:\/\/\S+\.(png|jpe?g|gif|mp4|mov|webm))/i.test(body);
-            if (!hasEmbed && !hasLink) {
-              await github.rest.issues.createComment({
-                ...context.repo,
-                issue_number: issue.number,
-                body: "👋 If possible, please add a **screenshot** or **short video/GIF** to help us see the problem. You can drag & drop files directly into this issue."
-              });
-            }
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - P0 — blocking / no workaround
+        - P1 — major / workaround exists
+        - P2 — moderate
+        - P3 — low / cosmetic
+      default: 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps that consistently reproduce the issue
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error ...
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: What you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      placeholder: What actually happened (include any error text)
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence (screenshots / videos / GIFs)
+      description: Drag & drop files or paste images directly here. For large videos, paste a link (e.g., Google Drive).
+      placeholder: "Drop files here or paste images. Add links for big videos."
+    validations:
+      required: false
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Where did this happen?
+      placeholder: |
+        - OS: macOS 14.5
+        - Browser/App: Chrome 128 / iOS App v1.2.3
+        - Account / role: example@domain.com
+        - Build/Commit: abc123
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: sanity
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and didn't find this bug.
+          required: true
+        - label: I can reproduce this on the latest version.
+          required: false
