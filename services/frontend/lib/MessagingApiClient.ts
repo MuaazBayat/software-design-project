@@ -96,13 +96,10 @@ export default class MessagingApiClient {
       );
     }
     try {
-      // validate and normalize (remove trailing slash)
       const u = new URL(fromEnv);
       this.baseUrl = u.toString().replace(/\/+$/, "");
     } catch {
-      throw new Error(
-        `Invalid NEXT_PUBLIC_MESSAGING_API_BASE_URL: ${fromEnv}`
-      );
+      throw new Error(`Invalid NEXT_PUBLIC_MESSAGING_API_BASE_URL: ${fromEnv}`);
     }
     this.timeoutMs = opts?.timeoutMs ?? 15000;
   }
@@ -139,32 +136,46 @@ export default class MessagingApiClient {
       });
 
       const text = await res.text();
-      const maybeJson = text ? safeJsonParse(text) : null;
+      const maybeJson: unknown = text ? safeJsonParse(text) : null;
 
       if (!res.ok) {
-        const msg = (maybeJson as any)?.detail
-          ? `Request failed: ${JSON.stringify((maybeJson as any).detail)}`
+        const msg = hasDetail(maybeJson)
+          ? `Request failed: ${JSON.stringify(maybeJson.detail)}`
           : `Request failed with status ${res.status}`;
-        throw new ApiError(msg, res.status, maybeJson ?? text);
+        throw new ApiError(msg, res.status, maybeJson);
       }
 
       return (maybeJson as T) ?? ({} as T);
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
         throw new ApiError("Request timed out", 408);
       }
       if (err instanceof ApiError) throw err;
-      throw new ApiError(err?.message ?? "Unknown error", 500);
+      if (err instanceof Error) {
+        throw new ApiError(err.message, 500);
+      }
+      throw new ApiError("Unknown error", 500);
     } finally {
       clearTimeout(timer);
     }
   }
 }
 
-function safeJsonParse(s: string) {
+// ---------- tiny helpers (typed, no-any) ----------
+function safeJsonParse(s: string): unknown {
   try {
     return JSON.parse(s);
   } catch {
     return null;
   }
+}
+
+function hasDetail(x: unknown): x is { detail: unknown } {
+  return typeof x === "object" && x !== null && "detail" in x;
+}
+
+function isAbortError(e: unknown): boolean {
+  if (typeof e !== "object" || e === null) return false;
+  const maybeName = (e as { name?: unknown }).name;
+  return typeof maybeName === "string" && maybeName === "AbortError";
 }
