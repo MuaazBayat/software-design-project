@@ -10,8 +10,6 @@ import os
 
 from fastapi.middleware.cors import CORSMiddleware
 
-
-
 # -----------------------------
 # Environment / Supabase client
 # -----------------------------
@@ -32,20 +30,19 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000"
 ]
-
 ALLOWED_ORIGINS.append(os.getenv("FRONTEND_URL", ""))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,   # or ["*"] in dev
-    allow_credentials=False,         # keep false if using "*"
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
 # -------------
 # Models
 # -------------
-
 class LetterStyles(BaseModel):
     font_size: int = Field(ge=8, le=96)
     font_family: str = Field(min_length=1, max_length=100)
@@ -56,17 +53,15 @@ class MessageCreate(BaseModel):
     recipient_id: str
     conversation_thread_id: str
     message_content: str = Field(min_length=1, max_length=5000)
-    letter_styles: Optional[LetterStyles] = None   # <— NEW
-
+    letter_styles: Optional[LetterStyles] = None
 
 class MessagesPage(BaseModel):
     conversation_thread_id: str
     page_size: int = Field(5, ge=1, le=100)
-    # Use message_id cursor instead of timestamps; optional for first page
     last_message_id: Optional[str] = None
 
 class SearchUsers(BaseModel):
-    anonymous_handle: str  # pass "" to act like an inbox
+    anonymous_handle: str  # "" acts like inbox
     my_user_id: str
     limit: int = 20
     offset: int = 0
@@ -85,7 +80,6 @@ def _safe_execute(q):
     try:
         return q.execute()
     except Exception as e:
-        # Surface common PG error codes cleanly
         err = str(e)
         if "23503" in err:
             raise HTTPException(status_code=400, detail="Foreign key violation.")
@@ -126,8 +120,8 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
 
 def _fetch_active_profiles(user_ids: Iterable[str], handle_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Fetch ACTIVE user_profiles for given user_ids.
-    If handle_filter is provided (including ""), apply ilike on anonymous_handle.
+    (Legacy) Fetch ACTIVE profiles; optionally filter with ilike on anonymous_handle.
+    Left here for reference; FTS search below supersedes this for /search.
     """
     user_ids = list(user_ids)
     if not user_ids:
@@ -139,11 +133,48 @@ def _fetch_active_profiles(user_ids: Iterable[str], handle_filter: Optional[str]
         .in_("user_id", user_ids)
         .eq("account_status", "active")
     )
-    # Accept empty string to mean "no filter" but still stable-order by handle
     if handle_filter is not None:
         q = q.ilike("anonymous_handle", f"%{handle_filter}%").order("anonymous_handle", desc=False)
 
     res = _safe_execute(q)
+    return res.data or []
+
+def _search_active_profiles_fts(user_ids: Iterable[str], qtext: Optional[str]) -> List[Dict[str, Any]]:
+    """
+    Active profile search using Postgres full-text search (websearch) on anonymous_handle.
+    If qtext is empty/None -> return all active profiles ordered by handle (inbox behavior).
+    """
+    user_ids = list(user_ids)
+    if not user_ids:
+        return []
+
+    base = (
+        supabase.table("user_profiles")
+        .select("*")
+        .in_("user_id", user_ids)
+        .eq("account_status", "active")
+    )
+
+    # Inbox behavior: no query -> all active, ordered
+    if not qtext or not qtext.strip():
+        res = _safe_execute(base.order("anonymous_handle", desc=False))
+        return res.data or []
+
+    qtext = qtext.strip()
+
+    # Prefer supabase-py text_search if available
+    try:
+        res = _safe_execute(
+            base.text_search("anonymous_handle", qtext, {"type": "websearch", "config": "simple"})
+               .order("anonymous_handle", desc=False)
+        )
+    except AttributeError:
+        # Fallback: use PostgREST operator directly ("wfts" = websearch_to_tsquery)
+        res = _safe_execute(
+            base.filter("anonymous_handle", "wfts", qtext)
+               .order("anonymous_handle", desc=False)
+        )
+
     return res.data or []
 
 def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, limit_cap: int = 2000) -> Dict[str, Dict[str, Any]]:
@@ -170,8 +201,7 @@ def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, li
     latest_by_convo: Dict[str, Dict[str, Any]] = {}
     for m in (msgs_res.data or []):
         cid = m["conversation_thread_id"]
-        # first seen due to desc order is the latest
-        if cid not in latest_by_convo:
+        if cid not in latest_by_convo:  # first seen due to desc order
             latest_by_convo[cid] = m
     return latest_by_convo
 
@@ -209,7 +239,7 @@ def health():
 @app.post("/messages")
 def send_message(msg: MessageCreate):
     """
-    Create a message that will be visible 5 minutes from now in South African time (SAST).
+    Create a message that will be visible in South African time.
     """
     scheduled_dt = now_in_sa() + timedelta(hours=12)
 
@@ -230,8 +260,7 @@ def send_message(msg: MessageCreate):
         "conversation_thread_id": msg.conversation_thread_id,
         "message_sequence": seq,
         "message_content": msg.message_content,
-        # SA is UTC+2, no DST; store ISO8601 with offset
-        "scheduled_delivery_at": scheduled_dt.isoformat()
+        "scheduled_delivery_at": scheduled_dt.isoformat(),
     }
 
     if msg.letter_styles is not None:
@@ -245,13 +274,10 @@ def send_message(msg: MessageCreate):
 @app.post("/messages/page")
 def page_messages_sa(body: MessagesPage):
     """
-    Paginate messages for a conversation, using South Africa time (Africa/Johannesburg):
-      - Only include rows where scheduled_delivery_at <= now_sa
+    Paginate messages for a conversation:
+      - Only include rows where scheduled_delivery_at <= now (SA time)
       - Return newest -> oldest (created_at DESC)
-      - page_size per page (default 5)
-      - Use 'next_cursor' (a message_id) to fetch older pages
-
-    If last_message_id is omitted, you get the latest page.
+      - Use 'next_cursor' (message_id) to fetch older pages
     """
     now_sa_iso = now_in_sa().isoformat()
 
@@ -280,13 +306,13 @@ def page_messages_sa(body: MessagesPage):
     next_cursor = rows[-1]["message_id"] if rows else None
 
     return {
-        "items": rows,                      # newest → oldest within this page
+        "items": rows,
         "count": len(rows),
-        "next_cursor": next_cursor,         # pass back as last_message_id for older page
+        "next_cursor": next_cursor,
         "has_more": len(rows) == body.page_size,
     }
 
-# ---- shared implementation for search (acts like inbox when anonymous_handle == "") ----
+# ---- search implementation (FTS; "" acts like inbox) ----
 def _search_users_impl(
     anonymous_handle: str,
     my_user_id: str,
@@ -295,15 +321,16 @@ def _search_users_impl(
 ):
     """
     Search users you have an active conversation with.
-    Pass an empty anonymous_handle ("") to fetch all conversations (acts like inbox).
+    Full-text search on anonymous_handle (websearch).
+    Pass empty anonymous_handle ('') to fetch all conversations (inbox behavior).
     """
     # 1) Map other_user_id → conversation_thread_id
     conv_map = _get_conv_map_for_user(my_user_id)
     if not conv_map:
         return {"count": 0, "items": []}
 
-    # 2) Active profiles filtered by handle (empty string returns all, ordered by handle)
-    profiles = _fetch_active_profiles(conv_map.keys(), handle_filter=anonymous_handle)
+    # 2) Active profiles via FTS (or all if query empty)
+    profiles = _search_active_profiles_fts(conv_map.keys(), qtext=anonymous_handle)
     if not profiles:
         return {"count": 0, "items": []}
 
@@ -312,7 +339,7 @@ def _search_users_impl(
     if not paged_profiles:
         return {"count": 0, "items": []}
 
-    # 4) Latest visible message per convo using SA time cutoff
+    # 4) Latest visible message per convo using SA cutoff
     now_sa_iso = now_in_sa().isoformat()
     convo_ids = [conv_map[p["user_id"]] for p in paged_profiles]
     latest_by_convo = _fetch_latest_visible_messages(convo_ids, now_sa_iso, limit_cap=1000)
@@ -334,8 +361,8 @@ def _search_users_impl(
 @app.post("/search")
 def search(body: SearchUsers):
     """
-    Search users you have an active conversation with.
-    Pass an empty anonymous_handle ("") to fetch all conversations (acts like inbox).
+    Search users you have an active conversation with (full-text on handle).
+    Pass empty anonymous_handle ('') to fetch all conversations (inbox).
     """
     return _search_users_impl(
         anonymous_handle=body.anonymous_handle,
