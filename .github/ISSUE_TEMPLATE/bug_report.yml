@@ -1,0 +1,37 @@
+name: Bug intake
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure bug label and evidence hint
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            // Ensure 'bug' label
+            const hasBug = issue.labels.some(l => (typeof l === 'string' ? l : l.name) === 'bug');
+            if (!hasBug) {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: issue.number,
+                labels: ['bug']
+              });
+            }
+            // Nudge for missing evidence: look for an image/video link or markdown embed
+            const body = issue.body || '';
+            const hasEmbed = /!\[.*\]\(.*\)/.test(body);
+            const hasLink = /(https?:\/\/\S+\.(png|jpe?g|gif|mp4|mov|webm))/i.test(body);
+            if (!hasEmbed && !hasLink) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issue.number,
+                body: "👋 If possible, please add a **screenshot** or **short video/GIF** to help us see the problem. You can drag & drop files directly into this issue."
+              });
+            }
