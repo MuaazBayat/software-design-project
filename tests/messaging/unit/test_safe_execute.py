@@ -35,6 +35,3 @@ def test_safe_execute_other_exception():
     assert str(ei.value) == "weird"
 
 
-# tests/smoke/test_should_fail.py
-def test_intentional_failure():
-    assert False, "Intentional fail to verify CI gating"
