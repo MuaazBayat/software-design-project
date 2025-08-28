@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Mail, MailOpen, Globe, Clock, Heart } from 'lucide-react';
+import { Search, Mail, MailOpen, Globe, Clock, Heart, User, MessageCircle } from 'lucide-react';
+import {useSyncProfile} from '../../lib/SyncProfile'
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
-import { useSyncProfile } from '@/lib/SyncProfile';
 
 
 const LetterInbox = () => {
@@ -16,7 +16,7 @@ const LetterInbox = () => {
 
   const { profile, synced} = useSyncProfile();
 
-  // Fetch conversations on component mount
+ // Fetch conversations on component mount
   useEffect(() => {
     
     if (!synced || !profile?.user_id) return;
@@ -56,24 +56,15 @@ const LetterInbox = () => {
       );
     }
 
-    // Apply read status filter
+    // Apply read status filter - now using is_read boolean
     if (filterStatus !== 'all') {
       filtered = filtered.filter(conv => {
-        const isRead = conv.latest_message?.read_at !== null && conv.latest_message?.read_at !== undefined;
-        return filterStatus === 'read' ? isRead : !isRead;
+        return filterStatus === 'read' ? conv.latest_message?.is_read : !conv.latest_message?.is_read;
       });
     }
 
     setFilteredConversations(filtered);
   }, [conversations, searchTerm, filterStatus]);
-
-  // Get country flag emoji from country code
-  const getCountryFlag = (countryCode: string | null | undefined) => {
-    if (!countryCode) return '🌍';
-    return countryCode
-      .toUpperCase()
-      .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
-  };
 
   // Format message preview
   const formatMessagePreview = (content: string, maxLength: number = 60) => {
@@ -91,6 +82,22 @@ const LetterInbox = () => {
     if (diffDays > 0) return `${diffDays}d ago`;
     if (diffHours > 0) return `${diffHours}h ago`;
     return 'Just now';
+  };
+
+  // Get delivery status badge
+  const getDeliveryStatusBadge = (status: string, fromMe: boolean) => {
+    if (status === 'scheduled') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+          📤 {fromMe ? 'Sending...' : 'Incoming...'}
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        ✅ Delivered
+      </span>
+    );
   };
 
   if (error) {
@@ -201,7 +208,8 @@ const LetterInbox = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredConversations.map((conversation) => {
               const { user_profile, latest_message } = conversation;
-              const isUnread = !latest_message?.read_at;
+              const isUnread = !latest_message?.is_read;
+              const isFromMe = latest_message?.from_me;
               
               return (
                 <div
@@ -225,9 +233,6 @@ const LetterInbox = () => {
                           </h3>
                           <div className="flex items-center gap-1 text-amber-600">
                             <Globe className="w-4 h-4" />
-                            <span className="text-lg">
-                              {getCountryFlag(user_profile.country_code)}
-                            </span>
                             <span className="text-sm">
                               {user_profile.country_code || 'Unknown'}
                             </span>
@@ -238,18 +243,57 @@ const LetterInbox = () => {
                         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                       )}
                     </div>
+                    
+                    {/* Profile Details */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                        <User className="w-4 h-4" />
+                        <span>{user_profile.age_range}</span>
+                      </div>
+                      <p className="text-xs text-amber-700 line-clamp-2">
+                        {user_profile.bio}
+                      </p>
+                      {user_profile.interests && user_profile.interests.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {user_profile.interests.slice(0, 3).map((interest, index) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                          {user_profile.interests.length > 3 && (
+                            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">
+                              +{user_profile.interests.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Message Preview */}
                   <div className="p-6">
                     {latest_message ? (
                       <>
-                        <p className="text-amber-800 mb-3 leading-relaxed">
-                          &quot;{formatMessagePreview(latest_message.message_content)}&quot;
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-amber-600">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatTimeAgo(latest_message.scheduled_delivery_at)}</span>
+                        <div className="flex items-start gap-2 mb-3">
+                          <MessageCircle className="w-4 h-4 text-amber-500 mt-1 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-amber-800 leading-relaxed text-sm">
+                              <span className="font-medium text-amber-900">
+                                {latest_message.from_me ? 'You: ' : `${user_profile.anonymous_handle}: `}
+                              </span>
+                              &quot;{formatMessagePreview(latest_message.message_content)}&quot;
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-amber-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTimeAgo(latest_message.scheduled_delivery_at)}</span>
+                          </div>
+                          {getDeliveryStatusBadge(latest_message.delivery_status, latest_message.from_me)}
                         </div>
                       </>
                     ) : (
@@ -265,7 +309,7 @@ const LetterInbox = () => {
                           ? 'bg-red-100 text-red-700' 
                           : 'bg-green-100 text-green-700'
                       }`}>
-                        {isUnread ? 'New Letter' : 'Read'}
+                        {isUnread && !isFromMe ? 'New Letter' : 'Not Read Yet'}
                       </span>
                       <Heart className="w-5 h-5 text-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
