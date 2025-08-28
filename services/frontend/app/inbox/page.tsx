@@ -32,6 +32,7 @@ const LetterInbox = () => {
           offset: 0
         });
         setConversations(response.items);
+        console.log(response.items);
         setError(null);
       } catch (err) {
         setError('Failed to load conversations');
