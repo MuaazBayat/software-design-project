@@ -125,3 +125,4 @@ def clean_profile(profile: Dict) -> Dict:
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
