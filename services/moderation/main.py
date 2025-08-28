@@ -104,4 +104,3 @@ def check_profanity(
         "contains_profanity": has_profanity,
         "censored_text": censored
     }
-

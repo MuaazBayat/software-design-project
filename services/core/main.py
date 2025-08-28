@@ -150,3 +150,4 @@ async def update_profile(
         raise HTTPException(status_code=404, detail="Profile not found or no changes were made.")
         
     return response.data[0]
+
