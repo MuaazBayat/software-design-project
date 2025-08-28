@@ -15,6 +15,50 @@ on:
       - 'services/messaging/**'
 
 jobs:
+  tests:
+    name: ✅ Tests (Messaging)
+    runs-on: ubuntu-22.04
+
+    env:
+      # Prevent import guard from failing during test collection
+      SUPABASE_URL: http://dummy
+      SUPABASE_KEY: dummy
+      # Optional: quiet Pydantic/Supabase warnings in CI logs
+      PYTHONWARNINGS: default
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version || '3.12' }}-${{ hashFiles('**/requirements*.txt', 'pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version || '3.12' }}-
+
+      - name: Install deps
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # If you're using pyproject.toml / poetry / uv, swap the installer here
+
+      - name: Run tests with coverage
+        run: |
+          pytest --maxfail=1 -q --cov=services --cov-report=term-missing --cov-report=xml
+          # Enforce a coverage floor; adjust as you like:
+          pytest --maxfail=1 -q --cov=services --cov-fail-under=90
+
+      - name: Upload coverage (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
   docker-build-push:
     runs-on: ubuntu-22.04
     steps:
