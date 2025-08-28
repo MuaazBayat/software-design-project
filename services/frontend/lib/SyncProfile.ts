@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 
 // Define the profile type based on your backend response
 export interface Profile {
-  id: string;
+  user_id: string;
   clerk_id: string;
   anonymous_handle: string;
   created_at?: string;
@@ -47,11 +47,11 @@ export function useSyncProfile() {
         setProfile(profileData);
         
         // Log whether it was created or existing
-        // if (response.status === 201) {
-        //   console.log("New profile created:", profileData);
-        // } else if (response.status === 200) {
-        //   console.log("Existing profile retrieved:", profileData);
-        // }
+        if (response.status === 201) {
+          console.log("New profile created:", profileData);
+        } else if (response.status === 200) {
+          console.log("Existing profile retrieved:", profileData);
+        }
         
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
