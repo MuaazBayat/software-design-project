@@ -65,9 +65,8 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
   );
 }
 
-// ===== API wiring =====
-const API_BASE = "http://127.0.0.1:8000"; // leave blank for now
 
+const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL; 
 async function apiGetProfile(clerkId: string): Promise<(ProfileModel & Record<string, any>) | null> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "GET",
