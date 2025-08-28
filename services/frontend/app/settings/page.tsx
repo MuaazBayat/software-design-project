@@ -67,17 +67,20 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
 
 
 const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL; 
-async function apiGetProfile(clerkId: string): Promise<(ProfileModel & Record<string, any>) | null> {
+async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
-  if (res.status === 404) return null; // no profile yet
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GET failed: ${res.status}`);
-  return res.json();
+  return (await res.json()) as ProfileModel;
 }
 
-async function apiUpdateProfile(clerkId: string, patch: Partial<ProfileModel>): Promise<ProfileModel & Record<string, any>> {
+async function apiUpdateProfile(
+  clerkId: string,
+  patch: Partial<ProfileModel>
+): Promise<ProfileModel> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -87,7 +90,7 @@ async function apiUpdateProfile(clerkId: string, patch: Partial<ProfileModel>): 
     const detail = await res.text();
     throw new Error(`PUT failed: ${res.status} ${detail}`);
   }
-  return res.json();
+  return (await res.json()) as ProfileModel;
 }
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
@@ -191,32 +194,40 @@ export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId
     };
   }, [isLoaded, resolvedClerkId]);
 
-  // build patch of changed values only
-  function buildPatch(): Partial<ProfileModel> {
-    const orig = originalRef.current ?? ({} as ProfileModel);
-    const patch: Partial<ProfileModel> = {};
+function buildPatch(): Partial<ProfileModel> {
+  const orig = (originalRef.current ?? {}) as ProfileModel;
+  const patch: Partial<ProfileModel> = {};
 
-    const curr: ProfileModel = {
-      anonymous_handle: handle || null,
-      age_range: ageRange ?? null, // send as-is
-      primary_language: primaryLanguage ?? null, // send ISO code as-is
-      secondary_languages: secondaryLanguages, // send as-is
-      time_zone: timeZone ?? null,
-      country_code: countryCode ?? null,
-      bio: bio || null,
-      interests,
-    };
+  const curr: ProfileModel = {
+    // include anonymous_handle line if this page has it:
+    // anonymous_handle: handle || null,
+    age_range: ageRange ?? null,
+    primary_language: primaryLanguage ?? null,
+    secondary_languages: secondaryLanguages,
+    time_zone: timeZone ?? null,
+    country_code: countryCode ?? null,
+    bio: bio || null,
+    interests,
+  };
 
-    (Object.keys(curr) as (keyof ProfileModel)[]).forEach((k) => {
-      const a = (curr as any)[k];
-      const b = (orig as any)[k];
-      const eq = Array.isArray(a) && Array.isArray(b)
-        ? a.length === b.length && a.every((v, i) => v === b[i])
-        : a === b;
-      if (!eq) (patch as any)[k] = a;
-    });
-    return patch;
-  }
+  const isEqual = <T,>(a: T, b: T) =>
+    Array.isArray(a) && Array.isArray(b)
+      ? a.length === b.length && a.every((v, i) => v === b[i])
+      : a === b;
+
+  const setIfChanged = <K extends keyof ProfileModel>(key: K) => {
+    const a = curr[key];
+    const b = orig[key];
+    if (!isEqual(a, b)) {
+      patch[key] = a; // type-safe: patch[K] is ProfileModel[K] | undefined
+    }
+  };
+
+  (Object.keys(curr) as (keyof ProfileModel)[]).forEach((k) => setIfChanged(k));
+  return patch;
+}
+
+
 
   async function onSave() {
     const id = resolvedClerkId;
@@ -248,9 +259,10 @@ export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId
         interests: updated.interests ?? [],
       };
       alert("Saved changes.");
-    } catch (e: any) {
-      setError(e.message ?? String(e));
-    } finally {
+} catch (e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  setError(msg);
+}finally {
       setSaving(false);
     }
   }
