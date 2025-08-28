@@ -11,6 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
 from typing import Optional, List
 from supabase import Client
 from .models import ProfileCreate, ProfileUpdate, Profile
@@ -37,6 +38,8 @@ def get_supabase() -> Client:
     Dependency to provide the Supabase client instance to API endpoints.
     This ensures a single, reusable client across all requests.
     """
+    if supabase is None:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized.")
     return supabase
 
 
@@ -65,9 +68,13 @@ async def create_profile(
             500 Internal Server Error: If the database operation fails.
     """
     # First, check if a profile for this user ID already exists to prevent duplicates.
-    existing_profile = db.table("user_profiles").select("clerk_id").eq("clerk_id", profile_data.clerk_id).execute()
+    existing_profile = db.table("user_profiles").select("*").eq("clerk_id", profile_data.clerk_id).execute()
     if existing_profile.data:
-        raise HTTPException(status_code=400, detail="Profile for this user already exists.")
+        # Profile exists, return it with 200 OK status
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=existing_profile.data[0]
+        )
 
     # Insert the new profile data into the Supabase table.
     response = db.table("user_profiles").insert(profile_data.dict()).execute()
@@ -76,7 +83,10 @@ async def create_profile(
     if not response.data:
         raise HTTPException(status_code=500, detail="Failed to create profile.")
         
-    return response.data[0]
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=response.data[0]
+    )
 
 
 @app.get("/profiles/{clerk_id}", response_model=Profile)
