@@ -15,8 +15,67 @@ on:
       - 'services/matchmaking/**'
 
 jobs:
+  tests:
+    name: ✅ Tests (matchmaking)
+    runs-on: ubuntu-22.04
+    env:
+      SUPABASE_URL: http://dummy
+      SUPABASE_KEY: dummy
+      PYTHONWARNINGS: default
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version || '3.12' }}-${{ hashFiles('**/requirements*.txt', 'pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version || '3.12' }}-
+
+      - name: Install deps
+        run: |
+          python -m pip install -U pip setuptools wheel
+          # If your test requirements file includes pytest + pytest-cov, this is enough:
+          pip install -r tests/requirements.txt
+          # Otherwise, ensure they are present explicitly:
+          pip install pytest pytest-cov
+
+      - name: Add repo to PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Run matchmaking tests with coverage
+        run: |
+          pytest -q tests/matchmaking \
+            --maxfail=1 \
+            --cov=services/matchmaking \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-fail-under=80
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage.xml
+            htmlcov/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+
   docker-build-push:
     runs-on: ubuntu-22.04
+    needs: tests
     steps:
       - uses: actions/checkout@v4
 
