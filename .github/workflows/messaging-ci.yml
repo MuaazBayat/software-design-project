@@ -44,7 +44,7 @@ jobs:
         run: |
           python -m pip install -U pip setuptools wheel
           # If your test requirements file includes pytest + pytest-cov, this is enough:
-          pip install -r tests/messaging/requirements.txt
+          pip install -r tests/requirements.txt
           # Otherwise, ensure they are present explicitly:
           pip install pytest pytest-cov
 
