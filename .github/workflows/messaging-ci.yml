@@ -18,18 +18,16 @@ jobs:
   tests:
     name: ✅ Tests (Messaging)
     runs-on: ubuntu-22.04
-
     env:
-      # Prevent import guard from failing during test collection
       SUPABASE_URL: http://dummy
       SUPABASE_KEY: dummy
-      # Optional: quiet Pydantic/Supabase warnings in CI logs
       PYTHONWARNINGS: default
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -45,20 +43,23 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install -U pip setuptools wheel
+          # If your test requirements file includes pytest + pytest-cov, this is enough:
           pip install -r tests/messaging/requirements.txt
+          # Otherwise, ensure they are present explicitly:
+          pip install pytest pytest-cov
 
+      - name: Add repo to PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Run messaging tests with coverage
         run: |
-          # run only tests under tests/messaging
           pytest -q tests/messaging \
             --maxfail=1 \
             --cov=services/messaging \
             --cov-report=term-missing \
             --cov-report=xml \
+            --cov-report=html \
             --cov-fail-under=80
-
-
 
       - name: Upload coverage artifacts
         if: always()
@@ -71,7 +72,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-
+  
   docker-build-push:
     name: 🐳 Build & Push Docker
     runs-on: ubuntu-22.04
