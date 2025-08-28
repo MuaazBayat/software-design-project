@@ -65,14 +65,15 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
   );
 }
 
+// ===== API wiring =====
+const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL || ""; // set in .env.local
 
-const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL; 
 async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
-  if (res.status === 404) return null;
+  if (res.status === 404) return null; // no profile yet
   if (!res.ok) throw new Error(`GET failed: ${res.status}`);
   return (await res.json()) as ProfileModel;
 }
@@ -95,7 +96,7 @@ async function apiUpdateProfile(
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
-// Direct select values — EXACTLY what the DB expects
+// Direct select values — EXACTLY what the DB expects (per your enum)
 const AGE_BUCKETS = [
   "13-17",
   "18-25",
@@ -121,10 +122,10 @@ const LANG = [
   { code: "zh", label: "Chinese" },
 ] as const;
 
-// ===== Component =====
-export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId?: string }) {
+// ===== Page Component (no props; use Clerk) =====
+export default function Page() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const resolvedClerkId = React.useMemo(() => clerkId ?? (user?.id ?? ""), [clerkId, user?.id]);
+  const clerkId = user?.id ?? "";
 
   // Model fields
   const [handle, setHandle] = React.useState("");
@@ -136,7 +137,7 @@ export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId
 
   const [primaryLanguage, setPrimaryLanguage] = React.useState<string | undefined>(); // ISO code
   const [secondaryLanguages, setSecondaryLanguages] = React.useState<string[]>([]); // ISO codes
-  const [secondaryLangInput, setSecondaryLangInput] = React.useState(""); // expect ISO code or label; send raw value
+  const [secondaryLangInput, setSecondaryLangInput] = React.useState(""); // expects ISO code
   const [timeZone, setTimeZone] = React.useState<string | undefined>();
 
   // fetch state
@@ -147,11 +148,11 @@ export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId
 
   // Hydrate from GET once Clerk is loaded and we have an id
   React.useEffect(() => {
-    if (!isLoaded || !resolvedClerkId) return;
+    if (!isLoaded || !isSignedIn || !clerkId) return;
     let alive = true;
     setLoading(true);
     setError(null);
-    apiGetProfile(resolvedClerkId)
+    apiGetProfile(clerkId)
       .then((data) => {
         if (!alive) return;
         if (!data) {
@@ -187,52 +188,48 @@ export default function SettingsPage_ModelOnly_API_Handle({ clerkId }: { clerkId
         setBio((model.bio ?? "") as string);
         setInterests(model.interests ?? []);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
     return () => {
       alive = false;
     };
-  }, [isLoaded, resolvedClerkId]);
+  }, [isLoaded, isSignedIn, clerkId]);
 
-function buildPatch(): Partial<ProfileModel> {
-  const orig = (originalRef.current ?? {}) as ProfileModel;
-  const patch: Partial<ProfileModel> = {};
+  function buildPatch(): Partial<ProfileModel> {
+    const orig = (originalRef.current ?? {}) as ProfileModel;
+    const patch: Partial<ProfileModel> = {};
 
-  const curr: ProfileModel = {
-    // include anonymous_handle line if this page has it:
-    // anonymous_handle: handle || null,
-    age_range: ageRange ?? null,
-    primary_language: primaryLanguage ?? null,
-    secondary_languages: secondaryLanguages,
-    time_zone: timeZone ?? null,
-    country_code: countryCode ?? null,
-    bio: bio || null,
-    interests,
-  };
+    const curr: ProfileModel = {
+      anonymous_handle: handle || null,
+      age_range: ageRange ?? null,
+      primary_language: primaryLanguage ?? null,
+      secondary_languages: secondaryLanguages,
+      time_zone: timeZone ?? null,
+      country_code: countryCode ?? null,
+      bio: bio || null,
+      interests,
+    };
 
-  const isEqual = <T,>(a: T, b: T) =>
-    Array.isArray(a) && Array.isArray(b)
-      ? a.length === b.length && a.every((v, i) => v === b[i])
-      : a === b;
+    const isEqual = <T,>(a: T, b: T) =>
+      Array.isArray(a) && Array.isArray(b)
+        ? a.length === b.length && a.every((v, i) => v === b[i])
+        : a === b;
 
-  const setIfChanged = <K extends keyof ProfileModel>(key: K) => {
-    const a = curr[key];
-    const b = orig[key];
-    if (!isEqual(a, b)) {
-      patch[key] = a; // type-safe: patch[K] is ProfileModel[K] | undefined
-    }
-  };
+    const setIfChanged = <K extends keyof ProfileModel>(key: K) => {
+      const a = curr[key];
+      const b = orig[key];
+      if (!isEqual(a, b)) {
+        patch[key] = a; // type-safe
+      }
+    };
 
-  (Object.keys(curr) as (keyof ProfileModel)[]).forEach((k) => setIfChanged(k));
-  return patch;
-}
-
-
+    (Object.keys(curr) as (keyof ProfileModel)[]).forEach((k) => setIfChanged(k));
+    return patch;
+  }
 
   async function onSave() {
-    const id = resolvedClerkId;
-    if (!id) {
-      alert("Missing clerkId — sign in or pass it as a prop.");
+    if (!isLoaded || !isSignedIn || !clerkId) {
+      alert("Sign in first.");
       return;
     }
     if (handle && !HANDLE_RE.test(handle)) {
@@ -247,7 +244,7 @@ function buildPatch(): Partial<ProfileModel> {
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiUpdateProfile(id, patch);
+      const updated = await apiUpdateProfile(clerkId, patch);
       originalRef.current = {
         anonymous_handle: updated.anonymous_handle ?? null,
         age_range: updated.age_range ?? null,
@@ -259,20 +256,12 @@ function buildPatch(): Partial<ProfileModel> {
         interests: updated.interests ?? [],
       };
       alert("Saved changes.");
-} catch (e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
-  setError(msg);
-}finally {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+    } finally {
       setSaving(false);
     }
-  }
-
-  // Render guards for Clerk state
-  if (!isLoaded) {
-    return <div className="min-h-screen grid place-items-center text-stone-600">Loading account…</div>;
-  }
-  if (!isSignedIn && !clerkId) {
-    return <div className="min-h-screen grid place-items-center text-stone-700">Please sign in to view your settings.</div>;
   }
 
   // UI
@@ -282,6 +271,9 @@ function buildPatch(): Partial<ProfileModel> {
         <div className="mb-6">
           <h1 className="text-3xl font-serif tracking-tight text-amber-900">Your Settings</h1>
           <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p>
+          {API_BASE === "" && (
+            <p className="mt-2 text-xs text-red-600">Set NEXT_PUBLIC_CORE_API_BASE_URL in .env.local</p>
+          )}
           {error && <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">{error}</p>}
         </div>
 
