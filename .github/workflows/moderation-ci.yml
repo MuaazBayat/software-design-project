@@ -15,7 +15,7 @@ on:
       - 'services/moderation/**'
 
 jobs:
-    tests:
+  tests:
     name: ✅ Tests (moderation)
     runs-on: ubuntu-22.04
     env:
@@ -71,8 +71,6 @@ jobs:
             htmlcov/**
           if-no-files-found: ignore
           retention-days: 7
-
-
   docker-build-push:
     runs-on: ubuntu-22.04
     needs: tests
