@@ -48,10 +48,8 @@ class LetterStyles(BaseModel):
     font_family: str = Field(min_length=1, max_length=100)
 
 class MessageCreate(BaseModel):
-    match_id: str
     sender_id: str
     recipient_id: str
-    conversation_thread_id: str
     message_content: str = Field(min_length=1, max_length=5000)
     letter_styles: Optional[LetterStyles] = None
 
@@ -87,6 +85,46 @@ def _safe_execute(q):
             raise HTTPException(status_code=400, detail="Check constraint failed.")
         raise
 
+def _normalize_pair(a: str, b: str) -> Tuple[str, str]:
+    """Deterministically order a user pair so (a,b) == (b,a)."""
+    return (a, b) if a <= b else (b, a)
+
+def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, str]:
+    """
+    Return {'match_id': ..., 'conversation_thread_id': ...} for the ACTIVE match between two users,
+    regardless of ordering. Requires conversation_thread_id to be non-null.
+    """
+    a, b = _normalize_pair(user_x, user_y)
+    res = _safe_execute(
+        supabase.table("match_records")
+        .select("match_id,conversation_thread_id,status")
+        .or_(f"and(user_1_id.eq.{a},user_2_id.eq.{b}),and(user_1_id.eq.{b},user_2_id.eq.{a})")
+        .eq("status", "active")
+        .limit(1)
+    )
+    row = (res.data or [None])[0]
+    if not row:
+        raise HTTPException(status_code=404, detail="No active match between users.")
+    thread_id = row.get("conversation_thread_id")
+    if not thread_id:
+        # Enforce that you populate conversation_thread_id at match creation time
+        raise HTTPException(
+            status_code=409,
+            detail="Active match found but conversation_thread_id is NULL. Populate it first."
+        )
+    return {"match_id": row["match_id"], "conversation_thread_id": thread_id}
+
+def _next_sequence(conversation_thread_id: str) -> int:
+    """Compute next message_sequence within the thread."""
+    res = _safe_execute(
+        supabase.table("messages")
+        .select("message_sequence")
+        .eq("conversation_thread_id", conversation_thread_id)
+        .order("message_sequence", desc=True)
+        .limit(1)
+    )
+    return (int(res.data[0]["message_sequence"]) + 1) if res.data else 1
+
 def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
     """
     Return {other_user_id: conversation_thread_id} for active matches where a conversation exists.
@@ -117,6 +155,7 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
         conv_map[r["user_1_id"]] = r["conversation_thread_id"]
 
     return conv_map
+
 
 def _fetch_active_profiles(user_ids: Iterable[str], handle_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """
@@ -239,30 +278,31 @@ def health():
 @app.post("/messages")
 def send_message(msg: MessageCreate):
     """
-    Create a message that will be visible in South African time.
+    Create a message visible in South African time.
+    Requires: sender_id, recipient_id, message_content, optional letter_styles.
+    Uses match_records to resolve both match_id and conversation_thread_id.
     """
+    # 1) Resolve active match + conversation thread id from match_records
+    ids = _get_active_match_and_thread(msg.sender_id, msg.recipient_id)
+    match_id = ids["match_id"]
+    thread_id = ids["conversation_thread_id"]
+
+    # 2) Schedule in SA time (example: +12 hours)
     scheduled_dt = now_in_sa() + timedelta(hours=12)
 
-    # Determine next message_sequence (simple, non-racy increment)
-    res = _safe_execute(
-        supabase.table("messages")
-        .select("message_sequence")
-        .eq("conversation_thread_id", msg.conversation_thread_id)
-        .order("message_sequence", desc=True)
-        .limit(1)
-    )
-    seq = int(res.data[0]["message_sequence"]) + 1 if res.data else 1
+    # 3) Next sequence within this thread
+    seq = _next_sequence(thread_id)
 
+    # 4) Insert message
     payload = {
-        "match_id": msg.match_id,
+        "match_id": match_id,
         "sender_id": msg.sender_id,
         "recipient_id": msg.recipient_id,
-        "conversation_thread_id": msg.conversation_thread_id,
+        "conversation_thread_id": thread_id,
         "message_sequence": seq,
         "message_content": msg.message_content,
         "scheduled_delivery_at": scheduled_dt.isoformat(),
     }
-
     if msg.letter_styles is not None:
         payload["letter_styles"] = msg.letter_styles.model_dump()
 
@@ -270,6 +310,7 @@ def send_message(msg: MessageCreate):
     if not ins.data:
         raise HTTPException(status_code=500, detail="Failed to insert message")
     return ins.data[0]
+
 
 @app.post("/messages/page")
 def page_messages_sa(body: MessagesPage):
