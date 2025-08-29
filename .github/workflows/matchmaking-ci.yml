@@ -1,4 +1,4 @@
-name: 🐳 Messaging Service - Docker Build & Push
+name: 🐳 Matchmaking Service - Docker Build & Push
 
 on:
   push:
