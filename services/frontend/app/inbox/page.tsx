@@ -121,26 +121,7 @@ const LetterInbox = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b-4 border-amber-200">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-full">
-                <Mail className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-amber-900">Letter Box</h1>
-                <p className="text-amber-700">Your pen pal conversations</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl">📮</div>
-              <p className="text-sm text-amber-600">{conversations.length} conversations</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Search and Filter Bar */}
