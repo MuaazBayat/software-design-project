@@ -58,14 +58,26 @@ export interface SearchUsersRequest {
   offset?: number;
 }
 
+export interface UserProfile {
+  user_id: string;
+  anonymous_handle: string;
+  country_code?: string | null;
+  bio?: string;
+  age_range?: string;
+  interests?: string[];
+  // add other fields as needed
+}
+
 export interface SearchUsersResponseItem {
-  user_profile: {
-    user_id: UUID;
-    anonymous_handle: string;
-    country_code?: string | null;
-    [k: string]: unknown;
+  user_profile: UserProfile;
+  latest_message?: {
+    is_read: boolean;
+    from_me: boolean;
+    message_content: string;
+    scheduled_delivery_at: string;
+    delivery_status: string;
+    // add other fields as needed
   };
-  latest_message: MessageRow | null;
 }
 
 export interface SearchUsersResponse {

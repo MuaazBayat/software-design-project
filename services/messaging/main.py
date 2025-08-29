@@ -27,9 +27,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI(title="Simple Messages API (SA time, ID cursor)")
 
 ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "http://localhost:3000", 
     "http://127.0.0.1:3000"
-]
+] 
 ALLOWED_ORIGINS.append(os.getenv("FRONTEND_URL", ""))
 
 app.add_middleware(

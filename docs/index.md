@@ -12,6 +12,7 @@ See the frontend documentation [here](frontend/frontend.md).
 
 frontend/frontend
 matchmaking/matchmaking
+messaging/messagingapi
 moderation/moderation
 contribution/contribution
 technologyStack/technologyStack
