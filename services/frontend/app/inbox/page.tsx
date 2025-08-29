@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Mail, MailOpen, Globe, Clock, Heart, User, MessageCircle } from 'lucide-react';
+import { Search, Mail, MailOpen, Mailbox } from 'lucide-react';
 import {useSyncProfile} from '../../lib/SyncProfile'
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
+import ConversationCard from '@/components/ConversationCard';
 
 
 const LetterInbox = () => {
@@ -120,26 +121,7 @@ const LetterInbox = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b-4 border-amber-200">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-full">
-                <Mail className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-amber-900">Letter Box</h1>
-                <p className="text-amber-700">Your pen pal conversations</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl">📮</div>
-              <p className="text-sm text-amber-600">{conversations.length} conversations</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Search and Filter Bar */}
@@ -160,7 +142,7 @@ const LetterInbox = () => {
             {/* Filter Buttons */}
             <div className="flex gap-2">
               {[
-                { value: 'all', label: 'All Letters', icon: Mail },
+                { value: 'all', label: 'All Letters', icon: Mailbox },
                 { value: 'unread', label: 'Unread', icon: Mail },
                 { value: 'read', label: 'Read', icon: MailOpen }
               ].map(({ value, label, icon: Icon }) => (
@@ -206,117 +188,15 @@ const LetterInbox = () => {
         {/* Conversations Grid */}
         {!isLoading && filteredConversations.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredConversations.map((conversation) => {
-              const { user_profile, latest_message } = conversation;
-              const isUnread = !latest_message?.is_read;
-              const isFromMe = latest_message?.from_me;
-              
-              return (
-                <div
-                  key={user_profile.user_id}
-                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-l-4 ${
-                    isUnread ? 'border-red-400' : 'border-green-400'
-                  } group hover:-translate-y-1`}
-                >
-                  {/* Card Header */}
-                  <div className="p-6 border-b border-amber-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-                          isUnread ? 'bg-red-100' : 'bg-green-100'
-                        }`}>
-                          {isUnread ? '✉️' : '📖'}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-amber-900 text-lg">
-                            {user_profile.anonymous_handle}
-                          </h3>
-                          <div className="flex items-center gap-1 text-amber-600">
-                            <Globe className="w-4 h-4" />
-                            <span className="text-sm">
-                              {user_profile.country_code || 'Unknown'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      {isUnread && (
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                      )}
-                    </div>
-                    
-                    {/* Profile Details */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                        <User className="w-4 h-4" />
-                        <span>{user_profile.age_range}</span>
-                      </div>
-                      <p className="text-xs text-amber-700 line-clamp-2">
-                        {user_profile.bio}
-                      </p>
-                      {user_profile.interests && user_profile.interests.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {user_profile.interests.slice(0, 3).map((interest, index) => (
-                            <span 
-                              key={index}
-                              className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full"
-                            >
-                              {interest}
-                            </span>
-                          ))}
-                          {user_profile.interests.length > 3 && (
-                            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">
-                              +{user_profile.interests.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Message Preview */}
-                  <div className="p-6">
-                    {latest_message ? (
-                      <>
-                        <div className="flex items-start gap-2 mb-3">
-                          <MessageCircle className="w-4 h-4 text-amber-500 mt-1 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-amber-800 leading-relaxed text-sm">
-                              <span className="font-medium text-amber-900">
-                                {latest_message.from_me ? 'You: ' : `${user_profile.anonymous_handle}: `}
-                              </span>
-                              &quot;{formatMessagePreview(latest_message.message_content)}&quot;
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-amber-600">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatTimeAgo(latest_message.scheduled_delivery_at)}</span>
-                          </div>
-                          {getDeliveryStatusBadge(latest_message.delivery_status, latest_message.from_me)}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-amber-500 italic">No messages yet</p>
-                    )}
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="px-6 pb-6">
-                    <div className="flex items-center justify-between">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        isUnread 
-                          ? 'bg-red-100 text-red-700' 
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {isUnread && !isFromMe ? 'New Letter' : 'Not Read Yet'}
-                      </span>
-                      <Heart className="w-5 h-5 text-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredConversations.map((conversation) => (
+              <ConversationCard
+                key={conversation.user_profile.user_id}
+                conversation={conversation}
+                formatMessagePreview={formatMessagePreview}
+                formatTimeAgo={formatTimeAgo}
+                getDeliveryStatusBadge={getDeliveryStatusBadge}
+              />
+            ))}
           </div>
         )}
       </div>
