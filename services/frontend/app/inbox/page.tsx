@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Mail, MailOpen } from 'lucide-react';
+import { Search, Mail, MailOpen, Mailbox } from 'lucide-react';
 import {useSyncProfile} from '../../lib/SyncProfile'
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
 import ConversationCard from '@/components/ConversationCard';
@@ -142,7 +142,7 @@ const LetterInbox = () => {
             {/* Filter Buttons */}
             <div className="flex gap-2">
               {[
-                { value: 'all', label: 'All Letters', icon: Mail },
+                { value: 'all', label: 'All Letters', icon: Mailbox },
                 { value: 'unread', label: 'Unread', icon: Mail },
                 { value: 'read', label: 'Read', icon: MailOpen }
               ].map(({ value, label, icon: Icon }) => (
