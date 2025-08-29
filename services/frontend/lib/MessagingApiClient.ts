@@ -7,10 +7,8 @@ export interface LetterStyles {
 }
 
 export interface SendLetterRequest {
-  match_id: UUID;
   sender_id: UUID;
   recipient_id: UUID;
-  conversation_thread_id: UUID;
   message_content: string;
   letter_styles?: LetterStyles;
 }
