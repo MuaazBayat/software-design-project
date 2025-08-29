@@ -49,12 +49,12 @@ jobs:
           
       - name: Build & push Matchmaking Docker images
         run: |
-          docker buildx build \
+          docker buildx build  --no-cache \
             --platform linux/amd64 \
             -t $MATCHMAKING_IMAGE \
             -f services/matchmaking/matchmaking.Dockerfile \
-            services/matchmaking/.
-          docker push $MATCHMAKING_IMAGE
+            services/matchmaking \
+            --push
       
       - name: Build & push Messaging Docker images
         run: |
