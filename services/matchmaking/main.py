@@ -156,6 +156,9 @@ def record_pass(user_id: str, passed_user_id: str):
 
 def should_reset_passed_users(user_id: str, available_profiles: List[Dict]) -> bool:
     """Check if we should reset passed users (when all available users have been passed)"""
+    if not available_profiles:
+        return False  # No available profiles, so no need to reset
+    
     passed_users = get_passed_users(user_id)
     available_user_ids = [p['user_id'] for p in available_profiles]
     
@@ -438,6 +441,52 @@ def calculate_similarity_score(profile: Dict, preference_profile: Dict) -> float
     max_score += 0.2
     
     return min(score / max_score, 1.0) if max_score > 0 else 0.0
+
+
+
+fakeUsers = [
+    {
+        "user_id": "fake-1",
+        "anonymous_handle": "Elara",
+        "country_code": "JP",
+        "bio": "Lover of traditional arts, matcha, and quiet temples. Seeking a friend to share stories of daily life and culture.",
+        "interests": ["Art", "Tea", "Nature"],
+        "age_range": "25-34",
+        "primary_language": "ja",
+        "favorite_local_fact": "Kyoto was the imperial capital of Japan for over 1,000 years.",
+    },
+    {
+        "user_id": "fake-2",
+        "anonymous_handle": "Javier",
+        "country_code": "AR",
+        "bio": "Passionate about tango, football, and asado. Let's exchange tales of bustling city life and vibrant traditions.",
+        "interests": ["Dancing", "Food", "Music"],
+        "age_range": "30-39",
+        "primary_language": "es",
+        "favorite_local_fact": "Buenos Aires means 'good airs' or 'fair winds' in Spanish.",
+    },
+    {
+        "user_id": "fake-3",
+        "anonymous_handle": "Amina",
+        "country_code": "MA",
+        "bio": "I find joy in the colors of the souk, the aroma of spices, and storytelling. Eager to connect with a kindred spirit.",
+        "interests": ["Cooking", "History", "Photography"],
+        "age_range": "28-37",
+        "primary_language": "ar",
+        "favorite_local_fact": "Marrakech is known as the 'Red City' due to the color of its buildings.",
+    },
+    {
+        "user_id": "fake-4",
+        "anonymous_handle": "Liam",
+        "country_code": "IE",
+        "bio": "A fan of folk music, rainy days, and ancient myths. Let's share our favorite books and local legends.",
+        "interests": ["Music", "Reading", "Hiking"],
+        "age_range": "32-41",
+        "primary_language": "en",
+        "favorite_local_fact": "Dublin was originally founded by Vikings as a trading settlement in the 9th century.",
+    }
+]
+
 
 # --- Endpoints ---
 @app.get("/health")
