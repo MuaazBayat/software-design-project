@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from enum import Enum
 import uuid
 import random
@@ -98,6 +98,24 @@ class MatchDecisionRequest(BaseModel):
     accept: bool  # True if Accept, False if Reject
     suggested_user_id: Optional[str] = None  # Add this field for the suggested profile
     preferences: Optional[MatchingPreferences] = MatchingPreferences(match_type="either")
+
+
+class PreferenceSelection(BaseModel):
+    clerk_id: str
+    selected_profile_id: str
+    preference_type: str  # 'real' or 'fake'
+
+class PreferenceProfile(BaseModel):
+    profile_id: str
+    anonymous_handle: str
+    country_code: Optional[str] = None
+    bio: Optional[str] = None
+    interests: Optional[List[str]] = None
+    age_range: Optional[str] = None
+    primary_language: Optional[str] = None
+    favorite_local_fact: Optional[str] = None
+    is_real: bool
+
 
 
 # --- Helper Functions ---
@@ -377,6 +395,50 @@ def apply_interest_filter(query, interests: List[str]):
     
     return query
 
+
+
+def calculate_similarity_score(profile: Dict, preference_profile: Dict) -> float:
+    """Calculate how similar a profile is to the user's preference profile"""
+    score = 0.0
+    max_score = 0.0
+    
+    # Country similarity (25%)
+    if profile.get('country_code') and preference_profile.get('country_code'):
+        if profile['country_code'] == preference_profile['country_code']:
+            score += 0.25
+    max_score += 0.25
+    
+    # Language similarity (25%)
+    profile_languages = [profile.get('primary_language')] + (profile.get('secondary_languages') or [])
+    pref_languages = [preference_profile.get('primary_language')] + (preference_profile.get('secondary_languages') or [])
+    
+    profile_languages = [l.lower() for l in profile_languages if l]
+    pref_languages = [l.lower() for l in pref_languages if l]
+    
+    if profile_languages and pref_languages:
+        common_langs = set(profile_languages) & set(pref_languages)
+        if common_langs:
+            score += 0.25 * len(common_langs) / max(len(profile_languages), len(pref_languages))
+    max_score += 0.25
+    
+    # Interest similarity (30%)
+    profile_interests = [i.lower() for i in (profile.get('interests') or [])]
+    pref_interests = [i.lower() for i in (preference_profile.get('interests') or [])]
+    
+    if profile_interests and pref_interests:
+        common_interests = set(profile_interests) & set(pref_interests)
+        if common_interests:
+            score += 0.3 * len(common_interests) / max(len(profile_interests), len(pref_interests))
+    max_score += 0.3
+    
+    # Age range similarity (20%)
+    if profile.get('age_range') and preference_profile.get('age_range'):
+        if profile['age_range'] == preference_profile['age_range']:
+            score += 0.2
+    max_score += 0.2
+    
+    return min(score / max_score, 1.0) if max_score > 0 else 0.0
+
 # --- Endpoints ---
 @app.get("/health")
 def health_check():
@@ -517,7 +579,7 @@ async def suggest_profile_preview(
 
 @app.post("/matches/find", response_model=MatchResponse)
 async def find_match_with_decision(match_request: MatchDecisionRequest = Body(...)):
-    """Enhanced matching with improved filters, scoring, and pass tracking"""
+    """Enhanced matching with improved filters, scoring, pass tracking, and preference consideration"""
     clerk_id = match_request.clerk_id
     accept = match_request.accept
     suggested_user_id = match_request.suggested_user_id
@@ -547,7 +609,7 @@ async def find_match_with_decision(match_request: MatchDecisionRequest = Body(..
             # If suggested profile doesn't exist, fall back to normal matching
             suggested_user_id = None
 
-    # If no specific profile suggested or it doesn't exist, use original matching logic
+    # If no specific profile suggested or it doesn't exist, use matching logic
     if not suggested_user_id or not selected:
         # Get all available profiles without database-level filtering
         profiles = supabase.table("user_profiles")\
@@ -588,8 +650,59 @@ async def find_match_with_decision(match_request: MatchDecisionRequest = Body(..
         if not available_profiles:
             available_profiles = profiles
 
-        # Prioritize profiles that match filters first
-        prioritized_profiles = prioritize_profiles_by_filters(available_profiles, user, preferences)
+        # Get user's preference selection if it exists
+        preference_selection = None
+        try:
+            user_pref_result = supabase.table("user_preference_selections") \
+                .select("*") \
+                .eq("user_id", user_id) \
+                .execute()
+                
+            if user_pref_result.data:
+                preference_selection = user_pref_result.data[0]
+        except:
+            pass  # Continue without preference if there's an error
+        
+        # If user has a preference selection, prioritize similar profiles
+        if preference_selection:
+            preference_profile = None
+            
+            if preference_selection['preference_type'] == 'real':
+                # Try to get the real profile from database
+                try:
+                    preference_profile = await get_user_by_id(preference_selection['selected_profile_id'])
+                except:
+                    pass
+            else:
+                # Find the fake profile from our list
+                for fake_user in fakeUsers:
+                    if fake_user['user_id'] == preference_selection['selected_profile_id']:
+                        preference_profile = fake_user
+                        break
+            
+            # If we found the preference profile, use it to influence matching
+            if preference_profile:
+                # Score profiles based on similarity to preference profile
+                scored_profiles = []
+                for profile in available_profiles:
+                    # Calculate similarity to preference profile
+                    similarity_score = calculate_similarity_score(profile, preference_profile)
+                    
+                    # Combine with compatibility score (weighted average)
+                    compatibility_score_val = calculate_compatibility_score(user, profile, preferences)
+                    combined_score = (compatibility_score_val * 0.7) + (similarity_score * 0.3)
+                    
+                    scored_profiles.append((profile, combined_score))
+                
+                # Sort by combined score
+                scored_profiles.sort(key=lambda x: x[1] + random.random() * 0.05, reverse=True)
+                prioritized_profiles = [p for p, s in scored_profiles]
+            else:
+                # Fall back to original prioritization if preference profile not found
+                prioritized_profiles = prioritize_profiles_by_filters(available_profiles, user, preferences)
+        else:
+            # No preference selection, use original logic
+            prioritized_profiles = prioritize_profiles_by_filters(available_profiles, user, preferences)
 
         if not prioritized_profiles:
             raise HTTPException(404, "No compatible profiles found")
@@ -650,3 +763,102 @@ async def find_match_with_decision(match_request: MatchDecisionRequest = Body(..
             compatibility_score=round(score, 2),
             created_at=datetime.now().isoformat()
         )
+    
+@app.post("/preferences/select")
+async def select_preference_profile(selection: PreferenceSelection):
+    """Store a user's preference profile selection"""
+    try:
+        print(f"Received selection: {selection.dict()}")  # Add this for debugging
+        user = await get_user_by_clerk_id(selection.clerk_id)
+        user_id = user['user_id']
+        
+        # Check if user already has a preference selection
+        existing = supabase.table("user_preference_selections") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .execute()
+            
+        record = {
+            "user_id": user_id,
+            "selected_profile_id": selection.selected_profile_id,
+            "preference_type": selection.preference_type,
+            "selected_at": datetime.now().isoformat()
+        }
+        
+        if existing.data:
+            # Update existing selection
+            supabase.table("user_preference_selections") \
+                .update(record) \
+                .eq("user_id", user_id) \
+                .execute()
+        else:
+            # Create new selection
+            supabase.table("user_preference_selections").insert(record).execute()
+            
+        return {"success": True, "message": "Preference selection saved"}
+        
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save preference selection: {str(e)}")
+
+@app.get("/preferences/profiles/{clerk_id}", response_model=List[PreferenceProfile])
+async def get_preference_profiles(clerk_id: str):
+    """Get a mix of real and fake profiles for preference selection"""
+    try:
+        # Get 4 real active profiles from the database
+        real_profiles = supabase.table("user_profiles") \
+            .select("user_id, anonymous_handle, country_code, bio, interests, age_range, primary_language, favorite_local_fact") \
+            .eq("account_status", "active") \
+            .limit(4) \
+            .execute()
+            
+        real_profiles_list = []
+        if real_profiles.data:
+            real_profiles_list = [
+                PreferenceProfile(
+                    profile_id=profile['user_id'],
+                    anonymous_handle=profile['anonymous_handle'],
+                    country_code=profile['country_code'],
+                    bio=profile['bio'],
+                    interests=profile['interests'],
+                    age_range=profile['age_range'],
+                    primary_language=profile['primary_language'],
+                    favorite_local_fact=profile['favorite_local_fact'],
+                    is_real=True
+                ) for profile in real_profiles.data
+            ]
+        
+        # If we don't have enough real profiles, add fake ones
+        fake_profiles = []
+        if len(real_profiles_list) < 4:
+            needed = 4 - len(real_profiles_list)
+            fake_profiles = [
+                PreferenceProfile(
+                    profile_id=fake_user['user_id'],
+                    anonymous_handle=fake_user['anonymous_handle'],
+                    country_code=fake_user['country_code'],
+                    bio=fake_user['bio'],
+                    interests=fake_user['interests'],
+                    age_range=fake_user['age_range'],
+                    primary_language=fake_user['primary_language'],
+                    favorite_local_fact=fake_user['favorite_local_fact'],
+                    is_real=False
+                ) for fake_user in fakeUsers[:needed]
+            ]
+        
+        return real_profiles_list + fake_profiles
+        
+    except Exception as e:
+        # Fallback to fake profiles if there's an error
+        return [
+            PreferenceProfile(
+                profile_id=fake_user['user_id'],
+                anonymous_handle=fake_user['anonymous_handle'],
+                country_code=fake_user['country_code'],
+                bio=fake_user['bio'],
+                interests=fake_user['interests'],
+                age_range=fake_user['age_range'],
+                primary_language=fake_user['primary_language'],
+                favorite_local_fact=fake_user['favorite_local_fact'],
+                is_real=False
+            ) for fake_user in fakeUsers
+        ]
