@@ -77,7 +77,11 @@ def test_cors_frontend_url_is_appended(monkeypatch):
 
 
 def test_send_message_letter_styles_line_is_hit(monkeypatch):
-    # Hits the exact line that copies letter_styles into payload
+    """
+    Ensure we hit the code path that copies letter_styles into the payload.
+    We stub _get_active_match_and_thread so the code doesn't call table('match_records');
+    this keeps FakeSupabase.table assertion focused on 'messages'.
+    """
     ns = _exec_main_with_env(
         monkeypatch,
         SUPABASE_URL="http://dummy",
@@ -86,7 +90,13 @@ def test_send_message_letter_styles_line_is_hit(monkeypatch):
     )
     module = types.SimpleNamespace(**ns)
 
-    # Fake supabase.table to capture insert payload
+    # Stub conv/thread resolution to avoid touching match_records
+    def fake_get_ids(x, y):
+        return {"match_id": "m", "conversation_thread_id": "c"}
+    monkeypatch.setitem(ns, "_get_active_match_and_thread", fake_get_ids)
+    module._get_active_match_and_thread = fake_get_ids
+
+    # Fake supabase.table to capture insert payload and to assert we only hit "messages"
     captured = {"payload": None}
 
     class FakeInsert:
@@ -113,10 +123,11 @@ def test_send_message_letter_styles_line_is_hit(monkeypatch):
 
     class FakeSupabase:
         def table(self, name):
+            # If this ever gets called with 'match_records', the assertion below will fail,
+            # which helps ensure our stub prevented that path.
             assert name == "messages"
             return FakeMessages()
 
-    # patch supabase + time + safe execute
     monkeypatch.setitem(ns, "supabase", FakeSupabase())
     module.supabase = FakeSupabase()
 
@@ -133,7 +144,6 @@ def test_send_message_letter_styles_line_is_hit(monkeypatch):
         if calls["i"] == 1:
             return Resp([])  # no existing sequence
         elif calls["i"] == 2:
-            # handled inside FakeInsert.execute above via returned echo
             return Resp([{
                 "message_id": "id",
                 "conversation_thread_id": "c",
@@ -141,7 +151,7 @@ def test_send_message_letter_styles_line_is_hit(monkeypatch):
                 "sender_id": "s",
                 "recipient_id": "r",
                 "message_content": "ok",
-                "scheduled_delivery_at": fixed_now.isoformat(),
+                "scheduled_delivery_at": "2025-08-28T10:00:00+02:00",
                 "letter_styles": {"font_size": 12, "font_family": "A"},
             }])
         else:
@@ -150,12 +160,10 @@ def test_send_message_letter_styles_line_is_hit(monkeypatch):
     monkeypatch.setitem(ns, "_safe_execute", fake_safe_execute)
     module._safe_execute = fake_safe_execute
 
-    # call the endpoint function directly
+    # Call the endpoint function directly with the NEW schema
     body = ns["MessageCreate"](
-        match_id="m",
         sender_id="s",
         recipient_id="r",
-        conversation_thread_id="c",
         message_content="ok",
         letter_styles=ns["LetterStyles"](font_size=12, font_family="A"),
     )
