@@ -1,346 +1,725 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+
 import { Card } from "@/components/ui/card"
+
 import { Textarea } from "@/components/ui/textarea"
+
 import { Button } from "@/components/ui/button"
+
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
+// Templates are now controlled by the enclosing page/right sidebar; a toggle handler is passed in.
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Slider } from "@/components/ui/slider"
+
 import { CheckCircle2, Bold, Italic, Underline, ListOrdered, ListIcon, BookTemplate, RotateCcw, RotateCw, Type } from "lucide-react"
-import { FONT_PRESETS, DEFAULT_FONT_ID } from "@/app/fonts"
+
+import { FONT_PRESETS, DEFAULT_FONT_ID } from "@/app/compose-letter/fonts"
+
 import { applyCustomList as applyCustomListExternal, wrapSelectionInList as wrapSelectionInListExternal } from "../lib/listFormatting"
+
 // Lightweight local LetterTemplate type (inlined so this component doesn't depend on an external service file)
+
 export type LetterTemplate = { id: string; name: string; description: string; content: string; category: string; estimated_minutes?: number; tags?: string[] }
 
+
+
 interface MainContentProps {
-  letterContent: string
-  setLetterContent: (content: string) => void
-  fontStyle: string
-  fontSize: number[]
-  setFontStyle?: (s: string) => void
-  setFontSize?: (s: number[]) => void
-  success?: boolean
-  templates?: LetterTemplate[]
-  onApplyTemplate?: (templateId: string) => void
-  letterHeading?: string
-  setLetterHeading?: (h: string) => void
-  letterFooterPrefix?: string
-  setLetterFooterPrefix?: (p: string) => void
-  anonymousHandle?: string
-  onNewLetter?: () => void
-  sending?: boolean
-  previewFontIdExternal?: string | null
-  onToggleFontOverlay?: () => void
-  overlayFontOpen?: boolean
+
+  letterContent: string
+
+  setLetterContent: (content: string) => void
+
+  fontStyle: string
+
+  fontSize: number[]
+
+  setFontStyle?: (s: string) => void
+
+  setFontSize?: (s: number[]) => void
+
+  success?: boolean
+
+  templates?: LetterTemplate[]
+
+  onApplyTemplate?: (templateId: string) => void
+
+  letterHeading?: string
+
+  setLetterHeading?: (h: string) => void
+
+  letterFooterPrefix?: string
+
+  setLetterFooterPrefix?: (p: string) => void
+
+  anonymousHandle?: string
+
+  onNewLetter?: () => void
+
+  sending?: boolean
+
+  previewFontIdExternal?: string | null
+
+  onToggleFontOverlay?: () => void
+
+  overlayFontOpen?: boolean
+
+  // template background control
+
+  templateBackground?: string | null
+
+  onToggleTemplates?: () => void
+
 }
 
-export default function MainContent({ 
-  letterContent, 
-  setLetterContent, 
-  fontStyle, 
-  fontSize,
-  success = false,
-  templates = [],
-  onApplyTemplate,
-  letterHeading = 'To a kindred spirit,',
-  setLetterHeading,
-  letterFooterPrefix = 'Yours,',
-  setLetterFooterPrefix,
-  setFontStyle,
-  setFontSize,
-  anonymousHandle = '',
-  onNewLetter,
-  sending = false,
-  previewFontIdExternal = null,
-  onToggleFontOverlay,
-  overlayFontOpen = false
+
+
+export default function MainContent({ 
+
+  letterContent, 
+
+  setLetterContent, 
+
+  fontStyle, 
+
+  fontSize,
+
+  success = false,
+
+  templates = [],
+
+  onApplyTemplate,
+
+  letterHeading = 'To a kindred spirit,',
+
+  setLetterHeading,
+
+  letterFooterPrefix = 'Yours,',
+
+  setLetterFooterPrefix,
+
+  setFontStyle,
+
+  setFontSize,
+
+  anonymousHandle = '',
+
+  onNewLetter,
+
+  sending = false,
+
+  previewFontIdExternal = null,
+
+  onToggleFontOverlay,
+
+  overlayFontOpen = false
+
+  , templateBackground = null
+
+  , onToggleTemplates
+
 }: MainContentProps) {
-  const [selectedFormatting, setSelectedFormatting] = useState<string[]>([]);
-  // Removed internal floating panel; using sidebar overlay instead
-  const previewFontId = previewFontIdExternal
-  const [undoStack, setUndoStack] = useState<string[]>([])
-  const [redoStack, setRedoStack] = useState<string[]>([])
-  // Ensure fontStyle has a default compatible with new presets
-  if (!fontStyle) setFontStyle?.(DEFAULT_FONT_ID)
-  // Track last committed content for undo snapshotting on typing
-  const lastContentRef = useRef<string>(letterContent)
-  const editorRef = useRef<HTMLDivElement | null>(null)
-  // preserve a cloned Range on mousedown so toolbar clicks that blur/clear the
-  // live selection can still operate on the intended range
-  const preservedRangeRef = useRef<Range | null>(null)
 
-  const captureSelection = () => {
-    try {
-      const sel = window.getSelection()
-      if (sel && sel.rangeCount > 0) {
-  preservedRangeRef.current = sel.getRangeAt(0).cloneRange()
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-  const pushUndo = useCallback((html?: string) => {
-    const editor = editorRef.current
-    if (!editor) return
-    const snapshot = html !== undefined ? html : editor.innerHTML
-    setUndoStack(prev => {
-      if (prev[prev.length - 1] === snapshot) return prev // avoid duplicates
-      return [...prev.slice(-49), snapshot]
-    })
-    setRedoStack([])
-  }, [])
+  const [selectedFormatting, setSelectedFormatting] = useState<string[]>([]);
 
-  const handleUndo = () => {
-    const editor = editorRef.current
-    if (!editor || !undoStack.length) return
-    const previous = undoStack[undoStack.length - 1]
-    const current = editor.innerHTML
-    setUndoStack(undoStack.slice(0, -1))
-    setRedoStack(r => [...r, current])
-    editor.innerHTML = previous
-    lastContentRef.current = previous
-    setLetterContent(previous)
-  }
-  const handleRedo = () => {
-    const editor = editorRef.current
-    if (!editor || !redoStack.length) return
-    const next = redoStack[redoStack.length - 1]
-    const current = editor.innerHTML
-    setRedoStack(redoStack.slice(0, -1))
-    setUndoStack(u => [...u.slice(-49), current])
-    editor.innerHTML = next
-    lastContentRef.current = next
-    setLetterContent(next)
-  }
+  // Removed internal floating panel; using sidebar overlay instead
 
-  const toggleFormatting = (format: string) => {
-    // apply formatting to the current selection using document.execCommand
-    // map our format names to execCommand commands
-    const cmdMap: { [k: string]: string } = {
-      'bold': 'bold',
-      'italic': 'italic',
-      'underline': 'underline',
-      'olist': 'insertOrderedList',
-      'ulist': 'insertUnorderedList'
-    }
-    const cmd = cmdMap[format]
-    if (!cmd) return
+  const previewFontId = previewFontIdExternal
 
-    // Custom handling for list buttons: build list items from the selected text
-    // splitting either on newlines (if present) or on sentence boundaries ending
-    // in a period / question / exclamation mark. This bypasses inconsistent
-    // browser execCommand list behavior and produces predictable output.
-    if (format === 'olist' || format === 'ulist') {
-      pushUndo()
-      applyCustomList(format === 'olist')
-      refreshFormattingState()
-      return
-    }
+  const [undoStack, setUndoStack] = useState<string[]>([])
 
-  {
-      // If this is a list command, ensure the editor has focus and the selection
-      // is inside the editor so execCommand behaves as expected. Try execCommand
-      // first (native behavior). If it produces no DOM change, fall back to a
-      // safe DOM-manipulation that wraps the selection in an <ol>/<ul> with
-      // <li> children.
-      const isList = format === 'olist' || format === 'ulist'
-      const editor = editorRef.current
-  try {
-        if (isList && editor) {
-          const sel = window.getSelection()
-          if (sel && sel.anchorNode && !editor.contains(sel.anchorNode)) {
-            editor.focus()
-          }
-          // snapshot before
-          const before = editor.innerHTML
-          // try native command
-          document.execCommand(cmd)
-          const after = editor.innerHTML
-          // if execCommand didn't change the editor, use fallback
-          if (after === before) {
-            const ordered = format === 'olist'
-            pushUndo(); wrapSelectionInList(ordered)
-          }
-        } else {
-          // non-list commands
-          pushUndo(); document.execCommand(cmd)
-        }
-      } catch (e) {
-        // if execCommand fails for lists, try fallback
-        if (isList) { pushUndo(); wrapSelectionInList(format === 'olist') }
-      }
-    }
-  // Keep React state in sync after applying formatting
-    try {
-      const editor = editorRef.current
-      if (editor) {
-        const selBefore = preservedRangeRef.current?.cloneRange()
-        setLetterContent(editor.innerHTML)
-        // restore selection asynchronously to avoid React repaint clearing it
-        setTimeout(() => {
-          if (selBefore) {
-            const sel = window.getSelection()
-            try {
-              sel?.removeAllRanges()
-              sel?.addRange(selBefore)
-            } catch {}
-          }
-        }, 0)
-      }
-    } catch (e) {}
-    refreshFormattingState()
-  };
+  const [redoStack, setRedoStack] = useState<string[]>([])
 
-  // DOM-based fallback to convert the current selection into a list. This is
-  // used when document.execCommand('insertOrderedList'/'insertUnorderedList')
-  // doesn't apply (some browsers/environments are inconsistent). The
-  // implementation is intentionally small and conservative: it extracts the
-  // selected fragment, wraps top-level nodes into <li> elements and inserts an
-  // <ol> or <ul> replacing the selection. Inline formatting inside nodes is
-  // preserved because we clone the selected nodes.
-  const wrapSelectionInList = (ordered: boolean) => {
-    wrapSelectionInListExternal(ordered, { editor: editorRef.current, preservedRangeRef, setLetterContent })
-  }
+  // Ensure fontStyle has a default compatible with new presets
 
-  // Build a list from selection text (splitting by newline or sentence end) and replace selection.
-  const applyCustomList = (ordered: boolean) => {
-  applyCustomListExternal(ordered, { editor: editorRef.current as HTMLDivElement | null, preservedRangeRef, setLetterContent })
-  normalizeOrderedLists()
-  }
+  if (!fontStyle) setFontStyle?.(DEFAULT_FONT_ID)
 
-  const refreshFormattingState = () => {
-    try {
-      const newFormats: string[] = []
-      if (document.queryCommandState('bold')) newFormats.push('bold')
-      if (document.queryCommandState('italic')) newFormats.push('italic')
-      if (document.queryCommandState('underline')) newFormats.push('underline')
-      // Detect list presence by walking selection ancestors
-      const sel = window.getSelection()
-      if (sel && sel.anchorNode) {
-        let node: Node | null = sel.anchorNode
-        if (node.nodeType === Node.TEXT_NODE) node = node.parentNode
-        let el = node as HTMLElement | null
-        while (el) {
-          if (el.tagName === 'UL') { newFormats.push('ulist'); break }
-          if (el.tagName === 'OL') { newFormats.push('olist'); break }
-          el = el.parentElement
-        }
-      }
-      setSelectedFormatting(newFormats)
-    } catch (e) { /* ignore */ }
-  }
+  // Track last committed content for undo snapshotting on typing
 
-  // Recompute sequential numbering across all ordered lists so that when
-  // users insert new items earlier, later split lists update their start.
-  const normalizeOrderedLists = () => {
-    const editor = editorRef.current
-    if (!editor) return
-    let changed = false
-    let cumulative = 0
-    const children = Array.from(editor.childNodes)
-    children.forEach(node => {
-      if (node instanceof HTMLElement && node.tagName === 'OL') {
-        const items = Array.from(node.children).filter(c => (c as HTMLElement).tagName === 'LI')
-        const desiredStart = cumulative + 1
-        const currentStartAttr = node.getAttribute('start')
-        if (desiredStart === 1) {
-          if (currentStartAttr) { node.removeAttribute('start'); changed = true }
-        } else {
-          if (currentStartAttr !== String(desiredStart)) { node.setAttribute('start', String(desiredStart)); changed = true }
-        }
-        cumulative += items.length
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        // paragraphs or other blocks do not reset numbering; continue cumulative
-      }
-    })
-    if (changed) {
-      const html = editor.innerHTML
-      lastContentRef.current = html
-      setLetterContent(html)
-    }
-  }
-  
-  const handleTemplateSelect = (templateId: string) => {
-    onApplyTemplate?.(templateId);
-  };
+  const lastContentRef = useRef<string>(letterContent)
 
-  useEffect(() => {
-    // initialize undo stack with initial content once
-    if (undoStack.length === 0 && letterContent) {
-      setUndoStack([letterContent])
-      lastContentRef.current = letterContent
-    }
-    // update toolbar button states when selection changes
-    const onSelectionChange = () => {
-      try {
-        const newFormats: string[] = []
-        if (document.queryCommandState('bold')) newFormats.push('bold')
-        if (document.queryCommandState('italic')) newFormats.push('italic')
-        if (document.queryCommandState('underline')) newFormats.push('underline')
-        try {
-          if (document.queryCommandState('insertOrderedList')) newFormats.push('olist')
-          if (document.queryCommandState('insertUnorderedList')) newFormats.push('ulist')
-        } catch (e) {}
-        const sel = window.getSelection()
-        setSelectedFormatting(newFormats)
-      } catch (e) {
-        // ignore in environments where execCommand isn't available
-      }
-    }
-    document.addEventListener('selectionchange', onSelectionChange)
-    return () => document.removeEventListener('selectionchange', onSelectionChange)
-  }, [])
+  const editorRef = useRef<HTMLDivElement | null>(null)
 
-  // Keyboard shortcuts for undo/redo & formatting
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const meta = e.metaKey || e.ctrlKey
-      if (!meta) return
-      if (e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) handleRedo(); else handleUndo()
-      } else if (e.key.toLowerCase() === 'y') {
-        e.preventDefault(); handleRedo()
-      } else if (e.key.toLowerCase() === 'b') {
-        e.preventDefault(); toggleFormatting('bold')
-      } else if (e.key.toLowerCase() === 'i') {
-        e.preventDefault(); toggleFormatting('italic')
-      } else if (e.key.toLowerCase() === 'u') {
-        e.preventDefault(); toggleFormatting('underline')
-      } else if (e.key.toLowerCase() === 'k') {
-        e.preventDefault(); onToggleFontOverlay?.()
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleUndo, handleRedo, toggleFormatting])
+  const currentContentRef = useRef<string>(letterContent)
 
-  // Keep editor DOM in sync only when the external letterContent prop changes.
-  // This avoids React re-rendering/dangerouslySetInnerHTML that would replace the
-  // DOM while the user is selecting text or interacting with the editor.
-  useEffect(() => {
-    const el = editorRef.current
-    if (!el) return
-    if (el.innerHTML !== letterContent) {
-      el.innerHTML = letterContent
-    }
-  }, [letterContent])
+  // preserve a cloned Range on mousedown so toolbar clicks that blur/clear the
 
-  // Map selected fontStyle to utility classes and optional inline styles.
-  const effectiveFontId = previewFontId || fontStyle
-  const preset = FONT_PRESETS.find(p => p.id === effectiveFontId) || FONT_PRESETS[0]
-  const fontClass = preset.className
-  const fontInlineStyle: { [k: string]: string } = {}
-  if (preset.letterSpacing) fontInlineStyle.letterSpacing = preset.letterSpacing
-  if (preset.lineHeight) fontInlineStyle.lineHeight = preset.lineHeight
-  // Header/footer should not be bigger than the main text.
-  // Make header/footer slightly smaller (90%) but never exceed main font size and have a sensible minimum.
-  const headerFooterSize = (fontSize && fontSize[0])
-    ? Math.max(12, Math.min(fontSize[0], Math.round(fontSize[0] * 0.9)))
-    : 18
+  // live selection can still operate on the intended range
+
+  const preservedRangeRef = useRef<Range | null>(null)
+
+
+
+  const captureSelection = () => {
+
+    try {
+
+      const sel = window.getSelection()
+
+      if (sel && sel.rangeCount > 0) {
+
+  preservedRangeRef.current = sel.getRangeAt(0).cloneRange()
+
+      }
+
+    } catch (e) {
+
+      // ignore
+
+    }
+
+  }
+
+  const pushUndo = useCallback((html?: string) => {
+
+    const editor = editorRef.current
+
+    if (!editor) return
+
+    const snapshot = html !== undefined ? html : editor.innerHTML
+
+    setUndoStack(prev => {
+
+      if (prev[prev.length - 1] === snapshot) return prev // avoid duplicates
+
+      return [...prev.slice(-49), snapshot]
+
+    })
+
+    setRedoStack([])
+
+  }, [])
+
+
+
+  const handleUndo = () => {
+
+    const editor = editorRef.current
+
+    if (!editor || !undoStack.length) return
+
+    const previous = undoStack[undoStack.length - 1]
+
+    const current = editor.innerHTML
+
+    setUndoStack(undoStack.slice(0, -1))
+
+    setRedoStack(r => [...r, current])
+
+    editor.innerHTML = previous
+
+    lastContentRef.current = previous
+
+    setLetterContent(previous)
+
+  }
+
+  const handleRedo = () => {
+
+    const editor = editorRef.current
+
+    if (!editor || !redoStack.length) return
+
+    const next = redoStack[redoStack.length - 1]
+
+    const current = editor.innerHTML
+
+    setRedoStack(redoStack.slice(0, -1))
+
+    setUndoStack(u => [...u.slice(-49), current])
+
+    editor.innerHTML = next
+
+    lastContentRef.current = next
+
+    setLetterContent(next)
+
+  }
+
+
+
+  const toggleFormatting = (format: string) => {
+
+    // apply formatting to the current selection using document.execCommand
+
+    // map our format names to execCommand commands
+
+    const cmdMap: { [k: string]: string } = {
+
+      'bold': 'bold',
+
+      'italic': 'italic',
+
+      'underline': 'underline',
+
+      'olist': 'insertOrderedList',
+
+      'ulist': 'insertUnorderedList'
+
+    }
+
+    const cmd = cmdMap[format]
+
+    if (!cmd) return
+
+
+
+    // Custom handling for list buttons: build list items from the selected text
+
+    // splitting either on newlines (if present) or on sentence boundaries ending
+
+    // in a period / question / exclamation mark. This bypasses inconsistent
+
+    // browser execCommand list behavior and produces predictable output.
+
+    if (format === 'olist' || format === 'ulist') {
+
+      pushUndo()
+
+      applyCustomList(format === 'olist')
+
+      refreshFormattingState()
+
+      return
+
+    }
+
+
+
+  {
+
+      // If this is a list command, ensure the editor has focus and the selection
+
+      // is inside the editor so execCommand behaves as expected. Try execCommand
+
+      // first (native behavior). If it produces no DOM change, fall back to a
+
+      // safe DOM-manipulation that wraps the selection in an <ol>/<ul> with
+
+      // <li> children.
+
+      const isList = format === 'olist' || format === 'ulist'
+
+      const editor = editorRef.current
+
+  try {
+
+        if (isList && editor) {
+
+          const sel = window.getSelection()
+
+          if (sel && sel.anchorNode && !editor.contains(sel.anchorNode)) {
+
+            editor.focus()
+
+          }
+
+          // snapshot before
+
+          const before = editor.innerHTML
+
+          // try native command
+
+          document.execCommand(cmd)
+
+          const after = editor.innerHTML
+
+          // if execCommand didn't change the editor, use fallback
+
+          if (after === before) {
+
+            const ordered = format === 'olist'
+
+            pushUndo(); wrapSelectionInList(ordered)
+
+          }
+
+        } else {
+
+          // non-list commands
+
+          pushUndo(); document.execCommand(cmd)
+
+        }
+
+      } catch (e) {
+
+        // if execCommand fails for lists, try fallback
+
+        if (isList) { pushUndo(); wrapSelectionInList(format === 'olist') }
+
+      }
+
+    }
+
+  // Keep React state in sync after applying formatting
+
+    try {
+
+      const editor = editorRef.current
+
+      if (editor) {
+
+        const selBefore = preservedRangeRef.current?.cloneRange()
+
+        setLetterContent(editor.innerHTML)
+
+        // restore selection asynchronously to avoid React repaint clearing it
+
+        setTimeout(() => {
+
+          if (selBefore) {
+
+            const sel = window.getSelection()
+
+            try {
+
+              sel?.removeAllRanges()
+
+              sel?.addRange(selBefore)
+
+            } catch {}
+
+          }
+
+        }, 0)
+
+      }
+
+    } catch (e) {}
+
+    refreshFormattingState()
+
+  };
+
+
+
+  // DOM-based fallback to convert the current selection into a list. This is
+
+  // used when document.execCommand('insertOrderedList'/'insertUnorderedList')
+
+  // doesn't apply (some browsers/environments are inconsistent). The
+
+  // implementation is intentionally small and conservative: it extracts the
+
+  // selected fragment, wraps top-level nodes into <li> elements and inserts an
+
+  // <ol> or <ul> replacing the selection. Inline formatting inside nodes is
+
+  // preserved because we clone the selected nodes.
+
+  const wrapSelectionInList = (ordered: boolean) => {
+
+    wrapSelectionInListExternal(ordered, { editor: editorRef.current, preservedRangeRef, setLetterContent })
+
+  }
+
+
+
+  // Build a list from selection text (splitting by newline or sentence end) and replace selection.
+
+  const applyCustomList = (ordered: boolean) => {
+
+  applyCustomListExternal(ordered, { editor: editorRef.current as HTMLDivElement | null, preservedRangeRef, setLetterContent })
+
+  normalizeOrderedLists()
+
+  }
+
+
+
+  const refreshFormattingState = () => {
+
+    try {
+
+      const newFormats: string[] = []
+
+      if (document.queryCommandState('bold')) newFormats.push('bold')
+
+      if (document.queryCommandState('italic')) newFormats.push('italic')
+
+      if (document.queryCommandState('underline')) newFormats.push('underline')
+
+      // Detect list presence by walking selection ancestors
+
+      const sel = window.getSelection()
+
+      if (sel && sel.anchorNode) {
+
+        let node: Node | null = sel.anchorNode
+
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentNode
+
+        let el = node as HTMLElement | null
+
+        while (el) {
+
+          if (el.tagName === 'UL') { newFormats.push('ulist'); break }
+
+          if (el.tagName === 'OL') { newFormats.push('olist'); break }
+
+          el = el.parentElement
+
+        }
+
+      }
+
+      setSelectedFormatting(newFormats)
+
+    } catch (e) { /* ignore */ }
+
+  }
+
+
+
+  // Recompute sequential numbering across all ordered lists so that when
+
+  // users insert new items earlier, later split lists update their start.
+
+  const normalizeOrderedLists = () => {
+
+    const editor = editorRef.current
+
+    if (!editor) return
+
+    let changed = false
+
+    let cumulative = 0
+
+    const children = Array.from(editor.childNodes)
+
+    children.forEach(node => {
+
+      if (node instanceof HTMLElement && node.tagName === 'OL') {
+
+        const items = Array.from(node.children).filter(c => (c as HTMLElement).tagName === 'LI')
+
+        const desiredStart = cumulative + 1
+
+        const currentStartAttr = node.getAttribute('start')
+
+        if (desiredStart === 1) {
+
+          if (currentStartAttr) { node.removeAttribute('start'); changed = true }
+
+        } else {
+
+          if (currentStartAttr !== String(desiredStart)) { node.setAttribute('start', String(desiredStart)); changed = true }
+
+        }
+
+        cumulative += items.length
+
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+
+        // paragraphs or other blocks do not reset numbering; continue cumulative
+
+      }
+
+    })
+
+    if (changed) {
+
+      const html = editor.innerHTML
+
+      lastContentRef.current = html
+
+      currentContentRef.current = html
+
+      setLetterContent(html)
+
+    }
+
+  }
+
+  
+
+  const handleTemplateSelect = (templateId: string) => {
+
+    onApplyTemplate?.(templateId);
+
+  };
+
+
+
+  useEffect(() => {
+
+    // initialize undo stack with initial content once
+
+    if (undoStack.length === 0 && letterContent) {
+
+      setUndoStack([letterContent])
+
+      lastContentRef.current = letterContent
+
+      currentContentRef.current = letterContent
+
+    }
+
+    // update toolbar button states when selection changes
+
+    const onSelectionChange = () => {
+
+      try {
+
+        const newFormats: string[] = []
+
+        if (document.queryCommandState('bold')) newFormats.push('bold')
+
+        if (document.queryCommandState('italic')) newFormats.push('italic')
+
+        if (document.queryCommandState('underline')) newFormats.push('underline')
+
+        try {
+
+          if (document.queryCommandState('insertOrderedList')) newFormats.push('olist')
+
+          if (document.queryCommandState('insertUnorderedList')) newFormats.push('ulist')
+
+        } catch (e) {}
+
+        const sel = window.getSelection()
+
+        setSelectedFormatting(newFormats)
+
+      } catch (e) {
+
+        // ignore in environments where execCommand isn't available
+
+      }
+
+    }
+
+    document.addEventListener('selectionchange', onSelectionChange)
+
+    return () => document.removeEventListener('selectionchange', onSelectionChange)
+
+  }, [])
+
+
+
+  // Keyboard shortcuts for undo/redo & formatting
+
+  useEffect(() => {
+
+    const handler = (e: KeyboardEvent) => {
+
+      const meta = e.metaKey || e.ctrlKey
+
+      if (!meta) return
+
+      if (e.key.toLowerCase() === 'z') {
+
+        e.preventDefault()
+
+        if (e.shiftKey) handleRedo(); else handleUndo()
+
+      } else if (e.key.toLowerCase() === 'y') {
+
+        e.preventDefault(); handleRedo()
+
+      } else if (e.key.toLowerCase() === 'b') {
+
+        e.preventDefault(); toggleFormatting('bold')
+
+      } else if (e.key.toLowerCase() === 'i') {
+
+        e.preventDefault(); toggleFormatting('italic')
+
+      } else if (e.key.toLowerCase() === 'u') {
+
+        e.preventDefault(); toggleFormatting('underline')
+
+      } else if (e.key.toLowerCase() === 'k') {
+
+        e.preventDefault(); onToggleFontOverlay?.()
+
+      }
+
+    }
+
+    document.addEventListener('keydown', handler)
+
+    return () => document.removeEventListener('keydown', handler)
+
+  }, [handleUndo, handleRedo, toggleFormatting])
+
+
+
+  // Keep editor DOM in sync only when the external letterContent prop changes.
+
+  // This avoids React re-rendering/dangerouslySetInnerHTML that would replace the
+
+  // DOM while the user is selecting text or interacting with the editor.
+
+  useEffect(() => {
+
+    const el = editorRef.current
+
+    if (!el) return
+
+    if (document.activeElement !== el) {
+
+      el.innerHTML = letterContent
+
+      currentContentRef.current = letterContent
+
+    }
+
+  }, [letterContent])
+
+
+
+  // Map selected fontStyle to utility classes and optional inline styles.
+
+  const effectiveFontId = previewFontId || fontStyle
+
+  const preset = FONT_PRESETS.find(p => p.id === effectiveFontId) || FONT_PRESETS[0]
+
+  const fontClass = preset.className
+
+  const fontInlineStyle: { [k: string]: string } = {}
+
+  if (preset.letterSpacing) fontInlineStyle.letterSpacing = preset.letterSpacing
+
+  if (preset.lineHeight) fontInlineStyle.lineHeight = preset.lineHeight
+
+  // Header/footer should not be bigger than the main text.
+
+  // Make header/footer slightly smaller (90%) but never exceed main font size and have a sensible minimum.
+
+  const headerFooterSize = (fontSize && fontSize[0])
+
+    ? Math.max(12, Math.min(fontSize[0], Math.round(fontSize[0] * 0.9)))
+
+    : 18
+
+
+
+  // Calculate a vertical tile size for lined backgrounds so the SVG scales
+
+  // with the editor font size. The multiplier 2.25 maps a 16px font to ~36px
+
+  // line spacing (previously used as a repeating-linear-gradient step).
+
+  const lineTileHeight = fontSize && fontSize[0] ? Math.round(fontSize[0] * 2.25) : 36
+
+
+
+  // Use a small SVG texture served from the app's /public folder. This keeps
+
+  // the asset cached by the browser and easier to tweak without rebuilding
+
+  // the component source. The file is located at /textures/rustic.svg
+
+  const rusticAssetUrl = '/textures/rustic.svg'
+
+
 
   return (
-  <div className="flex-1 p-8">
+    <div className="flex-1 p-8">
       <div className="max-w-2xl mx-auto">
         {success && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center">
@@ -427,92 +806,161 @@ export default function MainContent({
             </div>
 
             <div className="flex items-center gap-3">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1 border-amber-200">
-                    <BookTemplate className="h-4 w-4" />
-                    Templates
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Choose a Letter Template</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 mt-4">
-                    {templates.map(template => (
-                      <Card 
-                        key={template.id}
-                        className="p-3 cursor-pointer hover:bg-amber-50 transition-colors"
-                        onClick={() => handleTemplateSelect(template.id)}
-                      >
-                        <h4 className="font-medium text-gray-800">{template.name}</h4>
-                        <p className="text-gray-500 text-sm">{template.description}</p>
-                        <Badge className="mt-2" variant="outline">{template.category}</Badge>
-                      </Card>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button variant="outline" size="sm" className="gap-1 border-amber-200" onClick={() => onToggleTemplates?.()}>
+                <BookTemplate className="h-4 w-4" />
+                Templates
+              </Button>
 
               {/* preview removed as requested */}
             </div>
           </div>
         </div>
 
-  <div className="mb-8">
-          <p className={`text-gray-500 mb-4 ${fontClass}`} style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          <input
-            value={letterHeading}
-            onChange={(e) => setLetterHeading?.(e.target.value)}
-            className={`text-gray-700 mb-6 bg-transparent border-b border-amber-100 focus:outline-none ${fontClass}`}
-            style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}
-          />
-        </div>
+        <div className="relative">          {templateBackground && (
 
-        <Card className="p-8 bg-white/80 backdrop-blur-sm border-amber-200 shadow-lg">
-      <div
-            ref={editorRef}
-            contentEditable={!success}
-            suppressContentEditableWarning
-            onInput={(e) => {
-              const html = (e.target as HTMLDivElement).innerHTML
-              if (html !== lastContentRef.current) {
-                pushUndo(lastContentRef.current)
-                lastContentRef.current = html
-                setLetterContent(html)
-        // Normalize lists after user typing edits.
-        requestAnimationFrame(() => normalizeOrderedLists())
-              }
-            }}
-            // NOTE: we intentionally avoid using dangerouslySetInnerHTML here to prevent
-            // React from overwriting the editor DOM on every render (which breaks selection).
-            // Instead we sync the editor's innerHTML imperatively in an effect below when
-            // the incoming `letterContent` prop actually changes.
-            className={`min-h-64 border-none resize-none focus:ring-0 text-gray-700 leading-relaxed ${fontClass}`}
-            tabIndex={0}
-            onMouseDown={() => editorRef.current?.focus()}
-            style={{
-              fontSize: `${fontSize[0]}px`,
-              ...(fontInlineStyle || {}),
-              userSelect: 'text',
-              WebkitUserSelect: 'text',
-              MozUserSelect: 'text',
-              msUserSelect: 'text'
-            }}
-          />
-        </Card>
+            <div aria-hidden className="absolute inset-0 rounded-lg pointer-events-none z-0 overflow-hidden">
 
-        <div className="mt-6 text-right">
-          <input
-            value={letterFooterPrefix}
-            onChange={(e) => setLetterFooterPrefix?.(e.target.value)}
-            className={`text-gray-600 bg-transparent border-b border-amber-100 focus:outline-none ml-auto w-48 text-right ${fontClass}`}
-            style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}
-          />
-          <div className={`mt-1 text-gray-600 ${fontClass}`} style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}>{anonymousHandle}</div>
-          {/* Scheduled delivery is automatic (12 hours from send) */}
+              {templateBackground === 'rustic' && (
+
+                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg,#fbf6ec 0%,#f4efe6 100%)`, backgroundSize: 'cover' }}>
+
+                  <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${rusticAssetUrl}')`, backgroundRepeat: 'repeat', opacity: 0.25 }} />
+
+                </div>
+
+              )}
+
+              {templateBackground === 'plain' && (
+
+                <div style={{ position: 'absolute', inset: 0, background: '#fbf6ed' }} />
+
+              )}
+
+              {templateBackground === 'lined' && (
+
+                <div style={{
+
+                  position: 'absolute',
+
+                  top: 0,
+
+                  bottom: 0,
+
+                  left: 0,
+
+                  right: 0,
+
+                  backgroundColor: '#fffef8',
+
+                  backgroundImage: `repeating-linear-gradient(180deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent ${lineTileHeight}px), url('/compose-letter/templates/linedpage.svg')`,
+
+                  backgroundRepeat: `repeat, no-repeat`,
+
+                  backgroundSize: `100% ${lineTileHeight}px, auto 100%`,
+
+                  backgroundPosition: `center top, center center`
+
+                }} />
+
+              )}
+
+            </div>
+
+          )}
+
+
+
+          <div className="mb-0 relative z-10">                        <p className={`text-gray-500 mb-0 ${fontClass}`} style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+
+            <input
+
+              value={letterHeading}
+
+              onChange={(e) => setLetterHeading?.(e.target.value)}
+
+              className={`text-gray-700 mb-0 bg-transparent border-b border-amber-100 focus:outline-none ${fontClass}`}              style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}
+
+            />
+
+          </div>
+
+
+
+          <Card className="p-1 gap-1 bg-transparent border-amber-200 shadow-sm relative z-10">                        <div aria-hidden className="absolute inset-0 rounded-lg bg-white/2 backdrop-blur-none pointer-events-none z-0" />
+
+            <div className="relative z-10">
+
+              <div
+
+                ref={editorRef}
+
+                contentEditable={!success}
+
+                suppressContentEditableWarning
+
+                onInput={(e) => {
+
+                  const html = (e.target as HTMLDivElement).innerHTML;
+
+                  if (html !== lastContentRef.current) {
+
+                    pushUndo(lastContentRef.current);
+
+                    lastContentRef.current = html;
+
+                    currentContentRef.current = html;
+
+                  }
+
+                }}
+
+                onBlur={() => {
+
+                  setLetterContent(currentContentRef.current);
+
+                }}
+
+                className={`min-h-24 border-none resize-none focus:ring-0 text-gray-700 leading-tight ${fontClass}`}                tabIndex={0}
+
+                style={{
+
+                  fontSize: `${fontSize[0]}px`,
+
+                  ...(fontInlineStyle || {}),
+
+                  userSelect: 'text',
+
+                  WebkitUserSelect: 'text',
+
+                  MozUserSelect: 'text',
+
+                  msUserSelect: 'text',
+
+                  direction: 'ltr'
+
+                }}
+
+              />            </div>
+
+          </Card>
+
+
+
+          <div className="mt-0 text-right relative z-10">            <input
+
+              value={letterFooterPrefix}
+
+              onChange={(e) => setLetterFooterPrefix?.(e.target.value)}
+
+              className={`text-gray-600 bg-transparent border-b border-amber-100 focus:outline-none ml-auto w-48 text-right ${fontClass}`}
+
+              style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}
+
+            />
+
+            <div className={`mt-0 text-gray-600 ${fontClass}`} style={{ fontSize: `${headerFooterSize}px`, ...(fontInlineStyle || {}) }}>{anonymousHandle}</div>          </div>
+
         </div>
       </div>
     </div>
-  )
-}
+  )}

@@ -100,6 +100,8 @@ export default function LetterApp() {
   const [scheduledDeliveryTime, setScheduledDeliveryTime] = useState<Date | null>(null);
   const [fontOverlayOpen, setFontOverlayOpen] = useState(false);
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templateBackground, setTemplateBackground] = useState<string | null>(null);
 
   const { profile, synced } = useSyncProfile();
   const userId = profile?.user_id ?? '';
@@ -218,17 +220,15 @@ export default function LetterApp() {
       const scheduledIso = scheduledDt.toISOString();
       const composedFooter = `${letterFooterPrefix} ${anonymousHandle}`.trim();
 
-      const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
-        match_id: matchIdToUse,
-        sender_id: senderID,
-        recipient_id: recipientID,
-        conversation_thread_id: threadId,
-        message_content: letterContent,
-        letter_styles: { font_size: fontSize[0], font_family: fontStyle },
-        scheduled_delivery_at: scheduledIso,
-        letter_heading: letterHeading,
-        letter_footer: composedFooter,
-      };
+     const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
+      sender_id: senderID,
+      recipient_id: recipientID,
+      message_content: letterContent,
+      letter_styles: { font_size: fontSize[0], font_family: fontStyle },
+      scheduled_delivery_at: scheduledIso,
+      letter_heading: letterHeading,
+      letter_footer: composedFooter,
+    };
 
       const response = await api.sendLetter(body);
 
@@ -272,6 +272,19 @@ export default function LetterApp() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleSelectTemplate = (id: string | null) => {
+    setTemplateBackground(id);
+    setTemplatesOpen(false);
+  };
+
+  const handlePreviewTemplate = (id: string | null) => {
+    setTemplateBackground(id);
+  };
+
+  const handleToggleTemplates = () => {
+    setTemplatesOpen(open => !open);
   };
 
   const resetLetter = () => {
@@ -339,6 +352,8 @@ export default function LetterApp() {
           previewFontIdExternal={previewFontId}
           onToggleFontOverlay={() => { setFontOverlayOpen(o => !o); setPreviewFontId(null); }}
           overlayFontOpen={fontOverlayOpen}
+          templateBackground={templateBackground}
+          onToggleTemplates={handleToggleTemplates}
         />
         <RightSidebar
           onSend={handleSend}
@@ -352,6 +367,11 @@ export default function LetterApp() {
           anonymousHandle={anonymousHandle}
           fontStyle={fontStyle}
           letterFooterPrefix={letterFooterPrefix}
+          templateBackground={templateBackground}
+          onSelectTemplate={handleSelectTemplate}
+          onPreviewTemplate={handlePreviewTemplate}
+          templatesOpen={templatesOpen}
+          setTemplatesOpen={setTemplatesOpen}
         />
       </div>
     </div>

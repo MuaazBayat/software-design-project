@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FONT_PRESETS, FontPresetMeta } from '@/app/fonts'
+import { FONT_PRESETS, FontPresetMeta } from '../fonts'
 import { Star, StarOff, X } from 'lucide-react'
 
 interface Props {
@@ -41,11 +41,11 @@ export function FontCommandPalette({ open, onClose, onSelect, onPreview, current
     })
   }, [])
 
-  const filtered: FontPresetMeta[] = FONT_PRESETS.filter(p => {
+  const filtered: FontPresetMeta[] = FONT_PRESETS.filter((p: FontPresetMeta) => {
     if (!query.trim()) return true
     const q = query.toLowerCase()
     return p.label.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
-  }).sort((a,b) => {
+  }).sort((a: FontPresetMeta, b: FontPresetMeta) => {
     const af = favorites.includes(a.id) ? 0 : 1
     const bf = favorites.includes(b.id) ? 0 : 1
     if (af !== bf) return af - bf

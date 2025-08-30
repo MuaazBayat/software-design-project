@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import React, { useState } from "react"
 import { Heart, Clock, BarChart3, Send, Star, Gauge, Info } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { FONT_PRESETS, DEFAULT_FONT_ID } from '@/app/fonts'
+import { FONT_PRESETS, DEFAULT_FONT_ID } from '../fonts'
+import TemplateSidePanel from './TemplateSidePanel'
 
 interface Match {
   id: string
@@ -26,6 +27,14 @@ interface RightSidebarProps {
   anonymousHandle?: string
   fontStyle?: string
   letterFooterPrefix?: string
+  // template control
+  templateBackground?: string | null
+  onSelectTemplate?: (id: string | null) => void
+  onPreviewTemplate?: (id: string | null) => void
+  templatesOpen?: boolean
+  setTemplatesOpen?: (open: boolean) => void
+  // optional: line tile value to use when rendering template thumbnails
+  templateLineTile?: number
 }
 
 export default function RightSidebar({
@@ -40,7 +49,15 @@ export default function RightSidebar({
   anonymousHandle = ''
   , fontStyle = 'handwritten',
   letterFooterPrefix = 'Yours,'
+  , templateBackground = null
+  , onSelectTemplate = () => {}
+  , onPreviewTemplate = () => {}
+  , templatesOpen = false
+  , setTemplatesOpen = () => {}
+  , templateLineTile = 36
 }: RightSidebarProps) {
+  // control for templates overlay is owned by the parent page; RightSidebar only
+  // exposes preview/apply callbacks via props.
   // Resolve font preset meta by id for accurate preview
   const preset = FONT_PRESETS.find(p => p.id === fontStyle) || FONT_PRESETS.find(p => p.id === DEFAULT_FONT_ID)!
   const previewClass = preset.className
@@ -49,7 +66,21 @@ export default function RightSidebar({
     ...(preset.letterSpacing ? { letterSpacing: preset.letterSpacing } : {})
   }
   return (
-    <div className="w-80 bg-white/60 backdrop-blur-sm border-l border-amber-200 p-6 custom-scrollbar overflow-y-auto h-[calc(100vh-80px)] shrink-0">
+    <div className="relative w-80 bg-white/60 backdrop-blur-sm border-l border-amber-200 p-6 custom-scrollbar overflow-y-auto h-[calc(100vh-80px)] shrink-0">
+
+      {/* Templates panel overlays the sidebar when open */}
+      {templatesOpen && (
+        <TemplateSidePanel
+          open={!!templatesOpen}
+          currentId={templateBackground || undefined}
+          onSelect={(id: string | null) => { onSelectTemplate?.(id); setTemplatesOpen?.(false) }}
+          onPreview={(id: string | null) => onPreviewTemplate?.(id)}
+          onClose={() => setTemplatesOpen?.(false)}
+          anchorWithinSidebar
+          thumbLineTile={templateLineTile}
+          thumbSize={64}
+        />
+      )}
 
       {/* Letter Preview */}
       <Card className="p-4 mb-4 bg-transparent border-amber-200">
@@ -109,6 +140,10 @@ export default function RightSidebar({
           {sending ? 'Sending...' : 'Send Letter'}
         </Button>
       </div>
+
+    {/* Templates control moved to the Main toolbar. Preview/apply callbacks
+      are handled by the parent page and are passed through props to this
+      component. */}
 
   {/* Letter Statistics */}
       <div>
