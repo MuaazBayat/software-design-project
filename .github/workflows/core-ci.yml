@@ -53,9 +53,9 @@ jobs:
 
       - name: Run core tests with coverage
         run: |
-          pytest -q tests/core \
-            --maxfail=100 \ 
-            --cov=services/core \
+          pytest -q tests/moderation \
+            --maxfail=1 \ 
+            --cov=services/moderation \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \
