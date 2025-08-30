@@ -1,19 +1,11 @@
 "use client";
 import { useUser } from "@clerk/nextjs";
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-  
 
 interface UserProfile {
   user_id: string;
@@ -26,10 +18,6 @@ interface UserProfile {
   favorite_local_fact: string | null;
   selected?: boolean;
   is_real?: boolean;
-}
-
-interface PreferenceProfileSelectorProps {
-  onComplete?: () => void;
 }
 
 const countryCodeToName: Record<string, string> = {
@@ -97,54 +85,25 @@ const fakeUsers: UserProfile[] = [
   }
 ];
 
-
-
-const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ onComplete }) => {
+export default function PreferenceProfileSelector() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const router = useRouter(); // Initialize router
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRealUsers, setShowRealUsers] = useState(true);
 
-  useEffect(() => {
-    if (isLoaded && user) {
-      fetchPreferenceProfiles();
-    }
-  }, [isLoaded, user]);
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-600 mx-auto"></div>
-          <p className="mt-4 text-stone-600">Loading authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">You need to be signed in to access this page.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const fetchPreferenceProfiles = async () => {
+  const fetchPreferenceProfiles = useCallback(async () => {
     if (!user) return;
     
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:8001/preferences/profiles/${user.id}`);
       if (response.ok) {
-        const data = await response.json();
-        setProfiles(data.map((profile: any) => ({ 
+        const data: UserProfile[] = await response.json();
+        setProfiles(data.map((profile: UserProfile) => ({ 
           ...profile, 
-          user_id: profile.profile_id || profile.user_id,
+          user_id: profile.user_id,
           selected: false 
         })));
         setShowRealUsers(true);
@@ -157,17 +116,18 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
     } finally {
       setLoading(false);
     }
-  };
-  const fetchRealUsers = async () => {
+  }, [user]);
+
+  const fetchRealUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from('user_profiles')
         .select('user_id, anonymous_handle, country_code, bio, interests, age_range, primary_language, favorite_local_fact')
         .eq('account_status', 'active')
         .limit(4);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       if (data && data.length > 0) {
         setProfiles(data.map(profile => ({ ...profile, selected: false, is_real: true })));
@@ -184,7 +144,34 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchPreferenceProfiles();
+    }
+  }, [isLoaded, user, fetchPreferenceProfiles]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-600 mx-auto"></div>
+          <p className="mt-4 text-stone-600">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">You need to be signed in to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   const toggleSelection = (user_id: string) => {
     setProfiles(prev => prev.map(profile => 
@@ -197,14 +184,13 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
   const handleProfileTypeToggle = () => {
     if (showRealUsers) {
       setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
+      setShowRealUsers(false);
     } else {
       fetchPreferenceProfiles();
     }
-    setShowRealUsers(!showRealUsers);
   };
 
-
- const savePreferenceSelection = async (selectedProfile: UserProfile) => {
+  const savePreferenceSelection = async (selectedProfile: UserProfile) => {
     if (!user) {
       console.error('No authenticated user found');
       return false;
@@ -230,14 +216,6 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Server error response:', errorText);
-        
-        let errorData = {};
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          console.error('Could not parse error response as JSON');
-        }
-        
         throw new Error(`Failed to save preference: ${response.status} ${response.statusText}`);
       }
       
@@ -247,8 +225,6 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
       return false;
     }
   };
-
-
 
   const handleSubmit = async () => {
     if (!user) {
@@ -261,9 +237,8 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
       const success = await savePreferenceSelection(selectedProfile);
       if (success) {
         alert('Preference saved, proceeding with signup');
-        if (onComplete) {
-          onComplete();
-        }
+        // Use router to navigate instead of onComplete callback
+        router.push('/'); // Or wherever you want to redirect
       } else {
         alert('Failed to save your preference. Please try again.');
       }
@@ -320,7 +295,7 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
         {profile.favorite_local_fact && (
           <div className="mb-4">
             <h4 className="text-stone-600 font-medium mb-2">Local Fact</h4>
-            <p className="text-stone-500 text-sm italic">"{profile.favorite_local_fact}"</p>
+            <p className="text-stone-500 text-sm italic">&quot;{profile.favorite_local_fact}&quot;</p>
           </div>
         )}
         
@@ -417,4 +392,3 @@ const PreferenceProfileSelector: React.FC<PreferenceProfileSelectorProps> = ({ o
   );
 };
 
-export default PreferenceProfileSelector;

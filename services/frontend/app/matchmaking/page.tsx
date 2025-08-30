@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { Heart, X, Settings, Globe, MapPin, Camera, Book, Mountain, Star, Clock, MessageCircle } from 'lucide-react';
 
@@ -20,6 +20,11 @@ interface UserProfile {
   last_active?: string;
 }
 
+interface DailyStats {
+  matches_remaining: number;
+  total_daily_limit: number;
+}
+
 interface MatchingPreferences {
   match_type: 'long-term' | 'one-time' | 'either';
   languages: string[];
@@ -27,32 +32,29 @@ interface MatchingPreferences {
   country_codes: string[];
   interests: string[];
   exclude_previous: boolean;
-  max_timezone_difference?: number;
+  max_timezone_difference: number;
 }
 
-interface DailyStats {
-  matches_used: number;
-  matches_remaining: number;
-  total_daily_limit: number;
-  reset_time: string;
+interface MatchData {
+  penpal_profile: UserProfile;
 }
 
 const API_BASE_URL = 'http://localhost:8001';
 
 // Helper functions
 const getLocationDisplay = (profile: UserProfile) => {
-const countryNames: { [key: string]: string } = {
-  'JP': 'Japan', 'US': 'United States', 'FR': 'France', 'DE': 'Germany',
-  'GB': 'United Kingdom', 'CA': 'Canada', 'AU': 'Australia', 'ES': 'Spain',
-  'IT': 'Italy', 'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
-  'MX': 'Mexico', 'RU': 'Russia', 'ZA': 'South Africa', 'EG': 'Egypt', 'AR': 'Argentina',
-  'NG': 'Nigeria', 'PK': 'Pakistan', 'BD': 'Bangladesh', 'TR': 'Turkey', 'ID': 'Indonesia',
-  'SA': 'Saudi Arabia', 'IR': 'Iran', 'TH': 'Thailand', 'SE': 'Sweden', 'NL': 'Netherlands',
-  'PL': 'Poland', 'GR': 'Greece', 'FI': 'Finland', 'IE': 'Ireland', 'NO': 'Norway',
-  'CH': 'Switzerland', 'CL': 'Chile', 'CO': 'Colombia', 'DK': 'Denmark', 'HK': 'Hong Kong',
-  'HU': 'Hungary', 'IS': 'Iceland', 'IL': 'Israel', 'NZ': 'New Zealand', 'PH': 'Philippines',
-  'PT': 'Portugal', 'SG': 'Singapore', 'TW': 'Taiwan', 'AE': 'United Arab Emirates', 'VN': 'Vietnam'
-};
+  const countryNames: { [key: string]: string } = {
+    'JP': 'Japan', 'US': 'United States', 'FR': 'France', 'DE': 'Germany',
+    'GB': 'United Kingdom', 'CA': 'Canada', 'AU': 'Australia', 'ES': 'Spain',
+    'IT': 'Italy', 'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+    'MX': 'Mexico', 'RU': 'Russia', 'ZA': 'South Africa', 'EG': 'Egypt', 'AR': 'Argentina',
+    'NG': 'Nigeria', 'PK': 'Pakistan', 'BD': 'Bangladesh', 'TR': 'Turkey', 'ID': 'Indonesia',
+    'SA': 'Saudi Arabia', 'IR': 'Iran', 'TH': 'Thailand', 'SE': 'Sweden', 'NL': 'Netherlands',
+    'PL': 'Poland', 'GR': 'Greece', 'FI': 'Finland', 'IE': 'Ireland', 'NO': 'Norway',
+    'CH': 'Switzerland', 'CL': 'Chile', 'CO': 'Colombia', 'DK': 'Denmark', 'HK': 'Hong Kong',
+    'HU': 'Hungary', 'IS': 'Iceland', 'IL': 'Israel', 'NZ': 'New Zealand', 'PH': 'Philippines',
+    'PT': 'Portugal', 'SG': 'Singapore', 'TW': 'Taiwan', 'AE': 'United Arab Emirates', 'VN': 'Vietnam'
+  };
   return countryNames[profile.country_code || ''] || profile.country_code || 'Unknown';
 };
 
@@ -111,8 +113,8 @@ const InterestTag: React.FC<{ interest: string }> = ({ interest }) => {
 interface FilterModalProps {
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
-  matchingPreferences: any; // Assuming type definition
-  setMatchingPreferences: (prefs: any) => void;
+  matchingPreferences: MatchingPreferences;
+  setMatchingPreferences: (prefs: MatchingPreferences) => void;
 }
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -121,9 +123,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   matchingPreferences,
   setMatchingPreferences
 }) => {
+  const overlayClasses = `fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 transition-opacity ${
+    showFilters ? 'opacity-100' : 'opacity-0 pointer-events-none'
+  }`;
+  
+  const modalClasses = `fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 transform transition-transform max-h-[80vh] overflow-y-auto ${
+    showFilters ? 'translate-y-0' : 'translate-y-full'
+  }`;
+
   return (
-    <div className={`fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 transition-opacity ${showFilters ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 transform transition-transform max-h-[80vh] overflow-y-auto ${showFilters ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={overlayClasses}>
+      <div className={modalClasses}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-semibold text-stone-800">Find Your Perfect Match</h3>
           <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-stone-100 rounded-full">
@@ -136,9 +146,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
             <label className="block text-sm font-semibold text-stone-700 mb-3">Correspondence Type</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'long-term', label: '📧 Long term', desc: 'Thoughtful letters' },
-                { value: 'one-time', label: '💬 One time', desc: 'Quick messages' },
-                { value: 'either', label: '✨ Either', desc: 'I\'m flexible' }
+                { value: 'long-term' as const, label: '📧 Long term', desc: 'Thoughtful letters' },
+                { value: 'one-time' as const, label: '💬 One time', desc: 'Quick messages' },
+                { value: 'either' as const, label: '✨ Either', desc: "I'm flexible" }
               ].map(type => (
                 <button
                   key={type.value}
@@ -147,7 +157,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white border-yellow-400 shadow-lg'
                       : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300'
                   }`}
-                  onClick={() => setMatchingPreferences({ ...matchingPreferences, match_type: type.value as 'long-term' | 'one-time' | 'either' })}
+                  onClick={() => setMatchingPreferences({ ...matchingPreferences, match_type: type.value })}
                 >
                   <div className="font-medium text-sm">{type.label}</div>
                   <div className="text-xs opacity-75">{type.desc}</div>
@@ -222,7 +232,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               />
               <div>
                 <span className="text-sm font-medium text-stone-700">Exclude previous matches</span>
-                <p className="text-xs text-stone-500">Don't show people I've already connected with</p>
+                <p className="text-xs text-stone-500">Don&apos;t show people I&apos;ve already connected with</p>
               </div>
             </label>
           </div>
@@ -240,13 +250,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
 };
 
 const MatchScreen: React.FC = () => {
-  const [currentProfile, setCurrentProfile] = useState<any | null>(null);
-  const [suggestedProfile, setSuggestedProfile] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
+  const [suggestedProfile, setSuggestedProfile] = useState<UserProfile | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [dailyStats, setDailyStats] = useState<any | null>(null);
-  const [matchingPreferences, setMatchingPreferences] = useState<any>({
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+  const [matchingPreferences, setMatchingPreferences] = useState<MatchingPreferences>({
     match_type: 'either',
     languages: [],
     age_ranges: [],
@@ -258,7 +267,7 @@ const MatchScreen: React.FC = () => {
 
   const { isLoaded, isSignedIn, user } = useUser();
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (!user) return;
     try {
       const response = await fetch(`${API_BASE_URL}/user/profile/${user.id}`);
@@ -269,9 +278,9 @@ const MatchScreen: React.FC = () => {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  };
+  }, [user]);
 
-  const fetchDailyStats = async () => {
+  const fetchDailyStats = useCallback(async () => {
     if (!user) return;
     try {
       const response = await fetch(`${API_BASE_URL}/user/stats/${user.id}`);
@@ -282,9 +291,9 @@ const MatchScreen: React.FC = () => {
     } catch (error) {
       console.error('Error fetching daily stats:', error);
     }
-  };
+  }, [user]);
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     if (!user) return;
     try {
       const params = new URLSearchParams();
@@ -314,7 +323,7 @@ const MatchScreen: React.FC = () => {
     } catch (error) {
       console.error('Error fetching suggestions:', error);
     }
-  };
+  }, [user, matchingPreferences]);
 
   useEffect(() => {
     if (user) {
@@ -322,7 +331,7 @@ const MatchScreen: React.FC = () => {
       fetchDailyStats();
       fetchSuggestions();
     }
-  }, [user, matchingPreferences]);
+  }, [user, fetchUserProfile, fetchDailyStats, fetchSuggestions]);
 
   const handleLike = async () => {
     if (!user || !currentProfile || !suggestedProfile) return;
@@ -351,7 +360,7 @@ const MatchScreen: React.FC = () => {
         try {
           const errorData = await response.json();
           errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch (e) {
+        } catch {
           errorMessage = `Server error: ${response.status}`;
         }
         console.error('Match creation failed:', errorMessage);
@@ -359,7 +368,7 @@ const MatchScreen: React.FC = () => {
         return;
       }
 
-      const matchData = await response.json();
+      const matchData: MatchData = await response.json();
       console.log('Match created:', matchData);
       alert(`Match created with ${matchData.penpal_profile.anonymous_handle}! 🎉`);
       await fetchDailyStats();
@@ -399,12 +408,6 @@ const MatchScreen: React.FC = () => {
       console.error('Error passing on suggestion:', error);
     }
     setActionLoading(false);
-  };
-
-  // Helper function to get location display
-  const getLocationDisplay = (profile: any) => {
-    // This is a placeholder, you'll need to define your getLocationDisplay function
-    return profile.country_code;
   };
 
   // Loading and error states
@@ -567,7 +570,7 @@ const MatchScreen: React.FC = () => {
                 {suggestedProfile.bio && (
                   <div className="mb-6">
                     <p className="text-stone-600 leading-relaxed italic text-center bg-stone-50 p-4 rounded-xl border border-stone-100">
-                      "{suggestedProfile.bio}"
+                      &ldquo;{suggestedProfile.bio}&rdquo;
                     </p>
                   </div>
                 )}
@@ -634,7 +637,7 @@ const MatchScreen: React.FC = () => {
         <div className="flex justify-center gap-6 mb-8">
           <button
             onClick={handlePass}
-            disabled={actionLoading || !suggestedProfile || (dailyStats && dailyStats.matches_remaining <= 0)}
+            disabled={actionLoading || !suggestedProfile || Boolean(dailyStats && dailyStats.matches_remaining <= 0)}
             className="w-16 h-16 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="w-6 h-6 text-stone-500" />
@@ -642,7 +645,7 @@ const MatchScreen: React.FC = () => {
 
           <button
             onClick={handleLike}
-            disabled={actionLoading || !suggestedProfile || (dailyStats && dailyStats.matches_remaining <= 0)}
+            disabled={actionLoading || !suggestedProfile || Boolean(dailyStats && dailyStats.matches_remaining <= 0)}
             className="w-20 h-20 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Heart className="w-8 h-8 text-white" fill="currentColor" />
@@ -657,7 +660,7 @@ const MatchScreen: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-amber-800 mb-2">Daily limit reached!</h3>
             <p className="text-amber-700 text-sm">
-              You've used all your daily matches. Come back tomorrow to meet more amazing people!
+              You&apos;ve used all your daily matches. Come back tomorrow to meet more amazing people!
               <br />
               <span className="text-xs opacity-75">Resets at midnight</span>
             </p>
