@@ -10,15 +10,17 @@ See the frontend documentation [here](frontend/frontend.md).
 :maxdepth: 2
 :caption: Services
 
+core/core
 frontend/frontend
 matchmaking/matchmaking
 messaging/messagingapi
 moderation/moderation
 contribution/contribution
+testing-strategy/testing-jest
+testing-strategy/testing-pytest
 technologyStack/technologyStack
 gitmethodology/methodology
 scrum-docs/sprint1
-core/core
 devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
