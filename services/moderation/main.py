@@ -25,7 +25,7 @@ app = FastAPI(title="Content Moderation API")
 class CheckRequest(BaseModel):
     text: str
 
-@app.post("/check")
+@app.post("/api/v1/check")
 def check_profanity(
     body: CheckRequest,
     x_user_id: str | None = Header(None, alias="X-User-Id"),
