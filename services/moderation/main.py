@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from better_profanity import profanity
 from supabase import create_client, Client
@@ -12,14 +13,50 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
 load_dotenv(dotenv_path)
 
 # Retrieve Supabase credentials from environment variables.
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_URL: str | None = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY: str | None = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL:
+    raise ValueError("SUPABASE_URL environment variable is not set.")
+if not SUPABASE_KEY:
+    raise ValueError("SUPABASE_KEY environment variable is not set.")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Load profanity words
 profanity.load_censor_words()
 
 app = FastAPI(title="Content Moderation API")
+
+#for dev purposes
+base_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+FRONTEND_URL: str | None = os.getenv("FRONTEND_URL")
+EXTERNAL_URL: str | None = os.getenv("EXTERNAL_URL")
+
+# Conditionally add the frontend URL if it exists
+if FRONTEND_URL:
+    base_origins.append(FRONTEND_URL)
+
+# Conditionally add the external URL if it exists
+if EXTERNAL_URL:
+    base_origins.append(EXTERNAL_URL)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=base_origins,
+    allow_credentials=True,  # Allows cookies/auth headers
+    allow_methods=["POST", "OPTIONS"],  # POST for your endpoint + OPTIONS for preflight
+    allow_headers=[
+        "X-User-Id", 
+        "X-Api-Key", 
+        "Content-Type",
+        "Authorization"  # In case you add this later
+    ],
+)
 
 # Request model
 class CheckRequest(BaseModel):
@@ -31,6 +68,11 @@ def check_profanity(
     x_user_id: str | None = Header(None, alias="X-User-Id"),
     x_api_key: str | None = Header(None, alias="X-Api-Key")
 ):
+    # Initialize variables to prevent Pylance "possibly unbound" errors
+    user_type: str | None = None
+    user_id: str | None = None
+    user: dict | None = None
+
     # Determine user type
     if x_user_id and x_api_key:
         raise HTTPException(status_code=400, detail="Provide either X-User-Id or X-Api-Key, not both")
@@ -70,6 +112,9 @@ def check_profanity(
 
     # For internal users, create moderation log if profanity found - UPDATED
     if user_type == "internal" and has_profanity:
+        # Pylance fix: assert user is not None to confirm its type.
+        assert user is not None
+        assert user_id is not None
         # Create a moderation log entry
         moderation_log_entry = {
             "target_type": "message",
