@@ -99,17 +99,17 @@ export default class MessagingApiClient {
   private timeoutMs: number;
 
   constructor(opts?: { timeoutMs?: number }) {
-    const fromEnv = process.env.NEXT_PUBLIC_MESSAGING_API_BASE_URL;
+    const fromEnv = process.env.NEXT_PUBLIC_MESSAGING_URL;
     if (!fromEnv) {
       throw new Error(
-        "NEXT_PUBLIC_MESSAGING_API_BASE_URL is not set. Add it to .env.local"
+        "NEXT_PUBLIC_MESSAGING_URL is not set. Add it to .env.local"
       );
     }
     try {
       const u = new URL(fromEnv);
       this.baseUrl = u.toString().replace(/\/+$/, "");
     } catch {
-      throw new Error(`Invalid NEXT_PUBLIC_MESSAGING_API_BASE_URL: ${fromEnv}`);
+      throw new Error(`Invalid NEXT_PUBLIC_MESSAGING_URL: ${fromEnv}`);
     }
     this.timeoutMs = opts?.timeoutMs ?? 15000;
   }
