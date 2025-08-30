@@ -1,10 +1,9 @@
 "use client";
 import { useUser } from "@clerk/nextjs";
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { supabase } from '../../lib/supabaseClient';
 
-// Initialize Supabase client
 
 
 interface UserProfile {
@@ -19,6 +18,19 @@ interface UserProfile {
   selected?: boolean;
   is_real?: boolean;
 }
+
+interface ApiUserProfile {
+  profile_id?: string;
+  user_id: string;
+  anonymous_handle: string;
+  country_code: string | null;
+  bio: string | null;
+  interests: string[] | null;
+  age_range: string | null;
+  primary_language: string | null;
+  favorite_local_fact: string | null;
+}
+
 
 const countryCodeToName: Record<string, string> = {
   US: 'United States',
@@ -85,13 +97,13 @@ const fakeUsers: UserProfile[] = [
   }
 ];
 
-export default function PreferenceProfileSelector() {
+const PreferenceProfileSelector = () => { // Remove the props
   const { isLoaded, isSignedIn, user } = useUser();
-  const router = useRouter(); // Initialize router
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRealUsers, setShowRealUsers] = useState(true);
+  const router = useRouter(); // Use the router for navigation
 
   const fetchPreferenceProfiles = useCallback(async () => {
     if (!user) return;
@@ -100,10 +112,10 @@ export default function PreferenceProfileSelector() {
       setLoading(true);
       const response = await fetch(`http://localhost:8001/preferences/profiles/${user.id}`);
       if (response.ok) {
-        const data: UserProfile[] = await response.json();
-        setProfiles(data.map((profile: UserProfile) => ({ 
+        const data: ApiUserProfile[] = await response.json();
+        setProfiles(data.map((profile) => ({ 
           ...profile, 
-          user_id: profile.user_id,
+          user_id: profile.profile_id || profile.user_id,
           selected: false 
         })));
         setShowRealUsers(true);
@@ -117,34 +129,6 @@ export default function PreferenceProfileSelector() {
       setLoading(false);
     }
   }, [user]);
-
-  const fetchRealUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error: dbError } = await supabase
-        .from('user_profiles')
-        .select('user_id, anonymous_handle, country_code, bio, interests, age_range, primary_language, favorite_local_fact')
-        .eq('account_status', 'active')
-        .limit(4);
-
-      if (dbError) throw dbError;
-
-      if (data && data.length > 0) {
-        setProfiles(data.map(profile => ({ ...profile, selected: false, is_real: true })));
-        setShowRealUsers(true);
-      } else {
-        setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
-        setShowRealUsers(false);
-      }
-    } catch (err) {
-      setError('Failed to load user profiles');
-      console.error('Error fetching users:', err);
-      setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
-      setShowRealUsers(false);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -173,6 +157,40 @@ export default function PreferenceProfileSelector() {
     );
   }
 
+  const fetchRealUsers = async () => {
+  try {
+    setLoading(true);
+    
+    // Check if supabase client is available
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('user_id, anonymous_handle, country_code, bio, interests, age_range, primary_language, favorite_local_fact')
+      .eq('account_status', 'active')
+      .limit(4);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      setProfiles(data.map(profile => ({ ...profile, selected: false, is_real: true })));
+      setShowRealUsers(true);
+    } else {
+      setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
+      setShowRealUsers(false);
+    }
+  } catch (err) {
+    setError('Failed to load user profiles');
+    console.error('Error fetching users:', err);
+    setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
+    setShowRealUsers(false);
+  } finally {
+    setLoading(false);
+  }
+};
+
   const toggleSelection = (user_id: string) => {
     setProfiles(prev => prev.map(profile => 
       profile.user_id === user_id 
@@ -184,13 +202,13 @@ export default function PreferenceProfileSelector() {
   const handleProfileTypeToggle = () => {
     if (showRealUsers) {
       setProfiles(fakeUsers.map(user => ({ ...user, selected: false })));
-      setShowRealUsers(false);
     } else {
       fetchPreferenceProfiles();
     }
+    setShowRealUsers(!showRealUsers);
   };
 
-  const savePreferenceSelection = async (selectedProfile: UserProfile) => {
+ const savePreferenceSelection = async (selectedProfile: UserProfile) => {
     if (!user) {
       console.error('No authenticated user found');
       return false;
@@ -216,6 +234,13 @@ export default function PreferenceProfileSelector() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Server error response:', errorText);
+        
+        try {
+          JSON.parse(errorText);
+        } catch {
+          console.error('Could not parse error response as JSON');
+        }
+        
         throw new Error(`Failed to save preference: ${response.status} ${response.statusText}`);
       }
       
@@ -237,8 +262,7 @@ export default function PreferenceProfileSelector() {
       const success = await savePreferenceSelection(selectedProfile);
       if (success) {
         alert('Preference saved, proceeding with signup');
-        // Use router to navigate instead of onComplete callback
-        router.push('/'); // Or wherever you want to redirect
+        router.push('/'); // Navigate to home or another page
       } else {
         alert('Failed to save your preference. Please try again.');
       }
@@ -295,7 +319,7 @@ export default function PreferenceProfileSelector() {
         {profile.favorite_local_fact && (
           <div className="mb-4">
             <h4 className="text-stone-600 font-medium mb-2">Local Fact</h4>
-            <p className="text-stone-500 text-sm italic">&quot;{profile.favorite_local_fact}&quot;</p>
+            <p className="text-stone-500 text-sm italic">&ldquo;{profile.favorite_local_fact}&rdquo;</p>
           </div>
         )}
         
@@ -392,3 +416,4 @@ export default function PreferenceProfileSelector() {
   );
 };
 
+export default PreferenceProfileSelector;
