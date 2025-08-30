@@ -28,9 +28,14 @@ export function useSyncProfile() {
       
       //console.log("Syncing profile for user:", user.id);
       //console.log("Email:", user.primaryEmailAddress?.emailAddress ?? null);   
-      
+      const coreUrl = process.env.NEXT_PUBLIC_CORE_URL;
+      if (!coreUrl) {
+      throw new Error(
+        "NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local"
+      );
+    }
       try {
-        const response = await fetch("http://127.0.0.1:8000/profiles/", {
+        const response = await fetch(coreUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
