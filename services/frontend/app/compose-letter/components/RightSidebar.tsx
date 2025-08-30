@@ -213,7 +213,7 @@ export function ReadabilityRating({ value }: { value: string | number }) {
               <li><b>C2</b>: Proficient</li>
             </ul>
             <span className="block mt-2 text-amber-500">Higher = more complex language</span>
-            <div className="mt-3 text-xs text-gray-500">This rating is estimated based on your letter's vocabulary and sentence structure.</div>
+            <div className="mt-3 text-xs text-gray-500">This rating is estimated based on your letter&apos;s vocabulary and sentence structure.</div>
           </div>
         </DialogContent>
       </Dialog>

@@ -117,7 +117,7 @@ export default function LeftSidebar({
       <div className={showFontOverlay ? 'opacity-0 pointer-events-none select-none' : 'opacity-100 transition-opacity'} aria-hidden={showFontOverlay}>
       {/* Recipient Info with Dropdown - Enhanced */}
   <Card className="p-4 mb-6 bg-orange-100/60 border-2 border-amber-400 rounded-sm shadow-sm">
-        <p className="text-sm font-cursive italic bg-gradient-to-r from-amber-600 to-rose-500 bg-clip-text text-transparent mb-1 text-center">You're writing to:</p>
+        <p className="text-sm font-cursive italic bg-gradient-to-r from-amber-600 to-rose-500 bg-clip-text text-transparent mb-1 text-center">You&apos;re writing to:</p>
         {loading ? (
           <div className="animate-pulse">
             <div className="h-5 bg-gray-200 rounded w-3/4"></div>
