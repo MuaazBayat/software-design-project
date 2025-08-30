@@ -35,7 +35,7 @@ export function useSyncProfile() {
       );
     }
       try {
-        const response = await fetch(coreUrl, {
+        const response = await fetch(`${coreUrl}/profiles`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
