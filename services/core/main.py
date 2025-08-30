@@ -46,7 +46,7 @@ def get_supabase() -> Client:
 
 # --- API Endpoints ---
 
-@app.post("/profiles/", response_model=Profile, status_code=status.HTTP_201_CREATED)
+@app.post("/profiles", response_model=Profile, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     profile_data: ProfileCreate, 
     db: Client = Depends(get_supabase)
