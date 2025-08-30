@@ -1,0 +1,53 @@
+name: ☁️ Deploy Messaging to Cloud Run
+
+env:
+  TAG: ${{ github.event.release.tag_name || 'release-test' }}
+  MESSAGING_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/globetalk-messaging:${{ github.event.release.tag_name || 'release-test' }}
+
+on:
+  release:
+    types: [published]  # Trigger when a GitHub release is published
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      
+      - name: Build & push Messaging Docker images
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $MESSAGING_IMAGE \
+            -f services/messaging/messaging.Dockerfile \
+            services/messaging/.
+          docker push $MESSAGING_IMAGE
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+        
+      - name: Deploy messaging Cloud Run
+        id: deploy-messaging
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'globetalk-messaging'
+          image: ${{ env.MESSAGING_IMAGE }}
+          flags: '--allow-unauthenticated --port=8000 --update-env-vars=[SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},CORE_URL=${{ secrets.CORE_URL }},MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }},MESSAGING_URL=${{ secrets.MESSAGING_URL }},MODERATION_URL=${{ secrets.MODERATION_URL }}]'
+          container_port: 8000
+
+      - name: Show Output
+        run: |
+          echo "Deployment finished!"
+          echo "Messaging deployed at:"
+          echo "${{ steps.deploy-messaging.outputs.url }}"
