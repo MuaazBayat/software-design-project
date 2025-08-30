@@ -14,8 +14,8 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 from supabase import Client
-from .models import ProfileCreate, ProfileUpdate, Profile
-from .database import supabase
+from models import ProfileCreate, ProfileUpdate, Profile
+from database import supabase
 
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
@@ -23,6 +23,7 @@ app = FastAPI(title="GlobeTalk Core API")
 def add(a, b):
     return a + b
 from fastapi.middleware.cors import CORSMiddleware
+
 ALLOWED_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|globetalk-frontend-388957617777\.us-central1\.run\.app)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,

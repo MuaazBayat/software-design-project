@@ -18,7 +18,22 @@ actions-test-matchmaking-ci:
 	act -W '.github/workflows/matchmaking-ci.yml' --secret-file repo.secrets --container-architecture=linux/amd64
 
 actions-test-release-created:
-	act -W '.github/workflows/release.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+	act release --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-deploy-core:
+	act -W '.github/workflows/deploy-core.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-deploy-moderation:
+	act -W '.github/workflows/deploy-moderation.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-deploy-matchmaking:
+	act -W '.github/workflows/deploy-matchmaking.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-deploy-messaging:
+	act -W '.github/workflows/deploy-messaging.yml' --secret-file repo.secrets --container-architecture=linux/amd64
+
+actions-deploy-frontend:
+	act -W '.github/workflows/deploy-frontend.yml' --secret-file repo.secrets --container-architecture=linux/amd64
 
 build-docs:
 	cd docs && \
