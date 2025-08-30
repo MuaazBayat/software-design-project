@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Palette, Book, Plane, UserRound, Sparkles, ChevronDown, MapPin, Calendar, Send, Inbox } from "lucide-react"
+import { Palette, Book, Plane, UserRound, Sparkles, ChevronDown, MapPin, Calendar } from "lucide-react"
 import { FontSidePanel } from "./FontSidePanel"
 
 // Small inlined template type + data so this component is self-contained.
@@ -71,7 +71,7 @@ export default function LeftSidebar({
   onPreviewFont
 }: LeftSidebarProps) {
   // LeftSidebar receives matches and selection from parent; no debug logs kept
-  const [templates, setTemplates] = useState<LetterTemplate[]>(DEFAULT_TEMPLATES)
+  const [templates] = useState<LetterTemplate[]>(DEFAULT_TEMPLATES)
   const [dialogOpen, setDialogOpen] = useState(false)
   // Search state for recipient dropdown
   const [search, setSearch] = useState("");

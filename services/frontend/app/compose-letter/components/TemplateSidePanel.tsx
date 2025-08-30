@@ -17,7 +17,7 @@ interface TemplateSidePanelProps {
 }
 
 // Minimal, self-contained template side panel used by RightSidebar.
-export default function TemplateSidePanel({ open, currentId, onSelect, onPreview, onClose, anchorWithinSidebar, thumbLineTile, thumbSize }: TemplateSidePanelProps) {
+export default function TemplateSidePanel({ open, onSelect, onPreview, onClose, anchorWithinSidebar, thumbLineTile, thumbSize }: TemplateSidePanelProps) {
   if (!open) return null
 
   const THUMB_LINE_TILE = thumbLineTile ?? 36 // fallback

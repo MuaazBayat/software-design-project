@@ -2,15 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react"
 
 import { Card } from "@/components/ui/card"
 
-import { Textarea } from "@/components/ui/textarea"
-
 import { Button } from "@/components/ui/button"
 
-import { Badge } from "@/components/ui/badge"
-
 // Templates are now controlled by the enclosing page/right sidebar; a toggle handler is passed in.
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { Slider } from "@/components/ui/slider"
 
@@ -88,10 +82,6 @@ export default function MainContent({ 
 
   success = false,
 
-  templates = [],
-
-  onApplyTemplate,
-
   letterHeading = 'To a kindred spirit,',
 
   setLetterHeading,
@@ -164,10 +154,8 @@ export default function MainContent({ 
 
       }
 
-    } catch (e) {
-
+    } catch {
       // ignore
-
     }
 
   }
@@ -344,7 +332,7 @@ export default function MainContent({ 
 
         }
 
-      } catch (e) {
+      } catch {
 
         // if execCommand fails for lists, try fallback
 
@@ -388,7 +376,7 @@ export default function MainContent({ 
 
       }
 
-    } catch (e) {}
+    } catch {}
 
     refreshFormattingState()
 
@@ -468,7 +456,7 @@ export default function MainContent({ 
 
       setSelectedFormatting(newFormats)
 
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 
   }
 
@@ -536,14 +524,6 @@ export default function MainContent({ 
 
   
 
-  const handleTemplateSelect = (templateId: string) => {
-
-    onApplyTemplate?.(templateId);
-
-  };
-
-
-
   useEffect(() => {
 
     // initialize undo stack with initial content once
@@ -578,13 +558,13 @@ export default function MainContent({ 
 
           if (document.queryCommandState('insertUnorderedList')) newFormats.push('ulist')
 
-        } catch (e) {}
+        } catch {}
 
-        const sel = window.getSelection()
+        // const sel = window.getSelection() // Removed unused variable
 
         setSelectedFormatting(newFormats)
 
-      } catch (e) {
+      } catch {
 
         // ignore in environments where execCommand isn't available
 
@@ -596,7 +576,7 @@ export default function MainContent({ 
 
     return () => document.removeEventListener('selectionchange', onSelectionChange)
 
-  }, [])
+  }, [letterContent, undoStack.length])
 
 
 
@@ -644,7 +624,7 @@ export default function MainContent({ 
 
     return () => document.removeEventListener('keydown', handler)
 
-  }, [handleUndo, handleRedo, toggleFormatting])
+  }, [handleUndo, handleRedo, toggleFormatting, onToggleFontOverlay])
 
 
 

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import React, { useState } from "react"
-import { Heart, Clock, BarChart3, Send, Star, Gauge, Info } from "lucide-react"
+import { Heart, Clock, BarChart3, Send, Gauge, Info } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FONT_PRESETS, DEFAULT_FONT_ID } from '../fonts'
 import TemplateSidePanel from './TemplateSidePanel'
@@ -46,15 +46,14 @@ export default function RightSidebar({
   readingTime,
   readability = 'A2',
   selectedMatch,
-  anonymousHandle = ''
-  , fontStyle = 'handwritten',
-  letterFooterPrefix = 'Yours,'
-  , templateBackground = null
-  , onSelectTemplate = () => {}
-  , onPreviewTemplate = () => {}
-  , templatesOpen = false
-  , setTemplatesOpen = () => {}
-  , templateLineTile = 36
+  anonymousHandle = '',
+  fontStyle = 'handwritten',
+  templateBackground = null,
+  onSelectTemplate = () => {},
+  onPreviewTemplate = () => {},
+  templatesOpen = false,
+  setTemplatesOpen = () => {},
+  templateLineTile = 36
 }: RightSidebarProps) {
   // control for templates overlay is owned by the parent page; RightSidebar only
   // exposes preview/apply callbacks via props.

@@ -3,8 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Mail, Moon, ArrowLeft, Send, CheckCircle2, AlertCircle } from "lucide-react"
+import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
 import MessagingApiClient, { SearchUsersRequest, SendLetterRequest, ApiError } from "@/lib/MessagingApiClient"
 import { useSyncProfile } from "@/lib/SyncProfile"
 import LeftSidebar from "../components/LeftSidebar"
@@ -28,7 +27,7 @@ function estimateCEFR(text: string): string {
     return "C2";
   }
   // For longer letters, factor in sentence structure
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  // const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
   if (avgWordLen < 4.5 && avgSyllables < 1.5) return "A2";
   if (avgWordLen < 5.5 && avgSyllables < 1.7) return "B1";
   if (avgWordLen < 6.5 && avgSyllables < 1.9) return "B2";
@@ -96,8 +95,6 @@ export default function LetterApp() {
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [letterTemplates, setLetterTemplates] = useState<LetterTemplate[]>([]);
-  const [scheduledDeliveryTime, setScheduledDeliveryTime] = useState<Date | null>(null);
   const [fontOverlayOpen, setFontOverlayOpen] = useState(false);
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -132,24 +129,26 @@ export default function LetterApp() {
         let res;
         try {
           res = await api.searchUsers(searchBody);
-        } catch (err: any) {
-          if (err instanceof ApiError && err.status === 408) {
+        } catch (err: unknown) {
+          const error = err as Error;
+          if (error instanceof ApiError && error.status === 408) {
             await new Promise(r => setTimeout(r, 800));
             res = await api.searchUsers(searchBody);
           } else {
             throw err;
           }
         }
-        const mappedMatches: Match[] = res.items.map((item: any) => {
-          const threadId = item.latest_message?.conversation_thread_id;
-          const matchId: string = item.latest_message?.match_id;
+        const mappedMatches: Match[] = res.items.map((item: unknown) => {
+          const userItem = item as { latest_message?: { conversation_thread_id?: string; match_id?: string }; user_profile: { user_id: string; anonymous_handle: string; country_code?: string } };
+          const threadId = userItem.latest_message?.conversation_thread_id;
+          const matchId: string = userItem.latest_message?.match_id || '';
 
           // if no threadId exists this user may not have messages yet
 
           return {
-            id: item.user_profile.user_id,
-            name: item.user_profile.anonymous_handle,
-            location: item.user_profile.country_code || "Unknown",
+            id: userItem.user_profile.user_id,
+            name: userItem.user_profile.anonymous_handle,
+            location: userItem.user_profile.country_code || "Unknown",
             interests: [],
             conversation_thread_id: threadId || '',
             match_id: matchId || ''
@@ -173,7 +172,7 @@ export default function LetterApp() {
           setSelectedMatchId(mappedMatches[0].id);
         } else {
         }
-      } catch (error) {
+      } catch {
         toast.error('Failed to load matches');
         setError('Failed to load matches. Please check your connection or try again later.');
       } finally {
@@ -208,7 +207,7 @@ export default function LetterApp() {
     try {
       const senderID = userId;
       const recipientID = selectedMatch.id;
-      const matchIdToUse = selectedMatch.match_id || '';
+      // const matchIdToUse = selectedMatch.match_id || '';
 
   // match_id may be empty for newly generated thread pairs
 
