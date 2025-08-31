@@ -14,8 +14,8 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 from supabase import Client
-from core.models import ProfileCreate, ProfileUpdate, Profile
-from core.database import supabase
+from models import ProfileCreate, ProfileUpdate, Profile
+from database import supabase
 
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
