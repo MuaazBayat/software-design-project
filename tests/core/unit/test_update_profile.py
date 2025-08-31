@@ -1,4 +1,4 @@
-# test_update_profile.py — cleaned fake + working PUT tests
+# test_update_profile.py — UPSERT-ready tests for PUT /profiles
 from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
@@ -8,11 +8,13 @@ import services.core.main as main  # contains: app, get_supabase
 
 # -------------------- Minimal chainable fake --------------------
 class FakeSupabaseClient:
-    """Queue-driven fake that supports select/insert/update with eq+execute."""
+    """Queue-driven fake that supports select/insert/update/upsert with eq+execute."""
     def __init__(self, results):
         self._results = list(results)  # each execute() pops one item and returns it as .data
         self.last_insert_payload = None
         self.last_update_payload = None
+        self.last_upsert_payload = None
+        self.last_on_conflict = None
         self.last_filters = []
 
     def table(self, name: str):
@@ -34,6 +36,11 @@ class _Query:
 
     def update(self, payload):
         self._c.last_update_payload = payload
+        return self
+
+    def upsert(self, payload, on_conflict=None):
+        self._c.last_upsert_payload = payload
+        self._c.last_on_conflict = on_conflict
         return self
 
     # FILTERS
@@ -83,7 +90,7 @@ def _row_base(**overrides):
 
 def test_update_profile_200_partial():
     updated_row = _row_base(bio="Hello there", secondary_languages=["en", "af"])
-    fake = FakeSupabaseClient(results=[[updated_row]])  # UPDATE -> one row
+    fake = FakeSupabaseClient(results=[[updated_row]])  # UPSERT -> one row back
     override_db(fake)
     client = make_client()
 
@@ -98,14 +105,18 @@ def test_update_profile_200_partial():
     assert "created_at" in data and "updated_at" in data
 
 
-def test_update_profile_404_when_not_found_or_no_changes():
-    fake = FakeSupabaseClient(results=[[]])  # UPDATE -> no rows
+def test_upsert_profile_creates_when_missing():
+    # With UPSERT semantics, a missing row is created instead of 404.
+    freshly_created = _row_base(clerk_id="does_not_exist", bio="x")
+    fake = FakeSupabaseClient(results=[[freshly_created]])
     override_db(fake)
     client = make_client()
 
     resp = client.put("/profiles/does_not_exist", json={"bio": "x"})
-    assert resp.status_code == 404, f"{resp.status_code} {resp.text}"
-    assert resp.json()["detail"] == "Profile not found or no changes were made."
+    assert resp.status_code == 200, f"{resp.status_code} {resp.text}"
+    data = resp.json()
+    assert data["clerk_id"] == "does_not_exist"
+    assert data["bio"] == "x"
 
 
 def test_update_profile_422_on_invalid_payload():

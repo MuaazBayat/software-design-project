@@ -9,7 +9,7 @@ import os
 # This helps resolve absolute imports like `from core.models`
 # when running the script from the project root.
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from postgrest.exceptions import APIError
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, List
@@ -145,10 +145,19 @@ async def update_profile(
     # Update the profile data in the Supabase table.
     # The `dict(exclude_unset=True)` method creates a dictionary containing only
     # the fields that were actually provided in the request body.
-    response = db.table("user_profiles").update(profile_data.dict(exclude_unset=True)).eq("clerk_id", clerk_id).execute()
+    patch = profile_data.model_dump(exclude_unset=True)
+    row = {"clerk_id": clerk_id, **patch}
 
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Profile not found or no changes were made.")
-        
-    return response.data[0]
+    try:
+        resp = db.table("user_profiles") \
+                .upsert(row, on_conflict="clerk_id") \
+                .execute()
+    except APIError as e:
+        # e.code == "23505" for other uniques (e.g., handle); map to 409
+        if getattr(e, "code", None) == "23505":
+            raise HTTPException(status_code=409, detail="Handle is already taken.")
+        raise
 
+    if not getattr(resp, "data", None):
+        raise HTTPException(status_code=500, detail="Upsert failed.")
+    return resp.data[0]

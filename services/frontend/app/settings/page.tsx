@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import * as React from "react";
 import { useUser } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { User2, MessageSquareHeart } from "lucide-react";
+import { User2, MessageSquareHeart, ArrowLeft } from "lucide-react";
 
 // ===== Types that match your FastAPI models =====
 export type ProfileModel = {
@@ -99,13 +99,10 @@ const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 // Direct select values — EXACTLY what the DB expects (per your enum)
 const AGE_BUCKETS = [
-  "13-17",
   "18-25",
   "26-35",
   "36-45",
-  "46-55",
-  "56-65",
-  "66+",
+  "46+",
   "prefer-not",
 ] as const;
 
@@ -140,7 +137,7 @@ export default function Page() {
   const [secondaryLanguages, setSecondaryLanguages] = React.useState<string[]>([]); // ISO codes
   const [secondaryLangInput, setSecondaryLangInput] = React.useState(""); // expects ISO code
   const [timeZone, setTimeZone] = React.useState<string | undefined>();
-
+  const PREFER_NOT = "prefer-not" as const;
   // fetch state
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -181,7 +178,7 @@ export default function Page() {
         };
         originalRef.current = model;
         setHandle((model.anonymous_handle ?? "") as string);
-        setAgeRange(model.age_range ?? undefined);
+        setAgeRange(model.age_range ?? PREFER_NOT);
         setPrimaryLanguage(model.primary_language ?? undefined);
         setSecondaryLanguages(model.secondary_languages ?? []);
         setTimeZone(model.time_zone ?? undefined);
@@ -233,7 +230,7 @@ export default function Page() {
   function buildFull(): ProfileModel {
     return {
       anonymous_handle: (handle || null) as string | null,
-      age_range: ageRange ?? null,
+      age_range: ageRange === PREFER_NOT ? null : (ageRange ?? null),
       primary_language: primaryLanguage ?? null,
       secondary_languages: secondaryLanguages,
       time_zone: timeZone ?? null,
@@ -285,7 +282,13 @@ export default function Page() {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="mb-6">
           <h1 className="text-3xl font-serif tracking-tight text-amber-900">Your Settings</h1>
-          <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p>
+          {/* <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p> */}
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4" />
+              Return
+            </Link>
+          </Button>
           {API_BASE === "" && (
             <p className="mt-2 text-xs text-red-600">Set NEXT_PUBLIC_CORE_API_BASE_URL in .env.local</p>
           )}
