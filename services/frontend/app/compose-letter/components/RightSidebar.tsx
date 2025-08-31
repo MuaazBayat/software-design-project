@@ -202,6 +202,7 @@ export function ReadabilityRating({ value }: { value: string | number }) {
             <DialogTitle>Readability Rating (CEFR)</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-gray-700">
+            <div className="mb-2">This Readability Rating is meant to help you connect with your reader by guiding tone and language complexity.</div>
             <b>CEFR Levels:</b>
             <ul className="mt-2 mb-2 space-y-1">
               <li><b>A1</b>: Beginner</li>

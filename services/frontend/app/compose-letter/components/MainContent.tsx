@@ -737,7 +737,7 @@ export default function MainContent({ 
 
             <div>
               <Button variant="secondary" size="sm" onClick={() => onNewLetter?.()} disabled={sending} className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100">
-                New Letter
+                Clear Letter
               </Button>
             </div>
           </div>
