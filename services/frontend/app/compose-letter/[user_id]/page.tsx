@@ -9,9 +9,10 @@ import { useSyncProfile } from "@/lib/SyncProfile"
 import LeftSidebar from "../components/LeftSidebar"
 import MainContent from "../components/MainContent"
 import RightSidebar from "../components/RightSidebar"
+import { useRouter } from "next/navigation"
 
 // Flexible CEFR readability estimator for short letters
-function estimateCEFR(text: string): string {
+export function estimateCEFR(text: string): string {
   if (!text || text.trim().length < 5) return "A1";
   const words = text.trim().split(/\s+/);
   const wordCount = words.length;
@@ -80,6 +81,7 @@ interface Match {
 // Corrected LetterApp function
 export default function LetterApp() {
   const params = useParams();
+  const router = useRouter();
   const urlUserId = params?.user_id as string;
 
   const [fontStyle, setFontStyle] = useState("handwritten");
@@ -302,7 +304,7 @@ export default function LetterApp() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => history.back()} aria-label="Back to inbox" className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => router.push('/inbox')} aria-label="Back to inbox" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm">Back to inbox</span>
             </Button>
