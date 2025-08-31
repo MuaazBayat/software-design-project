@@ -9,6 +9,7 @@ interface ConversationCardProps {
   formatMessagePreview: (content: string, maxLength?: number) => string;
   formatTimeAgo: (dateString: string) => string;
   getDeliveryStatusBadge: (status: string, fromMe: boolean) => React.ReactNode;
+  onClick?: (conversation: SearchUsersResponseItem) => void; // Add this line
 }
 
 const ConversationCard: React.FC<ConversationCardProps> = ({
@@ -16,13 +17,20 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   formatMessagePreview,
   formatTimeAgo,
   getDeliveryStatusBadge,
+  onClick
 }) => {
   const { user_profile, latest_message } = conversation;
   const isUnread = !latest_message?.is_read;
   const isFromMe = latest_message?.from_me;
 
+  // Add click handler
+  const handleClick = () => {
+    onClick?.(conversation);
+  };
+
   return (
-    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-red-100 rounded-b-lg">
+    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-red-100 rounded-b-lg"
+        onClick={handleClick}>
       {/* Envelope Flap - Top Triangle */}
       <div className="absolute inset-x-0 top-0 z-10">
         <div className="relative">
