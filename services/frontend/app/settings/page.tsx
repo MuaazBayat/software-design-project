@@ -66,7 +66,8 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
 }
 
 // ===== API wiring =====
-const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL || ""; // set in .env.local
+// CHANGE 1: read the env var that your UI message mentions
+const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || ""; // set in .env.local
 
 async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
@@ -80,7 +81,7 @@ async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
 
 async function apiUpdateProfile(
   clerkId: string,
-  patch: Partial<ProfileModel>
+  patch: Partial<ProfileModel> | ProfileModel
 ): Promise<ProfileModel> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "PUT",
@@ -195,6 +196,7 @@ export default function Page() {
     };
   }, [isLoaded, isSignedIn, clerkId]);
 
+  // Keep buildPatch (useful if you want to switch back later)
   function buildPatch(): Partial<ProfileModel> {
     const orig = (originalRef.current ?? {}) as ProfileModel;
     const patch: Partial<ProfileModel> = {};
@@ -227,6 +229,20 @@ export default function Page() {
     return patch;
   }
 
+  // CHANGE 2: add a builder that always sends ALL current values
+  function buildFull(): ProfileModel {
+    return {
+      anonymous_handle: (handle || null) as string | null,
+      age_range: ageRange ?? null,
+      primary_language: primaryLanguage ?? null,
+      secondary_languages: secondaryLanguages,
+      time_zone: timeZone ?? null,
+      country_code: countryCode ?? null,
+      bio: (bio || null) as string | null,
+      interests,
+    };
+  }
+
   async function onSave() {
     if (!isLoaded || !isSignedIn || !clerkId) {
       alert("Sign in first.");
@@ -236,15 +252,14 @@ export default function Page() {
       alert("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
       return;
     }
-    const patch = buildPatch();
-    if (Object.keys(patch).length === 0) {
-      alert("No changes to save.");
-      return;
-    }
+
+    // CHANGE 3: send FULL body instead of diff
+    const body = buildFull();
+
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiUpdateProfile(clerkId, patch);
+      const updated = await apiUpdateProfile(clerkId, body);
       originalRef.current = {
         anonymous_handle: updated.anonymous_handle ?? null,
         age_range: updated.age_range ?? null,
