@@ -13,28 +13,12 @@ import {
   Globe
 } from 'lucide-react';
 
-interface NoConversationPageProps {
-  penPalId?: string;
-  penPalInfo?: {
-    anonymous_handle?: string;
-    country_code?: string;
-    age_range?: string;
-  };
-}
-
-export default function NoConversationPage({ 
-  penPalId, 
-  penPalInfo 
-}: NoConversationPageProps) {
+export default function NoConversationPage() {
   const router = useRouter();
 
   const handleWriteFirstLetter = () => {
-    if (penPalId) {
-      router.push(`/compose-letter/${penPalId}`);
-    } else {
-      // Fallback to general compose page or pen pal selection
-      router.push('/compose-letter');
-    }
+    // Navigate to general compose page or pen pal selection
+    router.push('/compose-letter');
   };
 
   return (
@@ -51,6 +35,10 @@ export default function NoConversationPage({
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Inbox
           </Button>
+          <div className="flex items-center gap-2 ml-4">
+            <Mail className="h-5 w-5 text-amber-600" />
+            <h1 className="text-xl font-semibold text-amber-900">New Pen Pal Connection</h1>
+          </div>
           <div className="ml-auto flex items-center gap-2 text-sm text-amber-700">
             <Globe className="h-4 w-4" />
             <span>Ready to Connect</span>
@@ -81,36 +69,6 @@ export default function NoConversationPage({
               It&apos;s time to send your very first letter and start this magical journey!
             </p>
           </div>
-
-          {/* Pen Pal Info Card */}
-          {penPalInfo && (
-            <Card className="bg-gradient-to-br from-white to-rose-50 border-2 border-rose-200 shadow-lg p-6 max-w-md w-full">
-              <div className="text-center space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <MapPin className="h-5 w-5 text-rose-500" />
-                  <h3 className="text-lg font-semibold text-rose-900">Your Pen Pal</h3>
-                </div>
-                
-                {penPalInfo.anonymous_handle && (
-                  <p className="text-rose-700">
-                    <span className="font-medium">Handle:</span> @{penPalInfo.anonymous_handle}
-                  </p>
-                )}
-                
-                {penPalInfo.country_code && (
-                  <p className="text-rose-700">
-                    <span className="font-medium">From:</span> {penPalInfo.country_code}
-                  </p>
-                )}
-                
-                {penPalInfo.age_range && (
-                  <p className="text-rose-700">
-                    <span className="font-medium">Age:</span> {penPalInfo.age_range}
-                  </p>
-                )}
-              </div>
-            </Card>
-          )}
 
           {/* Encouraging Cards */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl w-full mt-12">
