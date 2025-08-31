@@ -12,7 +12,7 @@ import RightSidebar from "../components/RightSidebar"
 import { useRouter } from "next/navigation"
 
 // Flexible CEFR readability estimator for short letters
-function estimateCEFR(text: string): string {
+export function estimateCEFR(text: string): string {
   if (!text || text.trim().length < 5) return "A1";
   const words = text.trim().split(/\s+/);
   const wordCount = words.length;
