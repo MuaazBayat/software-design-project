@@ -21,6 +21,7 @@ testing-strategy/testing-pytest
 technologyStack/technologyStack
 gitmethodology/methodology
 scrum-docs/sprint1
+Stakeholder-reviews/Stakeholder-reviews
 devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
