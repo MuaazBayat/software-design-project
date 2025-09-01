@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import LetterInbox from '../app/inbox/page'; // Adjust path as needed
 import { useSyncProfile } from '../lib/SyncProfile'; // Adjust path as needed
 import MessagingApiClient from '../lib/MessagingApiClient'; // Adjust path as needed
+import { useConversationUser } from '../lib/context/ConversationUserContext'; // Add this import
 
 // Mock external dependencies
 jest.mock('next/navigation');
 jest.mock('../lib/SyncProfile');
 jest.mock('../lib/MessagingApiClient');
+jest.mock('../lib/context/ConversationUserContext'); // Add this mock
 jest.mock('@/components/ConversationCard');
-
+ 
 // Mock components
 jest.mock('@/components/ConversationCard', () => {
   return function MockConversationCard({ conversation, onClick, formatMessagePreview, formatTimeAgo, getDeliveryStatusBadge }) {
@@ -103,10 +105,13 @@ const mockConversations = [
 const mockPush = jest.fn();
 const mockUseSyncProfile = useSyncProfile;
 const mockUseRouter = useRouter;
+const mockUseConversationUser = useConversationUser;
 const mockMessagingApiClient = MessagingApiClient;
 
 describe('LetterInbox', () => {
   let mockSearchUsers;
+  let mockSetCurrentUser;
+  let mockClearCurrentUser;
 
   beforeEach(() => {
     // Reset all mocks
@@ -120,6 +125,15 @@ describe('LetterInbox', () => {
       refresh: jest.fn(),
       replace: jest.fn(),
       prefetch: jest.fn()
+    });
+
+    // Setup conversation user context mock
+    mockSetCurrentUser = jest.fn();
+    mockClearCurrentUser = jest.fn();
+    mockUseConversationUser.mockReturnValue({
+      setCurrentUser: mockSetCurrentUser,
+      clearCurrentUser: mockClearCurrentUser,
+      currentUser: null // Add other context values as needed
     });
 
     // Setup API client mock
@@ -384,6 +398,8 @@ describe('LetterInbox', () => {
       await user.click(conversationCard);
 
       expect(mockPush).toHaveBeenCalledWith('/conversation/thread1');
+      expect(mockClearCurrentUser).toHaveBeenCalled();
+      expect(mockSetCurrentUser).toHaveBeenCalledWith(mockConversations[0].user_profile);
     });
   });
 
