@@ -14,6 +14,14 @@ const customJestConfig = {
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
     '^@/components/(.*)$': '<rootDir>/components/$1',
   },
+  collectCoverage: true,
+  coverageReporters: ['text', 'lcov', 'json-summary'],
+  coverageThreshold: {
+    global: {
+      Lines: 50,
+      Statements: 50,
+    },
+  },
 
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',
