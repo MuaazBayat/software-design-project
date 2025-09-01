@@ -635,7 +635,7 @@ const MatchScreen: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex justify-center gap-6 mb-8">
-          <button
+          <button aria-label="pass"
             onClick={handlePass}
             disabled={actionLoading || !suggestedProfile || Boolean(dailyStats && dailyStats.matches_remaining <= 0)}
             className="w-16 h-16 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -643,7 +643,7 @@ const MatchScreen: React.FC = () => {
             <X className="w-6 h-6 text-stone-500" />
           </button>
 
-          <button
+          <button aria-label="like"
             onClick={handleLike}
             disabled={actionLoading || !suggestedProfile || Boolean(dailyStats && dailyStats.matches_remaining <= 0)}
             className="w-20 h-20 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"

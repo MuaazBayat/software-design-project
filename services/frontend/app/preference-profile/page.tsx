@@ -31,6 +31,7 @@ interface ApiUserProfile {
   favorite_local_fact: string | null;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_MATCHMAKING_URL;
 
 const countryCodeToName: Record<string, string> = {
   US: 'United States',
@@ -110,7 +111,7 @@ const PreferenceProfileSelector = () => { // Remove the props
     
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/preferences/profiles/${user.id}`);
+      const response = await fetch(`${API_BASE_URL}/preferences/profiles/${user.id}`);
       if (response.ok) {
         const data: ApiUserProfile[] = await response.json();
         setProfiles(data.map((profile) => ({ 
@@ -223,7 +224,7 @@ const PreferenceProfileSelector = () => { // Remove the props
       
       console.log('Sending payload:', payload);
 
-      const response = await fetch('http://localhost:8001/preferences/select', {
+      const response = await fetch(`${API_BASE_URL}/preferences/select`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
