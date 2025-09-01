@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 
 // Mock the MessagingApiClient module first
-jest.mock('@/lib/MessagingApiClient', () => {
+jest.mock('../lib/MessagingApiClient', () => {
   const MockMessagingApiClient = jest.fn().mockImplementation(() => ({
     searchUsers: jest.fn(),
     sendLetter: jest.fn(),
@@ -36,7 +36,7 @@ jest.mock('next/navigation', () => ({
 }))
 
 // Mock the SyncProfile hook
-jest.doMock('@/lib/SyncProfile', () => ({
+jest.doMock('../lib/SyncProfile', () => ({
   useSyncProfile: jest.fn(),
 }))
 

@@ -111,11 +111,6 @@ const LANG = [
   { code: "es", label: "Spanish" },
   { code: "fr", label: "French" },
   { code: "de", label: "German" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ar", label: "Arabic" },
-  { code: "sw", label: "Swahili" },
-  { code: "hi", label: "Hindi" },
-  { code: "bn", label: "Bengali" },
   { code: "ja", label: "Japanese" },
   { code: "zh", label: "Chinese" },
 ] as const;
@@ -450,44 +445,77 @@ export default function Page() {
                     </Select>
                   </FieldRow>
                 </div>
+                  <FieldRow
+                    label="Secondary languages"
+                    hint="Pick from the same list as primary; you can add multiple."
+                  >
+                    <div className="grid gap-2">
+                      {/* Selected chips */}
+                      {secondaryLanguages.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {secondaryLanguages.map((code) => (
+                            <Chip
+                              key={code}
+                              text={LANG.find((l) => l.code === code)?.label ?? code}
+                              onRemove={() =>
+                                setSecondaryLanguages((prev) => prev.filter((x) => x !== code))
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
 
-                <FieldRow label="Secondary languages" hint="Add ISO codes (e.g. ja, fr). Type and press Enter.">
-                  <div className="grid gap-2">
-                    {secondaryLanguages.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {secondaryLanguages.map((code) => (
-                          <Chip key={code} text={code} onRemove={() => setSecondaryLanguages((prev) => prev.filter((x) => x !== code))} />
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 max-w-md">
-                      <Input
-                        value={secondaryLangInput}
-                        onChange={(e) => setSecondaryLangInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const v = secondaryLangInput.trim();
-                            if (v) {
-                              setSecondaryLanguages((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                              setSecondaryLangInput("");
-                            }
-                          }
+                      {/* Add-more dropdown (multi via repeated selection) */}
+                      <Select
+                        // Remount the Select whenever the selection changes → placeholder resets
+                        key={secondaryLanguages.join(",") || "empty"}
+                        onValueChange={(code) => {
+                          setSecondaryLanguages((prev) =>
+                            prev.includes(code) ? prev : [...prev, code]
+                          )
                         }}
-                        placeholder="e.g. ja, fr, de"
-                        className="bg-white"
-                      />
-                      <Button type="button" variant="secondary" onClick={() => {
-                        const v = secondaryLangInput.trim();
-                        if (v) {
-                          setSecondaryLanguages((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                          setSecondaryLangInput("");
+                        // Disable when nothing left to add
+                        disabled={
+                          LANG.filter(
+                            ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                          ).length === 0
                         }
-                      }}>Add</Button>
+                      >
+                        <SelectTrigger
+                          aria-label="Add a secondary language"
+                          className="w-full sm:max-w-md min-h-10 bg-white overflow-hidden text-ellipsis whitespace-nowrap"
+                        >
+                          <SelectValue
+                            placeholder={
+                              LANG.filter(
+                                ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                              ).length === 0
+                                ? "All available languages added"
+                                : "Add a secondary language"
+                            }
+                          />
+                        </SelectTrigger>
+
+                        {/* Match trigger width; ensure it overlays */}
+                        <SelectContent
+                          position="popper"
+                          className="z-50 w-[var(--radix-select-trigger-width)] max-h-64 overflow-auto"
+                        >
+                          {LANG
+                            .filter(
+                              ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                            )
+                            .map(({ code, label }) => (
+                              <SelectItem key={code} value={code}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                </FieldRow>
-              </CardContent>
+                  </FieldRow>
+
+                                </CardContent>
               <CardFooter className="flex justify-between items-center">
                 <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
                 <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-amber-700 hover:bg-amber-800">Save Changes</Button>
