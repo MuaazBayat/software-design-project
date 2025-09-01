@@ -19,9 +19,11 @@ contribution/contribution
 testing-strategy/testing-jest
 testing-strategy/testing-pytest
 technologyStack/technologyStack
+external-libraries/external-libraries
 gitmethodology/methodology
 scrum-docs/sprint1
 devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
 data_design_doc/globetalk_data_design
+```
