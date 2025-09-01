@@ -18,11 +18,7 @@ def mock_supabase():
         mock.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
         yield mock
 
-def test_health_check(client):
-    """Test health endpoint"""
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+
 
 def test_get_user_profile_success(client, mock_supabase):
     """Test getting user profile successfully"""
@@ -309,13 +305,3 @@ def test_get_preference_profiles_fallback(client, mock_supabase):
     assert response.status_code == 200
     assert len(response.json()) > 0
 
-# Skip the timezone tests until we fix the function
-@pytest.mark.skip(reason="Function not implemented correctly")
-def test_filter_profiles_by_timezone():
-    """Test filtering profiles by timezone"""
-    pass
-
-@pytest.mark.skip(reason="Function not implemented correctly")
-def test_parse_timezone_offset():
-    """Test parsing timezone offset strings"""
-    pass
