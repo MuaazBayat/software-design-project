@@ -312,7 +312,7 @@ const CulturalExplorer = () => {
               onClick={() => handleDeckChange('my-country')}
               className={`p-6 transition-all duration-300 ${
                 selectedDeck === 'my-country'
-                  ? 'border-purple-500 bg-purple-100 scale-105 shadow-xl'
+                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
                   : 'border-gray-300 bg-white hover:border-purple-300 hover:shadow-lg'
               }`}
             >
@@ -325,7 +325,7 @@ const CulturalExplorer = () => {
               onClick={() => handleDeckChange('random')}
               className={`p-6 transition-all duration-300 ${
                 selectedDeck === 'random'
-                  ? 'border-blue-500 bg-blue-100 scale-105 shadow-xl'
+                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
                   : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-lg'
               }`}
             >
@@ -387,7 +387,7 @@ const CulturalExplorer = () => {
               }`}
             >
               {/* Card header */}
-              <div className="bg-gradient-to-r from-[#11120c] via-[#433e30] to-[#5a3e2b] text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-amber-700 to-orange-700 via-amber-500 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
@@ -419,7 +419,7 @@ const CulturalExplorer = () => {
                     className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 ${
                       isFlipping
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-black rounded-sm text-white hover:scale-105 shadow-lg'
+                        : 'bg-orange-800 rounded-sm text-white hover:scale-105 shadow-lg'
                     }`}
                   >
                     <RotateCw className={`w-5 h-5 ${isFlipping ? 'animate-spin' : ''}`} />

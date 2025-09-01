@@ -30,6 +30,7 @@ interface MainContentProps {
   overlayFontOpen?: boolean
   templateBackground?: string | null
   onToggleTemplates?: () => void
+  toggleLeftSidebar?: () => void
 }
 
 export default function MainContent({
@@ -51,7 +52,8 @@ export default function MainContent({
   onToggleFontOverlay,
   overlayFontOpen = false,
   templateBackground = null,
-  onToggleTemplates
+  onToggleTemplates,
+  toggleLeftSidebar
 }: MainContentProps) {
   const [selectedFormatting, setSelectedFormatting] = useState<string[]>([]);
   const previewFontId = previewFontIdExternal
@@ -315,7 +317,7 @@ export default function MainContent({
                   type="button"
                   variant={overlayFontOpen ? 'secondary' : 'ghost'}
                   size="sm"
-                  onClick={() => onToggleFontOverlay?.()}
+                  onClick={() => {onToggleFontOverlay?.(); toggleLeftSidebar?.();}}
                   className={`gap-1 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-700 hover:bg-amber-100'}`}
                 >
                   <Type className="h-4 w-4" />
@@ -338,7 +340,7 @@ export default function MainContent({
                 size="sm"
                 onClick={() => onNewLetter?.()}
                 disabled={sending}
-                className="w-full  bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                className="w-full  bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
               >
                 Clear Letter
               </Button>

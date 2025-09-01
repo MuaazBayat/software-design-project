@@ -16,6 +16,7 @@ import MainContent from "../../../components/MainContent"
 import RightSidebar from "../../../components/RightSidebar"
 import { useRouter } from "next/navigation"
 import { Toaster, toast } from "sonner"
+import { se } from "date-fns/locale";
 
 // Define types and interfaces at the top (these are fine as they're not exports)
 export type LetterTemplate = {
@@ -290,6 +291,10 @@ export default function LetterApp() {
     setTemplatesOpen(open => !open);
   };
 
+    const handleToggleLeft = () => {
+    setLeftOpen(open => !open);
+  };
+
   const resetLetter = () => {
     if (letterContent.trim().length > 0 && !success) {
       const confirmed = window.confirm("Are you sure you want to start a new letter? Your current draft will be lost.");
@@ -321,10 +326,10 @@ export default function LetterApp() {
       )}
       <div className="mx-auto w-full max-w-7xl px-3 xl:px-6">
         {/* Mobile top bar (only visible < md) */}
-        <div className="xl:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between">
+        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between">
           <Button size="sm" variant="outline" className="gap-2" onClick={() => setLeftOpen(true)}>
             <PanelLeft className="h-4 w-4" />
-            Matches & Fonts
+            Matches
           </Button>
           <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)}>
             Preview & Send
@@ -390,6 +395,7 @@ export default function LetterApp() {
               overlayFontOpen={fontOverlayOpen}
               templateBackground={templateBackground}
               onToggleTemplates={handleToggleTemplates}
+              toggleLeftSidebar={handleToggleLeft}
             />
           </div>
 
@@ -418,7 +424,13 @@ export default function LetterApp() {
       </div>
 
       {/* LEFT drawer (mobile / tablet) */}
-      <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
+      <Sheet open={leftOpen} onOpenChange={(open) => {
+    setLeftOpen(open);
+    if (!open) {
+      setFontOverlayOpen(false);   // 👈 close Fonts overlay
+      setPreviewFontId(null);      // 👈 clear any preview state
+    }
+  }}>
         <SheetContent side="left" className="xl:hidden w-[85vw] p-0">
           {/* A11y header */}
           <SheetHeader className="sr-only">

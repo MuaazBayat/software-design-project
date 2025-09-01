@@ -118,7 +118,7 @@ export default function RightSidebar({
         <Button
           onClick={() => onSend?.()}
           disabled={sendDisabled || sending}
-          className="w-full bg-rose-500 hover:bg-rose-600 text-white px-4 py-3"
+          className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-3"
           size="sm"
         >
           <Send className="w-4 h-4 mr-2 inline" />
@@ -165,12 +165,26 @@ export default function RightSidebar({
 // --- Add ReadabilityRating component at top-level ---
 export function ReadabilityRating({ value }: { value: string | number }) {
   const [open, setOpen] = useState(false)
+
+  // Map CEFR → Tailwind text colors
+  const level = String(value).toUpperCase()
+  const colorMap: Record<string, string> = {
+    A1: "text-green-400",
+    A2: "text-green-600",
+    B1: "text-yellow-500",
+    B2: "text-orange-500",
+    C1: "text-red-500",
+    C2: "text-red-600",
+  }
+  const colorClass =
+    !value || value === "0" || value === 0 ? "text-gray-400" : colorMap[level] || "text-gray-600"
+
   return (
     <div className="flex flex-col items-center justify-center">
       <span className="flex items-center gap-2 mb-1">
         <Gauge className="w-4 h-4 text-amber-500" />
-        <span className="text-xl font-bold text-amber-700">
-          {(!value || value === '0' || value === 0) ? 'N/A' : String(value)}
+        <span className={`text-xl font-bold ${colorClass}`}>
+          {(!value || value === "0" || value === 0) ? "N/A" : String(value)}
         </span>
         <button
           type="button"
@@ -188,21 +202,30 @@ export function ReadabilityRating({ value }: { value: string | number }) {
             <DialogTitle>Readability Rating (CEFR)</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-gray-700">
-            <div className="mb-2">This Readability Rating is meant to help you connect with your reader by guiding tone and language complexity.</div>
+            <div className="mb-2">
+              This Readability Rating is meant to help you connect with your reader by guiding tone
+              and language complexity.
+            </div>
             <b>CEFR Levels:</b>
             <ul className="mt-2 mb-2 space-y-1">
-              <li><b>A1</b>: Beginner</li>
-              <li><b>A2</b>: Elementary</li>
-              <li><b>B1</b>: Intermediate</li>
-              <li><b>B2</b>: Upper Intermediate</li>
-              <li><b>C1</b>: Advanced</li>
-              <li><b>C2</b>: Proficient</li>
+              <li className="text-green-600"><b>A1</b>: Beginner</li>
+              <li className="text-green-500"><b>A2</b>: Elementary</li>
+              <li className="text-yellow-500"><b>B1</b>: Intermediate</li>
+              <li className="text-orange-500"><b>B2</b>: Upper Intermediate</li>
+              <li className="text-red-500"><b>C1</b>: Advanced</li>
+              <li className="text-red-600"><b>C2</b>: Proficient</li>
             </ul>
-            <span className="block mt-2 text-amber-500">Higher = more complex language</span>
-            <div className="mt-3 text-xs text-gray-500">This rating is estimated based on your letter&apos;s vocabulary and sentence structure.</div>
+            <span className="block mt-2 text-amber-500">
+              Higher = more complex language
+            </span>
+            <div className="mt-3 text-xs text-gray-500">
+              This rating is estimated based on your letter&apos;s vocabulary and sentence
+              structure.
+            </div>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
+
