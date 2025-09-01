@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import wc from 'world-countries';
@@ -245,11 +245,11 @@ const CulturalExplorer = () => {
     loadFacts();
   }, []);
 
-  const getRandomCountry = () => {
+  const getRandomCountry = useCallback(() => {
     if (availableCountries.length === 0) return '';
     const randomIndex = Math.floor(Math.random() * availableCountries.length);
     return availableCountries[randomIndex];
-  };
+  }, [availableCountries]);
 
   const currentCountry = useMemo(() => {
     switch (selectedDeck) {
@@ -262,7 +262,7 @@ const CulturalExplorer = () => {
       default:
         return '';
     }
-  }, [selectedDeck, selectedCountry, availableCountries]);
+  }, [selectedDeck, selectedCountry, availableCountries, getRandomCountry]);
 
   const currentFacts = useMemo(() => {
     if (!currentCountry || !factsData[currentCountry]) return [];
@@ -277,7 +277,7 @@ const CulturalExplorer = () => {
     if (selectedDeck === 'random' && availableCountries.length > 0 && !selectedCountry) {
       setSelectedCountry(getRandomCountry());
     }
-  }, [availableCountries, selectedDeck, selectedCountry]);
+  }, [availableCountries, selectedDeck, selectedCountry, getRandomCountry]);
 
   const fadeCardOutIn = () => {
     setCardVisible(false);
@@ -328,7 +328,7 @@ const CulturalExplorer = () => {
         D: '7 languages'
       },
       answer: 'B',
-      hint: 'It\'s more than any other country in the world!',
+      hint: 'It&apos;s more than any other country in the world!',
       explanation: 'South Africa has 11 official languages, making it the country with the most official languages in the world. These include English, Afrikaans, Zulu, Xhosa, and seven others.'
     },
     {
@@ -337,7 +337,7 @@ const CulturalExplorer = () => {
       options: {
         A: 'It was the first country to develop nuclear weapons',
         B: 'It currently has the most nuclear weapons',
-        C: 'It\'s the only country to voluntarily dismantle its nuclear weapons program',
+        C: 'It&apos;s the only country to voluntarily dismantle its nuclear weapons program',
         D: 'It has never had nuclear weapons'
       },
       answer: 'C',
@@ -603,7 +603,7 @@ const CulturalExplorer = () => {
                 <div className="min-h-[140px] flex flex-col items-center justify-center">
                   <div className="text-6xl mb-4 animate-bounce">🧠</div>
                   <p className="text-lg text-gray-700 text-center mb-4">
-                    Creating quiz questions based on the facts you've learned...
+                    Creating quiz questions based on the facts you&apos;ve learned...
                   </p>
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse"></div>
@@ -738,7 +738,7 @@ const CulturalExplorer = () => {
                   {renderFlag(currentCountry)}
                 </div>
                 <h2 className="text-2xl font-bold">Quiz Complete!</h2>
-                <p className="opacity-75 mt-1">Here's how you did</p>
+                <p className="opacity-75 mt-1">Here&apos;s how you did</p>
               </div>
 
               {/* Results body */}
