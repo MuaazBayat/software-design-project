@@ -3,11 +3,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useRouter } from 'next/navigation';
 import NoConversationPage from '../app/conversation/page';
+import { useConversationUser } from '../lib/context/ConversationUserContext'; // Add this import
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
+
+// Mock ConversationUser context
+jest.mock('../lib/context/ConversationUserContext'); // Add this mock
 
 // Mock UI components
 jest.mock('@/components/ui/card', () => ({
@@ -30,7 +34,7 @@ jest.mock('@/components/ui/button', () => ({
       {...props}
     >
       {children}
-    </button>
+    </button> 
   ),
 }));
 
@@ -55,8 +59,18 @@ describe('NoConversationPage - Simple Tests', () => {
     replace: jest.fn(),
   };
 
+  const mockUseConversationUser = useConversationUser;
+
   beforeEach(() => {
     useRouter.mockReturnValue(mockRouter);
+    
+    // Setup conversation user context mock with no current user by default
+    mockUseConversationUser.mockReturnValue({
+      currentUser: null,
+      setCurrentUser: jest.fn(),
+      clearCurrentUser: jest.fn()
+    });
+    
     jest.clearAllMocks();
   });
 
@@ -99,13 +113,34 @@ describe('NoConversationPage - Simple Tests', () => {
 
   // Navigation tests - focus on successful scenarios
   describe('Navigation', () => {
-    it('calls router.push with correct path when write letter button is clicked', () => {
+    it('does not navigate when write letter button is clicked and no current user', () => {
+      // Default mock has currentUser: null
       render(<NoConversationPage />);
       
       const writeButton = screen.getByText('Write Your First Letter');
       fireEvent.click(writeButton);
       
-      expect(mockPush).toHaveBeenCalledWith('/compose-letter');
+      // Should not navigate if no current user
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('navigates to specific user compose page when current user exists', () => {
+      // Mock with current user
+      mockUseConversationUser.mockReturnValue({
+        currentUser: {
+          user_id: 'user123',
+          anonymous_handle: 'testuser'
+        },
+        setCurrentUser: jest.fn(),
+        clearCurrentUser: jest.fn()
+      });
+
+      render(<NoConversationPage />);
+      
+      const writeButton = screen.getByText('Write Your First Letter');
+      fireEvent.click(writeButton);
+      
+      expect(mockPush).toHaveBeenCalledWith('/compose-letter/user123');
     });
 
     it('calls router.push with correct path when back button is clicked', () => {
@@ -117,7 +152,17 @@ describe('NoConversationPage - Simple Tests', () => {
       expect(mockPush).toHaveBeenCalledWith('/inbox');
     });
 
-    it('handles multiple navigation actions', () => {
+    it('handles multiple navigation actions with current user', () => {
+      // Mock with current user
+      mockUseConversationUser.mockReturnValue({
+        currentUser: {
+          user_id: 'user456',
+          anonymous_handle: 'penpal'
+        },
+        setCurrentUser: jest.fn(),
+        clearCurrentUser: jest.fn()
+      });
+
       render(<NoConversationPage />);
       
       const writeButton = screen.getByText('Write Your First Letter');
@@ -127,7 +172,7 @@ describe('NoConversationPage - Simple Tests', () => {
       fireEvent.click(backButton);
       
       expect(mockPush).toHaveBeenCalledTimes(2);
-      expect(mockPush).toHaveBeenNthCalledWith(1, '/compose-letter');
+      expect(mockPush).toHaveBeenNthCalledWith(1, '/compose-letter/user456');
       expect(mockPush).toHaveBeenNthCalledWith(2, '/inbox');
     });
   });
@@ -229,6 +274,36 @@ describe('NoConversationPage - Simple Tests', () => {
       
       expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
       expect(screen.getByText('Your Letter Adventure Begins! ✨')).toBeInTheDocument();
+    });
+  });
+
+  // Test different currentUser scenarios
+  describe('Current User Scenarios', () => {
+    it('renders correctly when no current user is set', () => {
+      // Default mock has currentUser: null
+      render(<NoConversationPage />);
+      
+      // Should still render all content
+      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
+      expect(screen.getByText('New Pen Pal Connection')).toBeInTheDocument();
+    });
+
+    it('renders correctly when current user is set', () => {
+      mockUseConversationUser.mockReturnValue({
+        currentUser: {
+          user_id: 'user789',
+          anonymous_handle: 'buddy',
+          profile_image_url: 'image.jpg'
+        },
+        setCurrentUser: jest.fn(),
+        clearCurrentUser: jest.fn()
+      });
+
+      render(<NoConversationPage />);
+      
+      // Should render the same content regardless of current user
+      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
+      expect(screen.getByText('New Pen Pal Connection')).toBeInTheDocument();
     });
   });
 });
