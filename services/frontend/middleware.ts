@@ -3,7 +3,9 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 // Define which routes require authentication
 const isProtectedRoute = createRouteMatcher([
   // Add your protected routes here
-  '/inbox(.*)'
+  '/inbox(.*)',
+  '/compose-letter(.*)',
+  '/conversation(.*)',
   
   //'/dashboard(.*)',
   //'/profile(.*)',
