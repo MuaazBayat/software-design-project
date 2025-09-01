@@ -292,10 +292,10 @@ export default function Page() {
 
         <Tabs defaultValue="profile">
           <TabsList className="grid w-full grid-cols-2 border bg-amber-50/60 text-stone-700">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-rose-600">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-700">
               <User2 className="mr-2 h-4 w-4" /> Profile
             </TabsTrigger>
-            <TabsTrigger value="language" className="data-[state=active]:bg-rose-600">
+            <TabsTrigger value="language" className="data-[state=active]:bg-orange-700">
               <MessageSquareHeart className="mr-2 h-4 w-4" /> Languages & Time
             </TabsTrigger>
           </TabsList>
