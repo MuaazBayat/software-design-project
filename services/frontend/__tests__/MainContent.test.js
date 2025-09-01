@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-const MainContent = require('../app/compose-letter/components/MainContent').default
+const MainContent = require('../components/MainContent').default
 const { DEFAULT_FONT_ID } = require('../app/compose-letter/fonts')
 
 beforeEach(() => {

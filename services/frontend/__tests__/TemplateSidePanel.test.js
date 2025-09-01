@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
-const TemplateSidePanel = require('../app/compose-letter/components/TemplateSidePanel').default
+const TemplateSidePanel = require('../components/TemplateSidePanel').default
 
 test('renders when open and close button calls onClose', () => {
   const onClose = jest.fn()

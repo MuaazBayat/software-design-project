@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FONT_PRESETS, FontPresetMeta } from '../fonts'
+import { FONT_PRESETS, FontPresetMeta } from '../app/compose-letter/fonts'
 import { Star, StarOff, X } from 'lucide-react'
 
 interface Props {

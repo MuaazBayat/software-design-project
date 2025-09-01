@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import React, { useState } from "react"
 import { Heart, Clock, BarChart3, Send, Gauge, Info } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { FONT_PRESETS, DEFAULT_FONT_ID } from '../fonts'
+import { FONT_PRESETS, DEFAULT_FONT_ID } from '../app/compose-letter/fonts'
 import TemplateSidePanel from './TemplateSidePanel'
 
 interface Match {
@@ -66,20 +66,6 @@ export default function RightSidebar({
   }
   return (
     <div className="relative w-80 bg-white/60 backdrop-blur-sm border-l border-amber-200 p-6 custom-scrollbar overflow-y-auto h-[calc(100vh-80px)] shrink-0">
-
-      {/* Templates panel overlays the sidebar when open */}
-      {templatesOpen && (
-        <TemplateSidePanel
-          open={!!templatesOpen}
-          currentId={templateBackground || undefined}
-          onSelect={(id: string | null) => { onSelectTemplate?.(id); setTemplatesOpen?.(false) }}
-          onPreview={(id: string | null) => onPreviewTemplate?.(id)}
-          onClose={() => setTemplatesOpen?.(false)}
-          anchorWithinSidebar
-          thumbLineTile={templateLineTile}
-          thumbSize={64}
-        />
-      )}
 
       {/* Letter Preview */}
       <Card className="p-4 mb-4 bg-transparent border-amber-200">

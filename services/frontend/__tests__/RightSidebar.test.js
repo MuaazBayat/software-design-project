@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 // Mock the TemplateSidePanel child so tests can trigger the onPreview prop
-jest.mock('../app/compose-letter/components/TemplateSidePanel', () => {
+jest.mock('../components/TemplateSidePanel', () => {
   const React = require('react')
   return function MockTemplateSidePanel(props) {
     return (
@@ -16,8 +16,8 @@ jest.mock('../app/compose-letter/components/TemplateSidePanel', () => {
   }
 })
 
-const RightSidebar = require('../app/compose-letter/components/RightSidebar').default
-const { ReadabilityRating } = require('../app/compose-letter/components/RightSidebar')
+const RightSidebar = require('../components/RightSidebar').default
+const { ReadabilityRating } = require('../components/RightSidebar')
 
 test('renders letter preview with selected match and anonymous handle', () => {
   const selectedMatch = { id: 'm1', name: 'Alice Example', location: 'Nowhere', interests: [] }

@@ -2,25 +2,30 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
+import {
+  Sheet, SheetTrigger, SheetContent,
+  SheetHeader, SheetTitle, SheetDescription
+} from "@/components/ui/sheet";
+import TemplateSidePanel from "../../../components/TemplateSidePanel";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, CheckCircle2, AlertCircle, PanelLeft, PanelRight } from "lucide-react"
 import MessagingApiClient, { SearchUsersRequest, SendLetterRequest, ApiError } from "@/lib/MessagingApiClient"
 import { useSyncProfile } from "@/lib/SyncProfile"
-import LeftSidebar from "../components/LeftSidebar"
-import MainContent from "../components/MainContent"
-import RightSidebar from "../components/RightSidebar"
+import LeftSidebar from "../../../components/LeftSidebar"
+import MainContent from "../../../components/MainContent"
+import RightSidebar from "../../../components/RightSidebar"
 import { useRouter } from "next/navigation"
 import { Toaster, toast } from "sonner"
 
 // Define types and interfaces at the top (these are fine as they're not exports)
-export type LetterTemplate = { 
-  id: string; 
-  name: string; 
-  description: string; 
-  content: string; 
-  category: string; 
-  estimated_minutes?: number; 
-  tags?: string[] 
+export type LetterTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  category: string;
+  estimated_minutes?: number;
+  tags?: string[]
 }
 
 interface Match {
@@ -92,6 +97,9 @@ export default function LetterApp() {
   };
 
   // State variables
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
+
   const [fontStyle, setFontStyle] = useState("handwritten");
   const [fontSize, setFontSize] = useState([16]);
   const [letterContent, setLetterContent] = useState(
@@ -311,64 +319,219 @@ export default function LetterApp() {
           <p>{error}</p>
         </div>
       )}
-      <div className="flex max-w-7xl mx-auto">
-        <LeftSidebar
-          selectedMatch={selectedMatch}
-          matches={matches}
-          loading={loading}
-          onChangeRecipient={handleRecipientChange}
-          onApplyTemplate={(templateId: string) => {
-            getLetterTemplates().then((list: LetterTemplate[]) => {
-              const t = list.find((x: LetterTemplate) => x.id === templateId);
-              if (t) setLetterContent(t.content);
-            }).catch((err: unknown) => console.error('Failed to apply template from left sidebar:', err));
-          }}
-          showFontOverlay={fontOverlayOpen}
-          onToggleFontOverlay={() => { setFontOverlayOpen(o => !o); setPreviewFontId(null); }}
-          fontStyle={fontStyle}
-          onSelectFont={(id: string) => { setFontStyle(id); setPreviewFontId(null); }}
-          onPreviewFont={(id: string | null) => setPreviewFontId(id)}
-        />
-        <MainContent
-          letterContent={letterContent}
-          setLetterContent={setLetterContent}
-          fontStyle={fontStyle}
-          fontSize={fontSize}
-          setFontStyle={setFontStyle}
-          setFontSize={setFontSize}
-          success={success}
-          anonymousHandle={anonymousHandle}
-          letterHeading={letterHeading}
-          setLetterHeading={setLetterHeading}
-          letterFooterPrefix={letterFooterPrefix}
-          setLetterFooterPrefix={setLetterFooterPrefix}
-          onNewLetter={resetLetter}
-          sending={sending}
-          previewFontIdExternal={previewFontId}
-          onToggleFontOverlay={() => { setFontOverlayOpen(o => !o); setPreviewFontId(null); }}
-          overlayFontOpen={fontOverlayOpen}
-          templateBackground={templateBackground}
-          onToggleTemplates={handleToggleTemplates}
-        />
-        <RightSidebar
-          onSend={handleSend}
-          sending={sending}
-          sendDisabled={!selectedMatch || !letterContent.trim() || sending}
-          wordCount={wordCount}
-          charCount={charCount}
-          readingTime={readingTime}
-          readability={readability}
-          selectedMatch={selectedMatch}
-          anonymousHandle={anonymousHandle}
-          fontStyle={fontStyle}
-          letterFooterPrefix={letterFooterPrefix}
-          templateBackground={templateBackground}
-          onSelectTemplate={handleSelectTemplate}
-          onPreviewTemplate={handlePreviewTemplate}
-          templatesOpen={templatesOpen}
-          setTemplatesOpen={setTemplatesOpen}
-        />
+      <div className="mx-auto w-full max-w-7xl px-3 xl:px-6">
+        {/* Mobile top bar (only visible < md) */}
+        <div className="xl:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between">
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setLeftOpen(true)}>
+            <PanelLeft className="h-4 w-4" />
+            Matches & Fonts
+          </Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)}>
+            Preview & Send
+            <PanelRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Desktop layout: 3 columns */}
+        <div className="xl:flex xl:gap-6">
+          {/* Left sidebar (desktop only) */}
+          <div className="hidden xl:block xl:w-72 xl:w-80 shrink-0">
+            <LeftSidebar
+              selectedMatch={selectedMatch}
+              matches={matches}
+              loading={loading}
+              onChangeRecipient={handleRecipientChange}
+              onApplyTemplate={(templateId: string) => {
+                getLetterTemplates()
+                  .then((list: LetterTemplate[]) => {
+                    const t = list.find((x: LetterTemplate) => x.id === templateId);
+                    if (t) setLetterContent(t.content);
+                  })
+                  .catch((err: unknown) =>
+                    console.error("Failed to apply template from left sidebar:", err)
+                  );
+              }}
+              showFontOverlay={fontOverlayOpen}
+              onToggleFontOverlay={() => {
+                setFontOverlayOpen((o) => !o);
+                setPreviewFontId(null);
+              }}
+              fontStyle={fontStyle}
+              onSelectFont={(id: string) => {
+                setFontStyle(id);
+                setPreviewFontId(null);
+              }}
+              onPreviewFont={(id: string | null) => setPreviewFontId(id)}
+            />
+          </div>
+
+          {/* Main editor (always visible) */}
+          <div className="flex-1">
+            <MainContent
+              letterContent={letterContent}
+              setLetterContent={setLetterContent}
+              fontStyle={fontStyle}
+              fontSize={fontSize}
+              setFontStyle={setFontStyle}
+              setFontSize={setFontSize}
+              success={success}
+              anonymousHandle={anonymousHandle}
+              letterHeading={letterHeading}
+              setLetterHeading={setLetterHeading}
+              letterFooterPrefix={letterFooterPrefix}
+              setLetterFooterPrefix={setLetterFooterPrefix}
+              onNewLetter={resetLetter}
+              sending={sending}
+              previewFontIdExternal={previewFontId}
+              onToggleFontOverlay={() => {
+                setFontOverlayOpen((o) => !o);
+                setPreviewFontId(null);
+              }}
+              overlayFontOpen={fontOverlayOpen}
+              templateBackground={templateBackground}
+              onToggleTemplates={handleToggleTemplates}
+            />
+          </div>
+
+          {/* Right sidebar (desktop only) */}
+          <div className="hidden xl:block xl:w-80 xl:w-96 shrink-0">
+            <RightSidebar
+              onSend={handleSend}
+              sending={sending}
+              sendDisabled={!selectedMatch || !letterContent.trim() || sending}
+              wordCount={wordCount}
+              charCount={charCount}
+              readingTime={readingTime}
+              readability={readability}
+              selectedMatch={selectedMatch}
+              anonymousHandle={anonymousHandle}
+              fontStyle={fontStyle}
+              letterFooterPrefix={letterFooterPrefix}
+              templateBackground={templateBackground}
+              onSelectTemplate={handleSelectTemplate}
+              onPreviewTemplate={handlePreviewTemplate}
+              templatesOpen={templatesOpen}
+              setTemplatesOpen={setTemplatesOpen}
+            />
+          </div>
+        </div>
       </div>
+
+      {/* LEFT drawer (mobile / tablet) */}
+      <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
+        <SheetContent side="left" className="xl:hidden w-[85vw] p-0">
+          {/* A11y header */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>Matches and font settings</SheetTitle>
+            <SheetDescription>Choose a recipient and adjust font styles for your letter.</SheetDescription>
+          </SheetHeader>
+
+          <div className="h-full overflow-y-auto">
+            <LeftSidebar
+              selectedMatch={selectedMatch}
+              matches={matches}
+              loading={loading}
+              onChangeRecipient={(m) => {
+                handleRecipientChange(m);
+                setLeftOpen(false);
+              }}
+              onApplyTemplate={(templateId: string) => {
+                getLetterTemplates()
+                  .then((list: LetterTemplate[]) => {
+                    const t = list.find((x: LetterTemplate) => x.id === templateId);
+                    if (t) setLetterContent(t.content);
+                    setLeftOpen(false);
+                  })
+                  .catch((err: unknown) =>
+                    console.error("Failed to apply template from left sidebar:", err)
+                  );
+              }}
+              showFontOverlay={fontOverlayOpen}
+              onToggleFontOverlay={() => {
+                setFontOverlayOpen((o) => !o);
+                setPreviewFontId(null);
+              }}
+              fontStyle={fontStyle}
+              onSelectFont={(id: string) => {
+                setFontStyle(id);
+                setPreviewFontId(null);
+              }}
+              onPreviewFont={(id: string | null) => setPreviewFontId(id)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* RIGHT drawer (mobile / tablet) */}
+      <Sheet open={rightOpen} onOpenChange={setRightOpen}>
+        <SheetContent side="right" className="xl:hidden w-[85vw] p-0">
+          {/* A11y header */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>Preview and send</SheetTitle>
+            <SheetDescription>Preview your letter and send it to your pen pal.</SheetDescription>
+          </SheetHeader>
+
+          <div className="h-full overflow-y-auto">
+            <RightSidebar
+              onSend={() => {
+                handleSend();
+                // setRightOpen(false) // uncomment if you want it to close after sending
+              }}
+              sending={sending}
+              sendDisabled={!selectedMatch || !letterContent.trim() || sending}
+              wordCount={wordCount}
+              charCount={charCount}
+              readingTime={readingTime}
+              readability={readability}
+              selectedMatch={selectedMatch}
+              anonymousHandle={anonymousHandle}
+              fontStyle={fontStyle}
+              letterFooterPrefix={letterFooterPrefix}
+              templateBackground={templateBackground}
+              onSelectTemplate={(t) => { handleSelectTemplate(t); }}
+              onPreviewTemplate={(t) => { handlePreviewTemplate(t); }}
+              templatesOpen={templatesOpen}
+              setTemplatesOpen={setTemplatesOpen}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+{/* TEMPLATES drawer (bottom) */}
+<Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
+  <SheetContent
+    side="bottom"
+    className="w-full p-0 xl:hidden h-[85vh] overflow-hidden"
+  >
+    {/* A11y header to satisfy Radix */}
+    <SheetHeader className="sr-only">
+      <SheetTitle>Letter templates</SheetTitle>
+      <SheetDescription>Browse and preview templates, then apply one to your letter.</SheetDescription>
+    </SheetHeader>
+
+    <TemplateSidePanel
+      open={!!templatesOpen}
+      currentId={templateBackground || undefined}
+      // Apply and close
+      onSelect={(id: string | null) => {
+        handleSelectTemplate(id);
+        setTemplatesOpen(false);
+      }}
+      // Live preview without closing
+      onPreview={(id: string | null) => {
+        handlePreviewTemplate(id);
+      }}
+      onClose={() => setTemplatesOpen(false)}
+      // This tells the panel it’s not mounted “inside a sidebar”
+      anchorWithinSidebar={false}
+      // You can tweak thumbnail sizes if you want bigger grid
+      thumbLineTile={36}
+      thumbSize={80}
+    />
+  </SheetContent>
+</Sheet>
+
+
     </div>
   );
 }
