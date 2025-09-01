@@ -25,12 +25,18 @@ jest.mock('../lib/SyncProfile', () => ({
   useSyncProfile: () => mockUseSyncProfile(),
 }));
 
+// Mock ConversationUserContext hook
+const mockUseConversationUser = jest.fn();
+jest.mock('../lib/context/ConversationUserContext', () => ({
+  useConversationUser: () => mockUseConversationUser(),
+}));
+
 // Mock conversation utils
 jest.mock('../lib/conversationUtils', () => ({
   getOtherUserId: jest.fn().mockReturnValue('other-user-123'),
 }));
 
-// Mock UI components
+// Mock UI components 
 jest.mock('../components/ui/card', () => ({
   Card: ({ children, className, ...props }) => (
     <div data-testid="card" className={className} {...props}>
@@ -110,6 +116,12 @@ describe('ConversationPage', () => {
     email: 'test@example.com',
   };
 
+  const mockCurrentUser = {
+    user_id: 'other-user-123',
+    anonymous_handle: 'TestPenPal',
+    country_code: 'US',
+  };
+
   const mockMessages = [
     {
       message_id: 'msg-1',
@@ -146,6 +158,10 @@ describe('ConversationPage', () => {
     mockUseSyncProfile.mockReturnValue({
       profile: mockProfile,
       synced: true,
+    });
+
+    mockUseConversationUser.mockReturnValue({
+      currentUser: mockCurrentUser,
     });
     
     mockPageLetters.mockResolvedValue(mockApiResponse);
@@ -301,6 +317,47 @@ describe('ConversationPage', () => {
     });
   });
 
+  describe('User Information Display', () => {
+    it('displays current user information in header', async () => {
+      render(<ConversationPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Conversation with TestPenPal')).toBeInTheDocument();
+        expect(screen.getByText('US')).toBeInTheDocument();
+        expect(screen.getByTestId('map-pin-icon')).toBeInTheDocument();
+      });
+    });
+
+    it('handles missing user information gracefully', async () => {
+      mockUseConversationUser.mockReturnValue({
+        currentUser: {
+          user_id: 'other-user-123',
+          anonymous_handle: null,
+          country_code: null,
+        },
+      });
+
+      render(<ConversationPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Conversation with Unknown User')).toBeInTheDocument();
+        expect(screen.queryByTestId('map-pin-icon')).not.toBeInTheDocument();
+      });
+    });
+
+    it('handles missing currentUser gracefully', async () => {
+      mockUseConversationUser.mockReturnValue({
+        currentUser: null,
+      });
+
+      render(<ConversationPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Conversation with Unknown User')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Pagination', () => {
     it('shows load more button when there are more messages', async () => {
       mockPageLetters.mockResolvedValue({
@@ -416,13 +473,18 @@ describe('ConversationPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/inbox');
     });
 
-    it('renders write letter button', async () => {
+    it('renders write letter button with correct navigation', async () => {
       render(<ConversationPage />);
 
       await waitFor(() => {
         expect(screen.getByText('Write Letter')).toBeInTheDocument();
         expect(screen.getByTestId('send-icon')).toBeInTheDocument();
       });
+
+      const writeLetterButton = screen.getByText('Write Letter');
+      fireEvent.click(writeLetterButton);
+
+      expect(mockPush).toHaveBeenCalledWith('/compose-letter/other-user-123');
     });
   });
 
@@ -592,6 +654,16 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: undefined,
         synced: true,
+      });
+
+      expect(() => {
+        render(<ConversationPage />);
+      }).not.toThrow();
+    });
+
+    it('handles undefined currentUser gracefully', () => {
+      mockUseConversationUser.mockReturnValue({
+        currentUser: undefined,
       });
 
       expect(() => {
