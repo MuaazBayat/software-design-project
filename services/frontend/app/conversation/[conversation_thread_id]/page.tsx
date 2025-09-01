@@ -159,6 +159,7 @@ export default function ConversationPage({}: ConversationPageProps) {
         {/* Write New Letter Button */}
         <div className="fixed bottom-8 right-8">
           <Button 
+            onClick={() => router.push(`/compose-letter/${otherUserId}`)}
             size="lg" 
             className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           >
