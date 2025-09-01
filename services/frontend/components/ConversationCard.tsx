@@ -82,11 +82,11 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
             <div className="w-full h-full bg-white rounded-sm flex items-center justify-center text-2xl">
               {isUnread ? '🌍' : '📬'}
             </div>
-            <div className="text-[6px] text-center text-amber-700 mt-0.5">AIRMAIL</div>
+            <div className="text-[6px] text-center text-amber-700 mt-0.5">PigeonMAIL</div>
           </div>
         </div>
 
-        {/* Postmark */}
+        {/* {/*Postmark}
         <div className="absolute top-4 left-4 opacity-30">
           <div className="w-20 h-20 rounded-full border-2 border-gray-400 border-dashed flex items-center justify-center">
             <div className="text-xs text-gray-600 text-center">
@@ -94,7 +94,7 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
               <div className="text-[10px]">DELIVERED</div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Address Section (To:) */}
         <div className="relative p-6 pt-12 flex-1 flex flex-col">
