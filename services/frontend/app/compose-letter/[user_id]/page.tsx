@@ -10,65 +10,19 @@ import LeftSidebar from "../components/LeftSidebar"
 import MainContent from "../components/MainContent"
 import RightSidebar from "../components/RightSidebar"
 import { useRouter } from "next/navigation"
-
-// Flexible CEFR readability estimator for short letters
-export function estimateCEFR(text: string): string {
-  if (!text || text.trim().length < 5) return "A1";
-  const words = text.trim().split(/\s+/);
-  const wordCount = words.length;
-  const avgWordLen = words.reduce((sum, w) => sum + w.length, 0) / wordCount;
-  const syllables = words.reduce((sum, w) => sum + (w.match(/[aeiouy]+/gi)?.length || 1), 0);
-  const avgSyllables = syllables / wordCount;
-  // For very short letters, use word complexity only
-  if (wordCount < 15) {
-    if (avgWordLen < 4.5 && avgSyllables < 1.5) return "A2";
-    if (avgWordLen < 5.5 && avgSyllables < 1.7) return "B1";
-    if (avgWordLen < 6.5 && avgSyllables < 1.9) return "B2";
-    if (avgWordLen < 7.5 && avgSyllables < 2.2) return "C1";
-    return "C2";
-  }
-  // For longer letters, factor in sentence structure
-  // const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  if (avgWordLen < 4.5 && avgSyllables < 1.5) return "A2";
-  if (avgWordLen < 5.5 && avgSyllables < 1.7) return "B1";
-  if (avgWordLen < 6.5 && avgSyllables < 1.9) return "B2";
-  if (avgWordLen < 7.5 && avgSyllables < 2.2) return "C1";
-  return "C2";
-}
 import { Toaster, toast } from "sonner"
 
-// Inline letter templates (moved from services to reduce indirection)
-export type LetterTemplate = { id: string; name: string; description: string; content: string; category: string; estimated_minutes?: number; tags?: string[] }
-
-const DEFAULT_TEMPLATES: LetterTemplate[] = [
-  {
-    id: 't1',
-    name: 'Intro — a friendly hello',
-    description: 'A warm, short introduction you can send to start a conversation.',
-    content: `I'm excited to connect with you here. I love learning about people's daily lives and small rituals. What's one little thing that makes your day better?`,
-    category: 'intro'
-  },
-  {
-    id: 't2',
-    name: 'Travel story',
-    description: 'Share a short travel memory to spark conversation.',
-    content: `I recently took a short trip and was struck by how different the mornings felt there — the light, the sounds, and the food. One morning I wandered into a small market and tried a local pastry that I'll never forget. Have you traveled anywhere that surprised you lately?`,
-    category: 'travel'
-  },
-  {
-    id: 't3',
-    name: 'Checking in',
-    description: 'A gentle way to reconnect after some time.',
-    content: `It's been a little while and I wanted to check in and see how you're doing. I hope life has been treating you kindly. What's been keeping you busy these days?`,
-    category: 'reconnect'
-  }
-]
-
-function getLetterTemplates(): Promise<LetterTemplate[]> {
-  return Promise.resolve(DEFAULT_TEMPLATES)
+// Define types and interfaces at the top (these are fine as they're not exports)
+export type LetterTemplate = { 
+  id: string; 
+  name: string; 
+  description: string; 
+  content: string; 
+  category: string; 
+  estimated_minutes?: number; 
+  tags?: string[] 
 }
 
-// Define the Match interface here until we move it to a separate file
 interface Match {
   id: string
   name: string
@@ -78,12 +32,66 @@ interface Match {
   match_id?: string
 }
 
-// Corrected LetterApp function
+// Main component
 export default function LetterApp() {
   const params = useParams();
   const router = useRouter();
   const urlUserId = params?.user_id as string;
 
+  // Utility functions moved inside the component
+  const estimateCEFR = (text: string): string => {
+    if (!text || text.trim().length < 5) return "A1";
+    const words = text.trim().split(/\s+/);
+    const wordCount = words.length;
+    const avgWordLen = words.reduce((sum, w) => sum + w.length, 0) / wordCount;
+    const syllables = words.reduce((sum, w) => sum + (w.match(/[aeiouy]+/gi)?.length || 1), 0);
+    const avgSyllables = syllables / wordCount;
+    // For very short letters, use word complexity only
+    if (wordCount < 15) {
+      if (avgWordLen < 4.5 && avgSyllables < 1.5) return "A2";
+      if (avgWordLen < 5.5 && avgSyllables < 1.7) return "B1";
+      if (avgWordLen < 6.5 && avgSyllables < 1.9) return "B2";
+      if (avgWordLen < 7.5 && avgSyllables < 2.2) return "C1";
+      return "C2";
+    }
+    // For longer letters, factor in sentence structure
+    if (avgWordLen < 4.5 && avgSyllables < 1.5) return "A2";
+    if (avgWordLen < 5.5 && avgSyllables < 1.7) return "B1";
+    if (avgWordLen < 6.5 && avgSyllables < 1.9) return "B2";
+    if (avgWordLen < 7.5 && avgSyllables < 2.2) return "C1";
+    return "C2";
+  };
+
+  // Constants moved inside the component
+  const DEFAULT_TEMPLATES: LetterTemplate[] = [
+    {
+      id: 't1',
+      name: 'Intro — a friendly hello',
+      description: 'A warm, short introduction you can send to start a conversation.',
+      content: `I'm excited to connect with you here. I love learning about people's daily lives and small rituals. What's one little thing that makes your day better?`,
+      category: 'intro'
+    },
+    {
+      id: 't2',
+      name: 'Travel story',
+      description: 'Share a short travel memory to spark conversation.',
+      content: `I recently took a short trip and was struck by how different the mornings felt there — the light, the sounds, and the food. One morning I wandered into a small market and tried a local pastry that I'll never forget. Have you traveled anywhere that surprised you lately?`,
+      category: 'travel'
+    },
+    {
+      id: 't3',
+      name: 'Checking in',
+      description: 'A gentle way to reconnect after some time.',
+      content: `It's been a little while and I wanted to check in and see how you're doing. I hope life has been treating you kindly. What's been keeping you busy these days?`,
+      category: 'reconnect'
+    }
+  ];
+
+  const getLetterTemplates = (): Promise<LetterTemplate[]> => {
+    return Promise.resolve(DEFAULT_TEMPLATES);
+  };
+
+  // State variables
   const [fontStyle, setFontStyle] = useState("handwritten");
   const [fontSize, setFontSize] = useState([16]);
   const [letterContent, setLetterContent] = useState(
@@ -145,8 +153,6 @@ export default function LetterApp() {
           const threadId = userItem.latest_message?.conversation_thread_id;
           const matchId: string = userItem.latest_message?.match_id || '';
 
-          // if no threadId exists this user may not have messages yet
-
           return {
             id: userItem.user_profile.user_id,
             name: userItem.user_profile.anonymous_handle,
@@ -159,20 +165,17 @@ export default function LetterApp() {
 
         setMatches(mappedMatches);
 
-
         if (urlUserId && urlUserId !== 'default') {
           const matchingUser = mappedMatches.find(match => match.id === urlUserId);
-            if (matchingUser) {
-              setSelectedMatchId(urlUserId);
-            } else {
-              // URL user id not found in API results
+          if (matchingUser) {
+            setSelectedMatchId(urlUserId);
+          } else {
             if (mappedMatches.length > 0) {
               setSelectedMatchId(mappedMatches[0].id);
             }
           }
         } else if (mappedMatches.length > 0) {
           setSelectedMatchId(mappedMatches[0].id);
-        } else {
         }
       } catch {
         toast.error('Failed to load matches');
@@ -183,11 +186,9 @@ export default function LetterApp() {
     };
 
     fetchMatches();
-  }, [synced, userId, urlUserId, api]); // Added 'api' as a dependency
+  }, [synced, userId, urlUserId, api]);
 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || null;
-
-
 
   const getLetterStats = (letter: string) => {
     const words = letter.trim() ? letter.trim().split(/\s+/).length : 0;
@@ -209,27 +210,22 @@ export default function LetterApp() {
     try {
       const senderID = userId;
       const recipientID = selectedMatch.id;
-      // const matchIdToUse = selectedMatch.match_id || '';
 
-  // match_id may be empty for newly generated thread pairs
-
-      // Use the existing thread ID if available, otherwise generate a new one
       const threadId = selectedMatch.conversation_thread_id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-
 
       const scheduledDt = new Date(Date.now() + 12 * 60 * 60 * 1000);
       const scheduledIso = scheduledDt.toISOString();
       const composedFooter = `${letterFooterPrefix} ${anonymousHandle}`.trim();
 
-     const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
-      sender_id: senderID,
-      recipient_id: recipientID,
-      message_content: letterContent,
-      letter_styles: { font_size: fontSize[0], font_family: fontStyle },
-      scheduled_delivery_at: scheduledIso,
-      letter_heading: letterHeading,
-      letter_footer: composedFooter,
-    };
+      const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
+        sender_id: senderID,
+        recipient_id: recipientID,
+        message_content: letterContent,
+        letter_styles: { font_size: fontSize[0], font_family: fontStyle },
+        scheduled_delivery_at: scheduledIso,
+        letter_heading: letterHeading,
+        letter_footer: composedFooter,
+      };
 
       const response = await api.sendLetter(body);
 
@@ -240,8 +236,6 @@ export default function LetterApp() {
           ? { ...match, conversation_thread_id: realThreadId }
           : match
       ));
-
-  // Note: message history handling removed from this component — LeftSidebar manages message display separately
 
       setSuccess(true);
       toast.success('Your letter has been sent!', {
@@ -265,7 +259,7 @@ export default function LetterApp() {
         }
       }
 
-  setError(`Failed to send letter. ${errorMsg}`);
+      setError(`Failed to send letter. ${errorMsg}`);
       toast.error('Failed to send letter', {
         description: errorMsg,
         icon: <AlertCircle className="text-red-500" />
@@ -318,7 +312,7 @@ export default function LetterApp() {
         </div>
       )}
       <div className="flex max-w-7xl mx-auto">
-  <LeftSidebar
+        <LeftSidebar
           selectedMatch={selectedMatch}
           matches={matches}
           loading={loading}
@@ -335,7 +329,7 @@ export default function LetterApp() {
           onSelectFont={(id: string) => { setFontStyle(id); setPreviewFontId(null); }}
           onPreviewFont={(id: string | null) => setPreviewFontId(id)}
         />
-  <MainContent
+        <MainContent
           letterContent={letterContent}
           setLetterContent={setLetterContent}
           fontStyle={fontStyle}
