@@ -24,4 +24,4 @@ scrum-docs/sprint1
 devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
-data_design_doc/globetalk_data_design
+data_design_doc/globetalk_db_schema
