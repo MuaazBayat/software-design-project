@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useConversationUser } from '../../lib/context/ConversationUserContext';
 import { 
   Mail, 
   Send, 
@@ -15,10 +16,12 @@ import {
 
 export default function NoConversationPage() {
   const router = useRouter();
+  const { currentUser} = useConversationUser();
 
   const handleWriteFirstLetter = () => {
     // Navigate to general compose page or pen pal selection
-    router.push('/compose-letter');
+    if (currentUser)
+    router.push(`/compose-letter/${currentUser.user_id}`);
   };
 
   return (
