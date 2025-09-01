@@ -7,6 +7,8 @@ import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from
 import ConversationCard from '@/components/ConversationCard';
 import { useRouter } from 'next/navigation';
 import Footer from "@/components/footer";
+import { useConversationUser } from '../../lib/context/ConversationUserContext';
+import { set } from 'date-fns';
 
 
 const LetterInbox = () => {
@@ -19,9 +21,17 @@ const LetterInbox = () => {
 
   const { profile, synced} = useSyncProfile();
   const router = useRouter();
+  const { setCurrentUser, clearCurrentUser } = useConversationUser();
 
-  const handleConversationClick = (conversationId: string) => {
-    router.push(`/conversation/${conversationId}`);
+  const handleConversationClick = (conversation: SearchUsersResponseItem) => {
+    clearCurrentUser();
+    setCurrentUser(conversation.user_profile);
+
+    if (!conversation.latest_message?.conversation_thread_id) {
+      router.push(`/conversation`);
+      return;
+    }
+    router.push(`/conversation/${conversation.latest_message?.conversation_thread_id}`);
   };
 
  // Fetch conversations on component mount
@@ -202,7 +212,7 @@ const LetterInbox = () => {
               formatMessagePreview={formatMessagePreview}
               formatTimeAgo={formatTimeAgo}
               getDeliveryStatusBadge={getDeliveryStatusBadge}
-              onClick={() => handleConversationClick(conversation.latest_message?.conversation_thread_id || '')}
+              onClick={() => handleConversationClick(conversation || '')}
               />
             ))}
             </div>
