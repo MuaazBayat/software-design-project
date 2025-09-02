@@ -11,7 +11,7 @@ jest.mock('../app/compose-letter/fonts', () => ({
   ]
 }))
 
-const { FontSidePanel } = require('../app/compose-letter/components/FontSidePanel')
+const { FontSidePanel } = require('../components/FontSidePanel')
 
 beforeEach(() => {
   // reset localStorage between tests

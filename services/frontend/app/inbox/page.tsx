@@ -142,17 +142,17 @@ const LetterInbox = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Search and Filter Bar */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-amber-400">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-orange-300">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search Bar */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-500 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-700 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by username..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-amber-200 focus:border-amber-500 focus:outline-none text-amber-900 placeholder-amber-500"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-orange-700 focus:border-orange-600 focus:outline-none text-orange-900 placeholder-orange-700"
               />
             </div>
 
@@ -168,8 +168,8 @@ const LetterInbox = () => {
                   onClick={() => setFilterStatus(value as 'all' | 'read' | 'unread')}
                   className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                     filterStatus === value
-                      ? 'bg-amber-500 text-white shadow-md'
-                      : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'bg-orange-300 text-orange-800 hover:bg-orange-500 hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -219,8 +219,7 @@ const LetterInbox = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <Footer />
+
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 // Import the listFormatting utility functions
-const { wrapSelectionInList, applyCustomList } = require('../app/compose-letter/lib/listFormatting')
+const { wrapSelectionInList, applyCustomList } = require('../lib/listFormatting')
 
 // jsdom does not implement ResizeObserver; some UI hooks depend on it
 beforeAll(() => {
@@ -23,7 +23,7 @@ describe('List Formatting Utilities', () => {
   let mockSetLetterContent
   let mockDeps
 
-  beforeEach(() => {
+  beforeEach(() => { 
     // Create a mock editor element
     mockEditor = document.createElement('div')
     mockEditor.contentEditable = 'true'

@@ -276,7 +276,7 @@ export default function Page() {
     <div className="min-h-screen bg-[linear-gradient(180deg,#faf6ed,#f3eadc)]">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-serif tracking-tight text-amber-900">Your Settings</h1>
+          <h1 className="text-3xl font-serif tracking-tight text-amber-700">Your Settings</h1>
           {/* <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p> */}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link href="/">
@@ -292,10 +292,10 @@ export default function Page() {
 
         <Tabs defaultValue="profile">
           <TabsList className="grid w-full grid-cols-2 border bg-amber-50/60 text-stone-700">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-white">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-700">
               <User2 className="mr-2 h-4 w-4" /> Profile
             </TabsTrigger>
-            <TabsTrigger value="language" className="data-[state=active]:bg-white">
+            <TabsTrigger value="language" className="data-[state=active]:bg-orange-700">
               <MessageSquareHeart className="mr-2 h-4 w-4" /> Languages & Time
             </TabsTrigger>
           </TabsList>
@@ -304,7 +304,7 @@ export default function Page() {
           <TabsContent value="profile" className="mt-4">
             <Card className="border-amber-200/70 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-stone-800">Profile</CardTitle>
+                <CardTitle className="text-stone-800 ">Profile</CardTitle>
                 <CardDescription>Handle, country, age, bio, interests.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-6">
@@ -392,7 +392,7 @@ export default function Page() {
                         placeholder="e.g. hiking, anime, cooking"
                         className="bg-white"
                       />
-                      <Button type="button" variant="secondary" onClick={() => {
+                      <Button className="bg-rose-500 text-white" type="button" variant="secondary" onClick={() => {
                         const v = interestInput.trim();
                         if (v) {
                           setInterests((prev) => (prev.includes(v) ? prev : [...prev, v]));
@@ -405,7 +405,7 @@ export default function Page() {
               </CardContent>
               <CardFooter className="flex justify-between items-center">
                 <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
-                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-amber-700 hover:bg-amber-800">Save Changes</Button>
+                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-rose-500 hover:bg-rose-600">Save Changes</Button>
               </CardFooter>
             </Card>
           </TabsContent>
@@ -518,7 +518,7 @@ export default function Page() {
                                 </CardContent>
               <CardFooter className="flex justify-between items-center">
                 <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
-                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-amber-700 hover:bg-amber-800">Save Changes</Button>
+                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-rose-500 hover:bg-rose-600">Save Changes</Button>
               </CardFooter>
             </Card>
           </TabsContent>

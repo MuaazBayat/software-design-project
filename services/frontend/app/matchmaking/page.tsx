@@ -154,7 +154,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={type.value}
                   className={`p-3 rounded-xl text-center transition-all border-2 ${
                     matchingPreferences.match_type === type.value
-                      ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white border-yellow-400 shadow-lg'
+                      ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border-yellow-400 shadow-lg'
                       : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300'
                   }`}
                   onClick={() => setMatchingPreferences({ ...matchingPreferences, match_type: type.value })}
@@ -174,7 +174,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={range}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     matchingPreferences.age_ranges.includes(range)
-                      ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                   onClick={() => {
@@ -206,7 +206,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={lang.code}
                   className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
                     matchingPreferences.languages.includes(lang.code)
-                      ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                   onClick={() => {
@@ -239,7 +239,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
           <button
             onClick={() => setShowFilters(false)}
-            className="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+            className="w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Apply Filters ✨
           </button>
@@ -471,9 +471,9 @@ const MatchScreen: React.FC = () => {
             </div>
 
             {dailyStats && (
-              <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+              <div className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border border-amber-500">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center">
                     <Heart className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -484,7 +484,7 @@ const MatchScreen: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">{dailyStats.matches_remaining}</div>
+                  <div className="text-2xl font-bold text-orange-500">{dailyStats.matches_remaining}</div>
                 </div>
               </div>
             )}
@@ -505,7 +505,7 @@ const MatchScreen: React.FC = () => {
           {suggestedProfile ? (
             <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden mb-8 border border-white/20">
               {/* Profile Header with Country Flag */}
-              <div className="relative h-48 bg-gradient-to-br from-yellow-400 via-amber-500 to-rose-500 flex items-center justify-center">
+              <div className="relative h-48 bg-gradient-to-br from-amber-700 to-orange-700 via-amber-500 flex items-center justify-center">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative text-center text-white">
                   <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl mb-3 mx-auto">
@@ -646,9 +646,9 @@ const MatchScreen: React.FC = () => {
           <button aria-label="like"
             onClick={handleLike}
             disabled={actionLoading || !suggestedProfile || Boolean(dailyStats && dailyStats.matches_remaining <= 0)}
-            className="w-20 h-20 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-16 h-16 bg-rose-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Heart className="w-8 h-8 text-white" fill="currentColor" />
+            <Heart className="w-8s h-8 text-white" fill="currentColor" />
           </button>
         </div>
 

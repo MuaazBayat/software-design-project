@@ -25,7 +25,7 @@ export default function Header() {
   }, [pathname]);
 
   return (
-    <header className="relative flex flex-wrap p-4 gap-4 h-16 bg-black items-center justify-between z-40">
+    <header className="relative flex flex-wrap p-4 gap-4 h-16 bg-orange-900 items-center justify-between z-50">
       {/* Logo */}
 
       <Link href="/" className="text-xl text-white font-bold tracking-tighter lg:text-2xl lg:text-3xl">
@@ -36,10 +36,10 @@ export default function Header() {
       <SignedIn>
         <nav className="hidden lg:flex flex-grow justify-center">
           <ul className="flex gap-8 text-white font-medium text-lg">
-            <li><Link href="/matchmaking" className="hover:text-blue-300 transition-colors">Match Screen</Link></li>
-            <li><Link href="/inbox" className="hover:text-blue-300 transition-colors">Message Inbox</Link></li>
-            <li><Link href="/compose-letter" className="hover:text-blue-300 transition-colors">Compose Letter</Link></li>
-            <li><Link href="/cultural-explorer" className="hover:text-blue-300 transition-colors">Cultural Explorer</Link></li>
+            <li><Link href="/matchmaking" className="hover:text-orange-300 transition-colors">Match Screen</Link></li>
+            <li><Link href="/inbox" className="hover:text-orange-300 transition-colors">Message Inbox</Link></li>
+            <li><Link href="/compose-letter" className="hover:text-orange-300 transition-colors">Compose Letter</Link></li>
+            <li><Link href="/cultural-explorer" className="hover:text-orange-300 transition-colors">Cultural Explorer</Link></li>
           </ul>
         </nav>
       </SignedIn>
@@ -96,7 +96,7 @@ export default function Header() {
       {/* Conditionally Render MobileNav (only shows when signed in and fully loaded) */}
       <SignedIn>
         {isMobileNavOpen && isLoaded && (
-          <div className="absolute top-16 left-0 w-full bg-black z-30 lg:hidden">
+          <div className="absolute top-16 left-0 w-full bg-orange-900 z-30 lg:hidden">
             <DynamicMobileNav closeNav={() => setIsMobileNavOpen(false)} />
           </div>
         )}

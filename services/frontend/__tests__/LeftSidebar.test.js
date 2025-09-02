@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 // Mock FontSidePanel to avoid rendering complexity; ensure it is present when showFontOverlay is true
-jest.mock('../app/compose-letter/components/FontSidePanel', () => ({
+jest.mock('../components/FontSidePanel', () => ({
   FontSidePanel: ({ open, onSelect, onPreview, onClose }) => {
     if (!open) return null
     // simulate user actions in the side panel which should call the handlers
@@ -28,7 +28,7 @@ jest.mock('@/components/ui/select', () => ({
   SelectItem: ({ value, children }) => React.createElement('div', { role: 'option', onClick: () => { if (global.__selectOnChange) global.__selectOnChange(value) } }, children)
 }))
 
-import LeftSidebar from '../app/compose-letter/components/LeftSidebar'
+import LeftSidebar from '../components/LeftSidebar'
 
 const sampleMatch = {
   id: 'm1',
@@ -111,7 +111,7 @@ test('recipient dropdown search and select changes recipient', async () => {
 
 test('formatSince handles today, days, months, years', () => {
   // Import formatSince by requiring the component module and reading the helper via a render
-  const { default: Left } = require('../app/compose-letter/components/LeftSidebar')
+  const { default: Left } = require('../components/LeftSidebar')
   // create a container to mount the component and call internal function via instance is not possible
   // Instead, verify UI rendering for different since values by rendering component and checking the 'Since' label
 
