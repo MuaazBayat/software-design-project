@@ -1,4 +1,106 @@
-# Sprint 2 — Report (Virtual Pen Pals)
+# Project Management Methodology
+
+## 1. Introduction to Our Approach
+
+This document provides a comprehensive analysis of our project management methodology and its implementation across the development lifecycle. We strategically adopted the **Scrum framework** as our agile methodology to ensure our work is delivered in a structured, iterative, and adaptive manner. This document demonstrates how our rigorous application of Scrum principles enabled us to continuously incorporate stakeholder feedback, rapidly respond to changing requirements, and maintain high quality standards throughout development.
+
+We maintained a microservices architecture throughout the project—a decision confirmed with our stakeholder—to effectively manage complexity and enable faster, parallel development across specialized teams.
+
+**Complete Project Management Documentation:** All related project management artifacts, meeting minutes, and methodology documentation are available in our [Project Management Repository](https://drive.google.com/drive/folders/1LkzRC96pVbHjyGovN6hhkBUrWd67TbNV?usp=sharing).
+
+## 2. Scrum Framework Implementation
+
+### 2.1 Scrum Overview
+
+Scrum is an agile framework designed for complex product development that emphasizes empirical process control through transparency, inspection, and adaptation. Our implementation of Scrum included:
+
+| Scrum Component | Our Implementation | Metrics/KPIs |
+|-----------------|-------------------|-------------|
+| **Scrum Team** | Cross-functional, self-organizing team with specific focus areas | Team velocity, sprint completion rate |
+| **Scrum Events** | Sprint Planning, Daily Stand-ups, Sprint Reviews, Sprint Retrospectives | Meeting efficiency, action item completion |
+| **Scrum Artifacts** | Product Backlog, Sprint Backlog, Increment | Backlog health, burndown charts |
+| **Definition of Done** | Comprehensive criteria including passing tests, documentation, and stakeholder approval | Defect rate, test coverage (50%+ target) |
+
+### 2.2 Key Scrum Roles
+
+- **Product Owner**: Represented by our stakeholder (Tapiwa Mazarura), who provided requirements validation and prioritization
+- **Scrum Master**: Sufyaan Mahomed, responsible for removing impediments, facilitating Scrum events, and ensuring adherence to Scrum practices
+- **Development Team**: Self-organizing team members with cross-functional capabilities
+
+### 2.3 Artifact Management
+
+- **Product Backlog**: Maintained in GitHub Projects as a prioritized list of features, enhancements, and bug fixes
+- **Sprint Backlog**: Time-boxed subset of Product Backlog items selected for the current sprint with clear acceptance criteria
+- **Increment**: Working, tested software demonstrated at the end of each sprint
+
+### 2.4 Visual Management & Metrics
+
+To enhance transparency and facilitate data-driven decisions, we planned to implement several visual management tools within GitHub Projects:
+
+| Tool | Purpose | Status |
+|------|---------|--------|
+| **Sprint Backlog** | Track assigned tasks for the sprint | Implemented |
+| **Basic Task Board** | Visualize workflow status | Implemented |
+| **Sprint Planning** | Document sprint goals and capacity | Implemented |
+| **Team Communication** | Document decisions and discussions | Implemented |
+
+For Sprint 3, we plan to enhance our metrics tracking with more sophisticated visualization tools.
+
+## 3. Sprint 1: Foundation & Initial Setup
+
+**Duration:** 3 weeks  
+**Primary Goal:** Establish all core technical infrastructure and complete initial proofs of concept for each API module.
+**Documentation:** [Sprint 1 Proof of Meetings](https://drive.google.com/drive/folders/16kHJnEwcckzNTWANy_w62gFq6mAyCeTA?usp=sharing)
+
+### Week 1: Project Planning & Initial Design
+
+**Objective:** Define the project's foundational elements, including technology, architecture, and team roles.
+
+**Key Activities:**
+- Established a high-level microservice architecture with four distinct APIs: Matchmaking, Message, Profile, and Moderation.
+- Selected the technology stack: Next.js (Frontend), FastAPI (Backend), PostgreSQL via Supabase (Database), and Clerk (Authentication).
+- Defined the core pages (Match, Compose Letter, Message, Cultural Explorer, Settings) and backend tables (Profiles, Matches, Messages, Logs).
+- Researched project management tools and selected GitHub Projects.
+
+**Deliverables:**
+- Initial, high-level Development Plan.
+- Confirmed Tech Stack choices with justifications.
+
+### Week 2: Design & Version Control
+
+**Objective:** Translate high-level concepts into detailed designs and establish a robust version control system.
+
+**Key Activities:**
+- Designed initial wireframes and mockups in Figma to visualize the core user journey.
+- Established the online Git repository as the single source of truth for the codebase.
+- Defined and documented our Git branching strategy and naming conventions (e.g., feature/user-auth) to standardize development.
+- Began setting up a basic Continuous Integration/Continuous Deployment (CI/CD) pipeline to automate testing.
+
+**Deliverables:**
+- Figma designs for key UI pages.
+- Functional Git repository with team access.
+- Documented branching and collaboration strategy.
+
+### Week 3: Core Implementation & Documentation
+
+**Objective:** Implement the most critical feature, user authentication, and create the necessary documentation to guide future development.
+
+**Key Activities:**
+- Implemented a functional authentication service that seamlessly integrates with Clerk. This was designated as the top priority.
+- Began work on the Core API to handle user profiles, a foundational requirement.
+- Created Development Guides with clear instructions for setting up the environment.
+- Began drafting the Data Design Document with the initial database schema.
+- Identified an external API for the Cultural Explorer feature.
+
+**Deliverables:**
+- A functional Authentication Implementation.
+- Initial commits for the Core, Moderation, and Messaging APIs.
+- Live and accessible Documentation Site with non-trivial content.
+- A comprehensive guide for setting up the development environment.
+
+At the end of Sprint 1, we received specific feedback from our stakeholder Tapiwa Mazarura during our review meeting. He noted that our version control implementation received a lower mark due to "lack of a branching strategy and no protection on the main branch." He also questioned the 50% mark for our GitHub Projects methodology and indicated he would investigate further. These insights directly informed our approach to Sprint 2.
+
+## 4. Sprint 2: Core Feature Development, Integration & Testing
 
 **Duration:** 2 weeks (August 21 - September 2, 2025)  
 **Primary Goal:** Finalize all core API functionality, build and integrate the primary UI modules, and implement robust testing and documentation processes.  
@@ -249,10 +351,9 @@ Our comprehensive Definition of Done included:
    - Performance metrics within acceptable thresholds
 
 **Testing Tools & Metrics:**
-- Jest for backend unit testing (93% coverage achieved)
-- Cypress for end-to-end testing (50% frontend coverage)
+- Pytest for backend unit testing (93% coverage achieved)
+- Jest for frontend testing (50% frontend coverage)
 - Mock Service Worker for API mocking
-- SonarQube for code quality analysis
 - Overall test coverage: 72%
 - Comprehensive "how to run tests" documentation in unified testing guide/runbook (directly addressing Tapiwa's requirement for "testing documentation")
 - Backend automated tests reached ~80% coverage on targeted key modules
@@ -302,7 +403,7 @@ Our toolchain included:
 
 1. **GitHub Projects**: Served as our central project management hub. Integration with commits and PRs provided traceability from requirements to implementation.
 
-2. **Testing Framework**: Automated testing with Jest and Cypress helped maintain code quality:
+2. **Testing Framework**: Automated testing with Jest and Pytest helped maintain code quality:
    - Unit testing
    - Basic integration testing
    - Snapshot testing for UI components

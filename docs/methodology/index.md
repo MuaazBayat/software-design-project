@@ -6,6 +6,7 @@
 :maxdepth: 10
 :caption: Contents
 
+pmMethodology
 git-methodology
 bug-tracker
 scrum
