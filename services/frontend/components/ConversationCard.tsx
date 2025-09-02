@@ -9,6 +9,7 @@ interface ConversationCardProps {
   formatMessagePreview: (content: string, maxLength?: number) => string;
   formatTimeAgo: (dateString: string) => string;
   getDeliveryStatusBadge: (status: string, fromMe: boolean) => React.ReactNode;
+  onClick?: (conversation: SearchUsersResponseItem) => void; // Add this line
 }
 
 const ConversationCard: React.FC<ConversationCardProps> = ({
@@ -16,13 +17,20 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   formatMessagePreview,
   formatTimeAgo,
   getDeliveryStatusBadge,
+  onClick
 }) => {
   const { user_profile, latest_message } = conversation;
   const isUnread = !latest_message?.is_read;
   const isFromMe = latest_message?.from_me;
 
+  // Add click handler
+  const handleClick = () => {
+    onClick?.(conversation);
+  };
+
   return (
-    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-red-100 rounded-b-lg">
+    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-red-100 rounded-b-lg"
+        onClick={handleClick}>
       {/* Envelope Flap - Top Triangle */}
       <div className="absolute inset-x-0 top-0 z-10">
         <div className="relative">
@@ -74,11 +82,11 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
             <div className="w-full h-full bg-white rounded-sm flex items-center justify-center text-2xl">
               {isUnread ? '🌍' : '📬'}
             </div>
-            <div className="text-[6px] text-center text-amber-700 mt-0.5">AIRMAIL</div>
+            <div className="text-[6px] text-center text-amber-700 mt-0.5">PigeonMAIL</div>
           </div>
         </div>
 
-        {/* Postmark */}
+        {/* {/*Postmark}
         <div className="absolute top-4 left-4 opacity-30">
           <div className="w-20 h-20 rounded-full border-2 border-gray-400 border-dashed flex items-center justify-center">
             <div className="text-xs text-gray-600 text-center">
@@ -86,7 +94,7 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
               <div className="text-[10px]">DELIVERED</div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Address Section (To:) */}
         <div className="relative p-6 pt-12 flex-1 flex flex-col">

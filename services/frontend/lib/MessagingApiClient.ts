@@ -40,6 +40,7 @@ export interface MessageRow {
   sender_id: UUID;
   recipient_id: UUID;
   [k: string]: unknown;
+  letter_styles?: LetterStyles;
 }
 
 export interface PageLettersResponse {
@@ -63,18 +64,17 @@ export interface UserProfile {
   bio?: string;
   age_range?: string;
   interests?: string[];
-  // add other fields as needed
 }
 
 export interface SearchUsersResponseItem {
   user_profile: UserProfile;
   latest_message?: {
+    conversation_thread_id: UUID;
     is_read: boolean;
     from_me: boolean;
     message_content: string;
     scheduled_delivery_at: string;
     delivery_status: string;
-    // add other fields as needed
   };
 }
 

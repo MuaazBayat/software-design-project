@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import * as React from "react";
 import { useUser } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { User2, MessageSquareHeart } from "lucide-react";
+import { User2, MessageSquareHeart, ArrowLeft } from "lucide-react";
 
 // ===== Types that match your FastAPI models =====
 export type ProfileModel = {
@@ -66,7 +66,8 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
 }
 
 // ===== API wiring =====
-const API_BASE = process.env.NEXT_PUBLIC_CORE_API_BASE_URL || ""; // set in .env.local
+// CHANGE 1: read the env var that your UI message mentions
+const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || ""; // set in .env.local
 
 async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
@@ -80,7 +81,7 @@ async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
 
 async function apiUpdateProfile(
   clerkId: string,
-  patch: Partial<ProfileModel>
+  patch: Partial<ProfileModel> | ProfileModel
 ): Promise<ProfileModel> {
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "PUT",
@@ -98,13 +99,10 @@ const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 // Direct select values — EXACTLY what the DB expects (per your enum)
 const AGE_BUCKETS = [
-  "13-17",
   "18-25",
   "26-35",
   "36-45",
-  "46-55",
-  "56-65",
-  "66+",
+  "46+",
   "prefer-not",
 ] as const;
 
@@ -113,11 +111,6 @@ const LANG = [
   { code: "es", label: "Spanish" },
   { code: "fr", label: "French" },
   { code: "de", label: "German" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ar", label: "Arabic" },
-  { code: "sw", label: "Swahili" },
-  { code: "hi", label: "Hindi" },
-  { code: "bn", label: "Bengali" },
   { code: "ja", label: "Japanese" },
   { code: "zh", label: "Chinese" },
 ] as const;
@@ -139,7 +132,7 @@ export default function Page() {
   const [secondaryLanguages, setSecondaryLanguages] = React.useState<string[]>([]); // ISO codes
   const [secondaryLangInput, setSecondaryLangInput] = React.useState(""); // expects ISO code
   const [timeZone, setTimeZone] = React.useState<string | undefined>();
-
+  const PREFER_NOT = "prefer-not" as const;
   // fetch state
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -180,7 +173,7 @@ export default function Page() {
         };
         originalRef.current = model;
         setHandle((model.anonymous_handle ?? "") as string);
-        setAgeRange(model.age_range ?? undefined);
+        setAgeRange(model.age_range ?? PREFER_NOT);
         setPrimaryLanguage(model.primary_language ?? undefined);
         setSecondaryLanguages(model.secondary_languages ?? []);
         setTimeZone(model.time_zone ?? undefined);
@@ -195,6 +188,7 @@ export default function Page() {
     };
   }, [isLoaded, isSignedIn, clerkId]);
 
+  // Keep buildPatch (useful if you want to switch back later)
   function buildPatch(): Partial<ProfileModel> {
     const orig = (originalRef.current ?? {}) as ProfileModel;
     const patch: Partial<ProfileModel> = {};
@@ -227,6 +221,20 @@ export default function Page() {
     return patch;
   }
 
+  // CHANGE 2: add a builder that always sends ALL current values
+  function buildFull(): ProfileModel {
+    return {
+      anonymous_handle: (handle || null) as string | null,
+      age_range: ageRange === PREFER_NOT ? null : (ageRange ?? null),
+      primary_language: primaryLanguage ?? null,
+      secondary_languages: secondaryLanguages,
+      time_zone: timeZone ?? null,
+      country_code: countryCode ?? null,
+      bio: (bio || null) as string | null,
+      interests,
+    };
+  }
+
   async function onSave() {
     if (!isLoaded || !isSignedIn || !clerkId) {
       alert("Sign in first.");
@@ -236,15 +244,14 @@ export default function Page() {
       alert("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
       return;
     }
-    const patch = buildPatch();
-    if (Object.keys(patch).length === 0) {
-      alert("No changes to save.");
-      return;
-    }
+
+    // CHANGE 3: send FULL body instead of diff
+    const body = buildFull();
+
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiUpdateProfile(clerkId, patch);
+      const updated = await apiUpdateProfile(clerkId, body);
       originalRef.current = {
         anonymous_handle: updated.anonymous_handle ?? null,
         age_range: updated.age_range ?? null,
@@ -270,7 +277,13 @@ export default function Page() {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="mb-6">
           <h1 className="text-3xl font-serif tracking-tight text-amber-900">Your Settings</h1>
-          <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p>
+          {/* <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p> */}
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4" />
+              Return
+            </Link>
+          </Button>
           {API_BASE === "" && (
             <p className="mt-2 text-xs text-red-600">Set NEXT_PUBLIC_CORE_API_BASE_URL in .env.local</p>
           )}
@@ -432,44 +445,77 @@ export default function Page() {
                     </Select>
                   </FieldRow>
                 </div>
+                  <FieldRow
+                    label="Secondary languages"
+                    hint="Pick from the same list as primary; you can add multiple."
+                  >
+                    <div className="grid gap-2">
+                      {/* Selected chips */}
+                      {secondaryLanguages.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {secondaryLanguages.map((code) => (
+                            <Chip
+                              key={code}
+                              text={LANG.find((l) => l.code === code)?.label ?? code}
+                              onRemove={() =>
+                                setSecondaryLanguages((prev) => prev.filter((x) => x !== code))
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
 
-                <FieldRow label="Secondary languages" hint="Add ISO codes (e.g. ja, fr). Type and press Enter.">
-                  <div className="grid gap-2">
-                    {secondaryLanguages.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {secondaryLanguages.map((code) => (
-                          <Chip key={code} text={code} onRemove={() => setSecondaryLanguages((prev) => prev.filter((x) => x !== code))} />
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 max-w-md">
-                      <Input
-                        value={secondaryLangInput}
-                        onChange={(e) => setSecondaryLangInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const v = secondaryLangInput.trim();
-                            if (v) {
-                              setSecondaryLanguages((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                              setSecondaryLangInput("");
-                            }
-                          }
+                      {/* Add-more dropdown (multi via repeated selection) */}
+                      <Select
+                        // Remount the Select whenever the selection changes → placeholder resets
+                        key={secondaryLanguages.join(",") || "empty"}
+                        onValueChange={(code) => {
+                          setSecondaryLanguages((prev) =>
+                            prev.includes(code) ? prev : [...prev, code]
+                          )
                         }}
-                        placeholder="e.g. ja, fr, de"
-                        className="bg-white"
-                      />
-                      <Button type="button" variant="secondary" onClick={() => {
-                        const v = secondaryLangInput.trim();
-                        if (v) {
-                          setSecondaryLanguages((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                          setSecondaryLangInput("");
+                        // Disable when nothing left to add
+                        disabled={
+                          LANG.filter(
+                            ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                          ).length === 0
                         }
-                      }}>Add</Button>
+                      >
+                        <SelectTrigger
+                          aria-label="Add a secondary language"
+                          className="w-full sm:max-w-md min-h-10 bg-white overflow-hidden text-ellipsis whitespace-nowrap"
+                        >
+                          <SelectValue
+                            placeholder={
+                              LANG.filter(
+                                ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                              ).length === 0
+                                ? "All available languages added"
+                                : "Add a secondary language"
+                            }
+                          />
+                        </SelectTrigger>
+
+                        {/* Match trigger width; ensure it overlays */}
+                        <SelectContent
+                          position="popper"
+                          className="z-50 w-[var(--radix-select-trigger-width)] max-h-64 overflow-auto"
+                        >
+                          {LANG
+                            .filter(
+                              ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
+                            )
+                            .map(({ code, label }) => (
+                              <SelectItem key={code} value={code}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                </FieldRow>
-              </CardContent>
+                  </FieldRow>
+
+                                </CardContent>
               <CardFooter className="flex justify-between items-center">
                 <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
                 <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-amber-700 hover:bg-amber-800">Save Changes</Button>

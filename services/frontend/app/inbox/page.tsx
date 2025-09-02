@@ -5,6 +5,10 @@ import { Search, Mail, MailOpen, Mailbox } from 'lucide-react';
 import {useSyncProfile} from '../../lib/SyncProfile'
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
 import ConversationCard from '@/components/ConversationCard';
+import { useRouter } from 'next/navigation';
+import Footer from "@/components/footer";
+import { useConversationUser } from '../../lib/context/ConversationUserContext';
+import { set } from 'date-fns';
 
 
 const LetterInbox = () => {
@@ -16,6 +20,19 @@ const LetterInbox = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { profile, synced} = useSyncProfile();
+  const router = useRouter();
+  const { setCurrentUser, clearCurrentUser } = useConversationUser();
+
+  const handleConversationClick = (conversation: SearchUsersResponseItem) => {
+    clearCurrentUser();
+    setCurrentUser(conversation.user_profile);
+
+    if (!conversation.latest_message?.conversation_thread_id) {
+      router.push(`/conversation`);
+      return;
+    }
+    router.push(`/conversation/${conversation.latest_message?.conversation_thread_id}`);
+  };
 
  // Fetch conversations on component mount
   useEffect(() => {
@@ -187,28 +204,23 @@ const LetterInbox = () => {
 
         {/* Conversations Grid */}
         {!isLoading && filteredConversations.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredConversations.map((conversation) => (
               <ConversationCard
-                key={conversation.user_profile.user_id}
-                conversation={conversation}
-                formatMessagePreview={formatMessagePreview}
-                formatTimeAgo={formatTimeAgo}
-                getDeliveryStatusBadge={getDeliveryStatusBadge}
+              key={conversation.user_profile.user_id}
+              conversation={conversation}
+              formatMessagePreview={formatMessagePreview}
+              formatTimeAgo={formatTimeAgo}
+              getDeliveryStatusBadge={getDeliveryStatusBadge}
+              onClick={() => handleConversationClick(conversation || '')}
               />
             ))}
-          </div>
+            </div>
         )}
       </div>
 
       {/* Footer */}
-      <footer className="mt-16 bg-amber-900 text-amber-100 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <div className="text-4xl mb-4">✉️</div>
-          <p className="text-lg font-medium">Happy letter writing!</p>
-          <p className="text-amber-300 mt-2">Connecting hearts across the world, one letter at a time</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
