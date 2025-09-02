@@ -22,6 +22,7 @@ technologyStack/technologyStack
 external-libraries/external-libraries
 gitmethodology/methodology
 scrum-docs/sprint1
+Stakeholder-reviews/Stakeholder-reviews
 devoverview/devoverview
 userstories-userjournals/userstories-userjournals
 workplan/workplan
