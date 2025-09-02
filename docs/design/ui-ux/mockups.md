@@ -1,10 +1,13 @@
-![MockUps](images/mockups/image%201.jpg)
-![MockUps](images/mockups/image%202.jpg)
-![MockUps](images/mockups/image%203.jpg)
-![MockUps](images/mockups/image%205.jpg)
-![MockUps](images/mockups/image%206.jpg)
-![MockUps](images/mockups/image%207.jpg)
-![MockUps](images/mockups/image%208.jpg)
-![MockUps](images/mockups/image%209.jpg)
-![MockUps](images/mockups/image%2011.jpg)
-![MockUps](images/mockups/image%2012.jpg)
+# Mockups
+
+![MockUps](images/mockups/image1.png)
+![MockUps](images/mockups/image2.png)
+![MockUps](images/mockups/image3.png)
+![MockUps](images/mockups/image4.png)
+![MockUps](images/mockups/image5.png)
+![MockUps](images/mockups/image6.png)
+![MockUps](images/mockups/image7.png)
+![MockUps](images/mockups/image8.png)
+![MockUps](images/mockups/image9.png)
+![MockUps](images/mockups/Desktop1.png)
+

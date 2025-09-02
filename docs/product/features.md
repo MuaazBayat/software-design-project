@@ -11,7 +11,7 @@ This document outlines the key features and functionalities of the **GlobeTalk**
 * **Random Matchmaking**
   Match with a new pen pal from a random country using your **language** and/or **time‑zone** preferences to ensure basic overlap.
 
-* **Asynchronous Messaging (Delayed Delivery)**
+* **Asynchronous Messaging (Delayed Delivery)** (no severe bugs)
   Send and receive **text‑only** letters that are delivered after a **simulated delay** (e.g., **12 hours**) to mimic postal mail pacing.
 
 * **Cultural Profiles**
