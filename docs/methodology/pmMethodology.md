@@ -351,10 +351,9 @@ Our comprehensive Definition of Done included:
    - Performance metrics within acceptable thresholds
 
 **Testing Tools & Metrics:**
-- Jest for backend unit testing (93% coverage achieved)
-- Cypress for end-to-end testing (50% frontend coverage)
+- Pytest for backend unit testing (93% coverage achieved)
+- Jest for frontend testing (50% frontend coverage)
 - Mock Service Worker for API mocking
-- SonarQube for code quality analysis
 - Overall test coverage: 72%
 - Comprehensive "how to run tests" documentation in unified testing guide/runbook (directly addressing Tapiwa's requirement for "testing documentation")
 - Backend automated tests reached ~80% coverage on targeted key modules
@@ -404,7 +403,7 @@ Our toolchain included:
 
 1. **GitHub Projects**: Served as our central project management hub. Integration with commits and PRs provided traceability from requirements to implementation.
 
-2. **Testing Framework**: Automated testing with Jest and Cypress helped maintain code quality:
+2. **Testing Framework**: Automated testing with Jest and Pytest helped maintain code quality:
    - Unit testing
    - Basic integration testing
    - Snapshot testing for UI components
