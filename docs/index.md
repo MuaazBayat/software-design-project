@@ -1,30 +1,19 @@
-# Home
+# GlobeTalk — Software Design Project (2025)
 
-This documentation covers multiple projects within our monorepo.
+> A privacy‑first, asynchronous letter‑exchange web app that pairs students across languages and time zones.
 
-See the frontend documentation [here](frontend/frontend.md).
-
+---
 ## Contents
-
 ```{toctree}
 :maxdepth: 2
-:caption: Services
+:caption: Directories
 
-core/core
-frontend/frontend
-matchmaking/matchmaking
-messaging/messagingapi
-moderation/moderation
-contribution/contribution
-testing-strategy/testing-jest
-testing-strategy/testing-pytest
-technologyStack/technologyStack
-external-libraries/external-libraries
-gitmethodology/methodology
-scrum-docs/sprint1
-Stakeholder-reviews/Stakeholder-reviews
-devoverview/devoverview
-userstories-userjournals/userstories-userjournals
-workplan/workplan
-data_design_doc/globetalk_data_design
-```
+design/index
+implementation/index
+methodology/index
+overview/index
+product/index
+setup/index
+testing/index
+
+
