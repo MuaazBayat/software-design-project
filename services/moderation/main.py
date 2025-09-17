@@ -149,3 +149,61 @@ def check_profanity(
         "contains_profanity": has_profanity,
         "censored_text": censored
     }
+
+class ReportUser(BaseModel):
+    reporterId: str
+    reportedId: str
+    violationType: str
+
+@app.post("/api/v1/report-user")
+def reportUser(body: ReportUser):
+    #get users
+    reporterUserId: str = body.reporterId
+    reportedUserId: str = body.reportedId
+    violation: str = body.violationType
+
+    #check if user is in reported list
+    user_res = supabase.table("user_profiles").select("reported_users").eq("user_id", reporterUserId).execute()
+    reportedUsers = user_res.data[0]
+    #Default to [] if None
+    reported_list = reportedUsers["reported_users"] or []
+
+    if (reportedUserId in reported_list):
+        return{
+            "message" : "Already reported this user",
+            "reported_users" : reportedUsers["reported_users"]
+        }
+    
+    #Add to reported users list
+    reported_list.append(reportedUserId)
+    #ship to supabase
+    response = (
+        supabase.table("user_profiles")
+        .update({"reported_users": reported_list})
+        .eq("user_id", reporterUserId)
+        .execute()
+    )
+
+    #increment reported user's report count
+    supabase.rpc('increment_user_reported_count', {'user_id_to_update': reportedUserId}).execute()
+
+    #Create a moderation log entry
+    moderation_log_entry = {
+        "target_type": "user",
+        "target_id": str(uuid.uuid4()),  # Generate a unique ID for this text check
+        "reported_user_id": reporterUserId,
+        "reporting_user_id": reporterUserId,  
+        "violation_type": violation,
+        "violation_description": "User reported",
+        "severity_level": "low",  # Adjust based on your business rules
+        "automated_detection": False,
+        "status": "open"
+    }
+    
+    #Insert moderation log
+    supabase.table("moderation_logs").insert(moderation_log_entry).execute()
+
+    return {
+        "message" : "Report successful",
+        "reported_users" : response.data[0]["reported_users"]
+    }
