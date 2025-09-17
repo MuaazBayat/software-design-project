@@ -66,9 +66,9 @@ describe('NoConversationPage - Simple Tests', () => {
     
     // Setup conversation user context mock with no current user by default
     mockUseConversationUser.mockReturnValue({
-      currentUser: null,
-      setCurrentUser: jest.fn(),
-      clearCurrentUser: jest.fn()
+      currentConversationUser: null,
+      setCurrentConversationUser: jest.fn(),
+      clearCurrentConversationUser: jest.fn()
     });
     
     jest.clearAllMocks();
@@ -114,7 +114,7 @@ describe('NoConversationPage - Simple Tests', () => {
   // Navigation tests - focus on successful scenarios
   describe('Navigation', () => {
     it('does not navigate when write letter button is clicked and no current user', () => {
-      // Default mock has currentUser: null
+      // Default mock has currentConversationUser: null
       render(<NoConversationPage />);
       
       const writeButton = screen.getByText('Write Your First Letter');
@@ -127,12 +127,12 @@ describe('NoConversationPage - Simple Tests', () => {
     it('navigates to specific user compose page when current user exists', () => {
       // Mock with current user
       mockUseConversationUser.mockReturnValue({
-        currentUser: {
+        currentConversationUser: {
           user_id: 'user123',
           anonymous_handle: 'testuser'
         },
-        setCurrentUser: jest.fn(),
-        clearCurrentUser: jest.fn()
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn()
       });
 
       render(<NoConversationPage />);
@@ -155,12 +155,12 @@ describe('NoConversationPage - Simple Tests', () => {
     it('handles multiple navigation actions with current user', () => {
       // Mock with current user
       mockUseConversationUser.mockReturnValue({
-        currentUser: {
+        currentConversationUser: {
           user_id: 'user456',
           anonymous_handle: 'penpal'
         },
-        setCurrentUser: jest.fn(),
-        clearCurrentUser: jest.fn()
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn()
       });
 
       render(<NoConversationPage />);
@@ -277,10 +277,10 @@ describe('NoConversationPage - Simple Tests', () => {
     });
   });
 
-  // Test different currentUser scenarios
+  // Test different currentConversationUser scenarios
   describe('Current User Scenarios', () => {
     it('renders correctly when no current user is set', () => {
-      // Default mock has currentUser: null
+      // Default mock has currentConversationUser: null
       render(<NoConversationPage />);
       
       // Should still render all content
@@ -290,13 +290,13 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('renders correctly when current user is set', () => {
       mockUseConversationUser.mockReturnValue({
-        currentUser: {
+        currentConversationUser: {
           user_id: 'user789',
           anonymous_handle: 'buddy',
           profile_image_url: 'image.jpg'
         },
-        setCurrentUser: jest.fn(),
-        clearCurrentUser: jest.fn()
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn()
       });
 
       render(<NoConversationPage />);

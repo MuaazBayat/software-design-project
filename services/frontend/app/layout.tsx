@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/header";
 import "./globals.css";
 import { ConversationUserProvider } from "@/lib/context/ConversationUserContext";
+import { ProfileProvider } from "@/lib/context/ProfileContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,10 +34,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConversationUserProvider>
-          <Header/>
-          {children}
-        </ConversationUserProvider>
+        <ProfileProvider>
+          <ConversationUserProvider>
+            <Header/>
+            {children}
+          </ConversationUserProvider>
+        </ProfileProvider>
       </body>
       </ClerkProvider>
     </html>

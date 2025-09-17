@@ -11,9 +11,9 @@ export interface UserProfile {
 }
 
 interface ConversationUserContextType {
-  currentUser: UserProfile | null;
-  setCurrentUser: (user: UserProfile | null) => void;
-  clearCurrentUser: () => void;
+  currentConversationUser: UserProfile | null;
+  setCurrentConversationUser: (user: UserProfile | null) => void;
+  clearCurrentConversationUser: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
 }
@@ -23,20 +23,20 @@ const ConversationUserContext = createContext<ConversationUserContextType | unde
 );
 
 export function ConversationUserProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [currentConversationUser, setCurrentConversationUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const clearCurrentUser = () => {
-    setCurrentUser(null);
+  const clearCurrentConversationUser = () => {
+    setCurrentConversationUser(null);
     setIsLoading(false);
   };
 
   return (
     <ConversationUserContext.Provider
       value={{
-        currentUser,
-        setCurrentUser,
-        clearCurrentUser,
+        currentConversationUser,
+        setCurrentConversationUser,
+        clearCurrentConversationUser,
         isLoading,
         setIsLoading,
       }}
