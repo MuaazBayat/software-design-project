@@ -10,7 +10,7 @@ import TemplateSidePanel from "../../../components/TemplateSidePanel";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, AlertCircle, PanelLeft, PanelRight } from "lucide-react"
 import MessagingApiClient, { SearchUsersRequest, SendLetterRequest, ApiError } from "@/lib/MessagingApiClient"
-import { useSyncProfile } from "@/lib/SyncProfile"
+import { useSyncProfile } from "@/lib/context/ProfileContext"
 import LeftSidebar from "../../../components/LeftSidebar"
 import MainContent from "../../../components/MainContent"
 import RightSidebar from "../../../components/RightSidebar"

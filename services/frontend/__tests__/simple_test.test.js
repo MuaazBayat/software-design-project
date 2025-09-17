@@ -35,10 +35,11 @@ jest.mock('next/navigation', () => ({
   useParams: () => ({ user_id: 'test-user-123' }),
 }))
 
-// Mock the SyncProfile hook
-jest.doMock('../lib/SyncProfile', () => ({
-  useSyncProfile: jest.fn(),
-}))
+// Mock the SyncProfile context
+const mockUseSyncProfile = jest.fn();
+jest.mock('../lib/context/ProfileContext', () => ({
+  useSyncProfile: () => mockUseSyncProfile(),
+}));
 
 // Mock sonner toast
 jest.doMock('sonner', () => ({

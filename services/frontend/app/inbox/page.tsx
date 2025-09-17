@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Mail, MailOpen, Mailbox } from 'lucide-react';
-import {useSyncProfile} from '../../lib/SyncProfile'
+import {useSyncProfile} from '../../lib/context/ProfileContext';
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
 import ConversationCard from '@/components/ConversationCard';
 import { useRouter } from 'next/navigation';
-import Footer from "@/components/footer";
 import { useConversationUser } from '../../lib/context/ConversationUserContext';
-import { set } from 'date-fns';
 
 
 const LetterInbox = () => {
@@ -21,11 +19,11 @@ const LetterInbox = () => {
 
   const { profile, synced} = useSyncProfile();
   const router = useRouter();
-  const { setCurrentUser, clearCurrentUser } = useConversationUser();
+  const { setCurrentConversationUser, clearCurrentConversationUser } = useConversationUser();
 
   const handleConversationClick = (conversation: SearchUsersResponseItem) => {
-    clearCurrentUser();
-    setCurrentUser(conversation.user_profile);
+    clearCurrentConversationUser();
+    setCurrentConversationUser(conversation.user_profile);
 
     if (!conversation.latest_message?.conversation_thread_id) {
       router.push(`/conversation`);

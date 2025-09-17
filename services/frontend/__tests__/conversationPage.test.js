@@ -18,14 +18,13 @@ jest.mock('../lib/MessagingApiClient', () => {
   }));
 });
 
-// Mock SyncProfile hook
+// Mock SyncProfile hook - Updated to match your ProfileContext
 const mockUseSyncProfile = jest.fn();
-jest.mock('../lib/SyncProfile', () => ({
-  // Use a function wrapper to avoid a ReferenceError due to hoisting.
+jest.mock('../lib/context/ProfileContext', () => ({
   useSyncProfile: () => mockUseSyncProfile(),
 }));
 
-// Mock ConversationUserContext hook
+// Mock ConversationUserContext hook - Updated to match your context
 const mockUseConversationUser = jest.fn();
 jest.mock('../lib/context/ConversationUserContext', () => ({
   useConversationUser: () => mockUseConversationUser(),
@@ -109,14 +108,17 @@ describe('ConversationPage', () => {
     replace: jest.fn(),
   };
 
-  // Mock data
+  // Mock data - Updated to match your Profile interface
   const mockProfile = {
     user_id: 'current-user-123',
-    name: 'Test User',
-    email: 'test@example.com',
+    clerk_id: 'clerk-123',
+    anonymous_handle: 'testuser',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z'
   };
 
-  const mockCurrentUser = {
+  // Updated to match your component's usage
+  const mockCurrentConversationUser = {
     user_id: 'other-user-123',
     anonymous_handle: 'TestPenPal',
     country_code: 'US',
@@ -155,13 +157,24 @@ describe('ConversationPage', () => {
     
     useRouter.mockReturnValue(mockRouter);
     
+    // Updated to match ProfileContext interface
     mockUseSyncProfile.mockReturnValue({
       profile: mockProfile,
       synced: true,
+      loading: false,
+      error: null,
+      setProfile: jest.fn(),
+      syncProfile: jest.fn(),
+      clearProfile: jest.fn()
     });
 
+    // Updated to match your component's property name
     mockUseConversationUser.mockReturnValue({
-      currentUser: mockCurrentUser,
+      currentConversationUser: mockCurrentConversationUser,
+      setCurrentConversationUser: jest.fn(),
+      clearCurrentConversationUser: jest.fn(),
+      isLoading: false,
+      setIsLoading: jest.fn()
     });
     
     mockPageLetters.mockResolvedValue(mockApiResponse);
@@ -179,6 +192,11 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: null,
         synced: false,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       render(<ConversationPage />);
@@ -191,6 +209,11 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
         synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       // Delay the API call to keep loading state
@@ -330,11 +353,15 @@ describe('ConversationPage', () => {
 
     it('handles missing user information gracefully', async () => {
       mockUseConversationUser.mockReturnValue({
-        currentUser: {
+        currentConversationUser: {
           user_id: 'other-user-123',
           anonymous_handle: null,
           country_code: null,
         },
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn(),
+        isLoading: false,
+        setIsLoading: jest.fn()
       });
 
       render(<ConversationPage />);
@@ -347,7 +374,11 @@ describe('ConversationPage', () => {
 
     it('handles missing currentUser gracefully', async () => {
       mockUseConversationUser.mockReturnValue({
-        currentUser: null,
+        currentConversationUser: null,
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn(),
+        isLoading: false,
+        setIsLoading: jest.fn()
       });
 
       render(<ConversationPage />);
@@ -505,6 +536,11 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: null,
         synced: false,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       render(<ConversationPage />);
@@ -592,6 +628,11 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: null,
         synced: false,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       render(<ConversationPage />);
@@ -654,6 +695,11 @@ describe('ConversationPage', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: undefined,
         synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       expect(() => {
@@ -663,7 +709,11 @@ describe('ConversationPage', () => {
 
     it('handles undefined currentUser gracefully', () => {
       mockUseConversationUser.mockReturnValue({
-        currentUser: undefined,
+        currentConversationUser: undefined,
+        setCurrentConversationUser: jest.fn(),
+        clearCurrentConversationUser: jest.fn(),
+        isLoading: false,
+        setIsLoading: jest.fn()
       });
 
       expect(() => {

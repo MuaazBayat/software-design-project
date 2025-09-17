@@ -6,7 +6,7 @@ import MessagingApiClient, { MessageRow, PageLettersResponse } from '@/lib/Messa
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSyncProfile } from '../../../lib/SyncProfile';
+import { useSyncProfile } from '../../../lib/context/ProfileContext';
 import LetterCard from '@/components/LetterCard';
 import { useConversationUser } from '../../../lib/context/ConversationUserContext';
 import { 
@@ -24,7 +24,7 @@ export default function ConversationPage({}: ConversationPageProps) {
   const router = useRouter();
   const conversationThreadId = params.conversation_thread_id as string;
   const { profile, synced } = useSyncProfile();
-  const { currentUser} = useConversationUser();
+  const { currentConversationUser} = useConversationUser();
 
   const CURRENT_USER_ID = profile?.user_id;
   
@@ -35,7 +35,7 @@ export default function ConversationPage({}: ConversationPageProps) {
   const [apiClient] = useState(() => new MessagingApiClient());
 
   // Get the other user's ID from the conversation
-  const otherUserId = currentUser?.user_id;
+  const otherUserId = currentConversationUser?.user_id;
 
   const loadMessages = useCallback(async (lastMessageId?: string) => {
     try {
@@ -117,12 +117,12 @@ export default function ConversationPage({}: ConversationPageProps) {
           </Button>
           <div className="flex-1 text-center">
             <h1 className="text-lg font-semibold text-amber-900">
-              Conversation with {currentUser?.anonymous_handle || 'Unknown User'}
+              Conversation with {currentConversationUser?.anonymous_handle || 'Unknown User'}
             </h1>
-            {currentUser?.country_code && (
+            {currentConversationUser?.country_code && (
               <p className="text-sm text-amber-600 flex items-center justify-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {currentUser.country_code}
+                {currentConversationUser.country_code}
               </p>
             )}
           </div>

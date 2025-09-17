@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { UserButton, SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Button } from "@/components/ui/button";
-import { SyncProfile } from "@/lib/SyncProfile";
 import Link from 'next/link';
 import { Settings, Menu } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -86,7 +85,6 @@ export default function Header() {
             </Link>
 
             <UserButton />
-            <SyncProfile />
           </div>
         </SignedIn>
 

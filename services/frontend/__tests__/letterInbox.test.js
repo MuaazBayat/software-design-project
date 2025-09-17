@@ -3,15 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import LetterInbox from '../app/inbox/page'; // Adjust path as needed
-import { useSyncProfile } from '../lib/SyncProfile'; // Adjust path as needed
+import { useSyncProfile } from '../lib/context/ProfileContext'; // Fixed import path
 import MessagingApiClient from '../lib/MessagingApiClient'; // Adjust path as needed
-import { useConversationUser } from '../lib/context/ConversationUserContext'; // Add this import
+import { useConversationUser } from '../lib/context/ConversationUserContext';
 
 // Mock external dependencies
 jest.mock('next/navigation');
-jest.mock('../lib/SyncProfile');
+jest.mock('../lib/context/ProfileContext'); // Fixed mock path
 jest.mock('../lib/MessagingApiClient');
-jest.mock('../lib/context/ConversationUserContext'); // Add this mock
+jest.mock('../lib/context/ConversationUserContext');
 jest.mock('@/components/ConversationCard');
  
 // Mock components
@@ -50,7 +50,10 @@ jest.mock('@/components/footer', () => {
 // Mock data
 const mockProfile = {
   user_id: 'user123',
-  anonymous_handle: 'testuser'
+  clerk_id: 'clerk123',
+  anonymous_handle: 'testuser',
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z'
 };
 
 const mockConversations = [
@@ -110,8 +113,8 @@ const mockMessagingApiClient = MessagingApiClient;
 
 describe('LetterInbox', () => {
   let mockSearchUsers;
-  let mockSetCurrentUser;
-  let mockClearCurrentUser;
+  let mockSetCurrentConversationUser;
+  let mockClearCurrentConversationUser;
 
   beforeEach(() => {
     // Reset all mocks
@@ -127,13 +130,15 @@ describe('LetterInbox', () => {
       prefetch: jest.fn()
     });
 
-    // Setup conversation user context mock
-    mockSetCurrentUser = jest.fn();
-    mockClearCurrentUser = jest.fn();
+    // Setup conversation user context mock with correct function names
+    mockSetCurrentConversationUser = jest.fn();
+    mockClearCurrentConversationUser = jest.fn();
     mockUseConversationUser.mockReturnValue({
-      setCurrentUser: mockSetCurrentUser,
-      clearCurrentUser: mockClearCurrentUser,
-      currentUser: null // Add other context values as needed
+      setCurrentConversationUser: mockSetCurrentConversationUser,
+      clearCurrentConversationUser: mockClearCurrentConversationUser,
+      currentUser: null,
+      isLoading: false,
+      setIsLoading: jest.fn()
     });
 
     // Setup API client mock
@@ -155,7 +160,12 @@ describe('LetterInbox', () => {
     it('shows loading state when profile is not synced', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: null,
-        synced: false
+        synced: false,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       render(<LetterInbox />);
@@ -166,7 +176,12 @@ describe('LetterInbox', () => {
     it('does not fetch conversations when profile is not synced', () => {
       mockUseSyncProfile.mockReturnValue({
         profile: null,
-        synced: false
+        synced: false,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       render(<LetterInbox />);
@@ -177,7 +192,12 @@ describe('LetterInbox', () => {
     it('fetches conversations when profile is synced', async () => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -201,7 +221,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -237,7 +262,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -302,7 +332,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -378,7 +413,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -398,8 +438,8 @@ describe('LetterInbox', () => {
       await user.click(conversationCard);
 
       expect(mockPush).toHaveBeenCalledWith('/conversation/thread1');
-      expect(mockClearCurrentUser).toHaveBeenCalled();
-      expect(mockSetCurrentUser).toHaveBeenCalledWith(mockConversations[0].user_profile);
+      expect(mockClearCurrentConversationUser).toHaveBeenCalled();
+      expect(mockSetCurrentConversationUser).toHaveBeenCalledWith(mockConversations[0].user_profile);
     });
   });
 
@@ -407,7 +447,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
     });
 
@@ -427,7 +472,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({
@@ -478,7 +528,12 @@ describe('LetterInbox', () => {
     beforeEach(() => {
       mockUseSyncProfile.mockReturnValue({
         profile: mockProfile,
-        synced: true
+        synced: true,
+        loading: false,
+        error: null,
+        setProfile: jest.fn(),
+        syncProfile: jest.fn(),
+        clearProfile: jest.fn()
       });
 
       mockSearchUsers.mockResolvedValue({

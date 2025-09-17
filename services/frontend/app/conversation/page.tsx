@@ -16,12 +16,12 @@ import {
 
 export default function NoConversationPage() {
   const router = useRouter();
-  const { currentUser} = useConversationUser();
+  const { currentConversationUser} = useConversationUser();
 
   const handleWriteFirstLetter = () => {
     // Navigate to general compose page or pen pal selection
-    if (currentUser)
-    router.push(`/compose-letter/${currentUser.user_id}`);
+    if (currentConversationUser)
+    router.push(`/compose-letter/${currentConversationUser.user_id}`);
   };
 
   return (
