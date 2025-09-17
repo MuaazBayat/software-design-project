@@ -164,14 +164,14 @@ def reportUser(body: ReportUser):
 
     #check if user is in reported list
     user_res = supabase.table("user_profiles").select("reported_users").eq("user_id", reporterUserId).execute()
-    reportedUsers = user_res.data[0]
+    reportedUsers = user_res.data[0] #dict
     #Default to [] if None
-    reported_list = reportedUsers["reported_users"] or []
+    reported_list = reportedUsers["reported_users"] or [] #list
 
     if (reportedUserId in reported_list):
         return{
             "message" : "Already reported this user",
-            "reported_users" : reportedUsers["reported_users"]
+            "reported_users" : reported_list
         }
     
     #Add to reported users list
@@ -206,4 +206,41 @@ def reportUser(body: ReportUser):
     return {
         "message" : "Report successful",
         "reported_users" : response.data[0]["reported_users"]
+    }
+
+class BlockUser(BaseModel):
+    reporterId: str
+    reportedId: str
+
+@app.post("/api/v1/block-user")
+def blockUser(body: BlockUser):
+    #get users
+    reporterUserId: str = body.reporterId
+    reportedUserId: str = body.reportedId
+
+    #check if user is in blocked list
+    user_res = supabase.table("user_profiles").select("blocked_users").eq("user_id", reporterUserId).execute()
+    blockedUsers = user_res.data[0] #dict
+    #Default to [] if None
+    blocked_list = blockedUsers["blocked_users"] or [] #list
+
+    if (reportedUserId in blocked_list):
+        return{
+            "message" : "Already blocked this user",
+            "blocked_users" : blocked_list
+        }
+    
+    #Add to reported users list
+    blocked_list.append(reportedUserId)
+    #ship to supabase
+    response = (
+        supabase.table("user_profiles")
+        .update({"blocked_users": blocked_list})
+        .eq("user_id", reporterUserId)
+        .execute()
+    )
+
+    return {
+        "message" : "Successfully blocked user",
+        "blocked_users" : response.data[0]["blocked_users"]
     }
