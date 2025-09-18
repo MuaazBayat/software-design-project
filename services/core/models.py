@@ -27,6 +27,7 @@ class ProfileCreate(ProfileBase):
     """
     clerk_id: str
     anonymous_handle: str
+    fingerprint: str
 
 class ProfileUpdate(ProfileBase):
     """

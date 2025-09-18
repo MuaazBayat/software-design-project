@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import {
-  ClerkProvider
-} from '@clerk/nextjs'
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/header";
 import "./globals.css";
 import { ConversationUserProvider } from "@/lib/context/ConversationUserContext";
 import { ProfileProvider } from "@/lib/context/ProfileContext";
+import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,22 +24,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <ClerkProvider>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ProfileProvider>
-          <ConversationUserProvider>
-            <Header/>
-            {children}
-          </ConversationUserProvider>
-        </ProfileProvider>
-      </body>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <FpjsProvider
+            loadOptions={{
+              apiKey: process.env.NEXT_PUBLIC_FPJS_KEY || "",
+              region: "eu",
+            }}
+          >
+            <ProfileProvider>
+              <ConversationUserProvider>
+                <Header />
+                {children}
+              </ConversationUserProvider>
+            </ProfileProvider>
+          </FpjsProvider>
+        </body>
       </ClerkProvider>
     </html>
   );

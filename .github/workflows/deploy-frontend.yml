@@ -35,6 +35,7 @@ jobs:
             --build-arg NEXT_PUBLIC_MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }} \
             --build-arg NEXT_PUBLIC_MESSAGING_URL=${{ secrets.MESSAGING_URL }} \
             --build-arg NEXT_PUBLIC_MODERATION_URL=${{ secrets.MODERATION_URL }} \
+            --build-arg NEXT_PUBLIC_FPJS_KEY=${{ secrets.FPJS_KEY }} \
             -t $FRONTEND_IMAGE \
             -f services/frontend/frontend.Dockerfile \
             services/frontend/.
