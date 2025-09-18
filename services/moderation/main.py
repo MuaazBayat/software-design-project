@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from better_profanity import profanity
 from supabase import create_client, Client
@@ -123,7 +124,7 @@ def check_profanity(
             "reporting_user_id": None,  # System-generated report
             "violation_type": "inappropriate_content",
             "violation_description": f"Profanity detected in text: '{censored}'",
-            "severity_level": "low",  # Adjust based on your business rules
+            "severity_level": "low",  # Adjust as needed
             "automated_detection": True,
             "status": "resolved",  # Auto-resolved since it's automated
             "resolution_action": "content_removal",
@@ -149,3 +150,143 @@ def check_profanity(
         "contains_profanity": has_profanity,
         "censored_text": censored
     }
+
+class ReportUser(BaseModel):
+    reporterId: str
+    reportedId: str
+    violationType: str
+
+@app.post("/api/v1/report-user")
+def reportUser(body: ReportUser):
+    #get users
+    reporterUserId: str = body.reporterId
+    reportedUserId: str = body.reportedId
+    violation: str = body.violationType
+
+    #check if user is in reported list
+    user_res = supabase.table("user_profiles").select("reported_users").eq("user_id", reporterUserId).execute()
+    reportedUsers = user_res.data[0] #dict
+    #Default to [] if None
+    reported_list = reportedUsers["reported_users"] or [] #list
+
+    if (reportedUserId in reported_list):
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=reported_list
+        )
+    
+    #Add to reported users list
+    reported_list.append(reportedUserId)
+    #ship to supabase
+    response = (
+        supabase.table("user_profiles")
+        .update({"reported_users": reported_list})
+        .eq("user_id", reporterUserId)
+        .execute()
+    )
+
+    #increment reported user's report count
+    supabase.rpc('increment_user_reported_count', {'user_id_to_update': reportedUserId}).execute()
+
+    #Create a moderation log entry
+    moderation_log_entry = {
+        "target_type": "user",
+        "target_id": reportedUserId,
+        "reported_user_id": reportedUserId,
+        "reporting_user_id": reporterUserId,  
+        "violation_type": violation,
+        "violation_description": "User reported",
+        "severity_level": "low",  
+        "automated_detection": False,
+        "status": "open"
+    }
+    
+    #Insert moderation log
+    supabase.table("moderation_logs").insert(moderation_log_entry).execute()
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=response.data[0]["reported_users"]
+    )
+
+class ReportMessage(BaseModel):
+    reporterId: str
+    reportedUserId: str
+    reportedMessageId: str
+    violationType: str
+
+@app.post("/api/v1/report-message")
+def reportMessage(body: ReportMessage):
+    #get users
+    reporterUserId: str = body.reporterId
+    reportedUserId: str = body.reportedUserId
+    reportedMessageId: str = body.reportedMessageId
+    violation: str = body.violationType
+
+    #check if user is in reported list
+    user_res = supabase.table("moderation_logs").select("*").eq("target_id", reportedMessageId).execute()
+    reportedMessage = user_res.data #dict
+    
+    if len(reportedMessage) > 0:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=reportedMessage
+        )
+
+    #Create a moderation log entry
+    moderation_log_entry = {
+        "target_type": "message",
+        "target_id": reportedMessageId,  
+        "reported_user_id": reportedUserId,
+        "reporting_user_id": reporterUserId,  
+        "violation_type": violation,
+        "violation_description": "User reported message",
+        "severity_level": "low", 
+        "automated_detection": False,
+        "status": "open"
+    }
+    
+    #Insert moderation log
+    supabase.table("moderation_logs").insert(moderation_log_entry).execute()
+
+    return JSONResponse(
+        status_code = status.HTTP_200_OK,
+        content = moderation_log_entry
+    )
+
+class BlockUser(BaseModel):
+    reporterId: str
+    reportedId: str
+
+@app.post("/api/v1/block-user")
+def blockUser(body: BlockUser):
+    #get users
+    reporterUserId: str = body.reporterId
+    reportedUserId: str = body.reportedId
+
+    #check if user is in blocked list
+    user_res = supabase.table("user_profiles").select("blocked_users").eq("user_id", reporterUserId).execute()
+    blockedUsers = user_res.data[0] #dict
+    #Default to [] if None
+    blocked_list = blockedUsers["blocked_users"] or [] #list
+
+    if (reportedUserId in blocked_list):
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=blocked_list
+        )
+    
+    #Add to reported users list
+    blocked_list.append(reportedUserId)
+    #ship to supabase
+    response = (
+        supabase.table("user_profiles")
+        .update({"blocked_users": blocked_list})
+        .eq("user_id", reporterUserId)
+        .execute()
+    )
+
+    return JSONResponse(
+        status_code = status.HTTP_201_CREATED,
+        content = response.data[0]["blocked_users"]
+    )
