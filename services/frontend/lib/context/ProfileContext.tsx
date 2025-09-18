@@ -1,15 +1,22 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { useUser } from "@clerk/nextjs";
+import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 
 // Define the profile type based on your backend response
 export interface Profile {
   user_id: string;
   clerk_id: string;
   anonymous_handle: string;
+  fingerprint?: string;
   created_at?: string;
   updated_at?: string;
-  // Add other fields from your Profile model
 }
 
 interface ProfileContextType {
@@ -26,6 +33,13 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { isSignedIn, user } = useUser();
+
+  // FingerprintJS hook
+  const { isLoading: fpLoading, data: fpData, error: fpError } = useVisitorData(
+    { extendedResult: true },
+    { immediate: true }
+  );
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +48,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const syncProfile = async () => {
     if (!isSignedIn || !user) return;
 
+    // Wait until fingerprint is ready
+    if (fpLoading) return;
+    const visitorId = fpData?.visitorId || null;
+
     setLoading(true);
     setError(null);
 
     const coreUrl = process.env.NEXT_PUBLIC_CORE_URL;
     if (!coreUrl) {
-      const errorMessage = "NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local";
+      const errorMessage =
+        "NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local";
       setError(errorMessage);
       setLoading(false);
       return;
@@ -52,7 +71,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           clerk_id: user.id,
           anonymous_handle: user.primaryEmailAddress?.emailAddress ?? null,
-        })
+          fingerprint: visitorId, //send fingerprint to backend
+        }),
       });
 
       if (!response.ok) {
@@ -62,7 +82,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const profileData: Profile = await response.json();
       setProfile(profileData);
 
-      // Log whether it was created or existing
       if (response.status === 201) {
         console.log("New profile created:", profileData);
       } else if (response.status === 200) {
@@ -88,10 +107,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   // Auto-sync when user signs in and profile hasn't been synced yet
   useEffect(() => {
-    if (isSignedIn && user && !synced && !loading) {
+    if (isSignedIn && user && !synced && !loading && !fpLoading) {
       syncProfile();
     }
-  }, [isSignedIn, user, synced, loading]);
+  }, [isSignedIn, user, synced, loading, fpLoading]);
 
   // Clear profile when user signs out
   useEffect(() => {
@@ -106,7 +125,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         profile,
         setProfile,
         loading,
-        error,
+        error: error || (fpError ? fpError.message : null), //surface FP errors
         synced,
         syncProfile,
         clearProfile,

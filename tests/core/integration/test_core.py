@@ -164,6 +164,7 @@ def profile_row(**overrides: Any) -> Dict[str, Any]:
         "created_at": "2025-08-31T12:00:00+00:00",
         "updated_at": "2025-08-31T12:00:00+00:00",
         "last_active": None,
+        "fingerprint": "fp_123",
     }
     base.update(overrides)
     return base
@@ -178,7 +179,7 @@ def test_create_profile_returns_existing_200(client: TestClient, fake_db: FakeSu
     fake_db.user_profiles.set_select([existing])  # select(...).eq(...).execute().data
 
     # ProfileCreate requires BOTH clerk_id and anonymous_handle
-    payload = {"clerk_id": existing["clerk_id"], "anonymous_handle": "whatever"}
+    payload = {"clerk_id": existing["clerk_id"], "anonymous_handle": "whatever", "fingerprint": "fp_123"}
     resp = client.post("/profiles", json=payload)
 
     assert resp.status_code == 200
@@ -195,7 +196,7 @@ def test_create_profile_inserts_new_201(client: TestClient, fake_db: FakeSupabas
     fake_db.user_profiles.set_insert([created])  # insert(...).execute().data
 
     # Only send create fields the API expects (no created_at etc.)
-    payload = {"clerk_id": created["clerk_id"], "anonymous_handle": created["anonymous_handle"]}
+    payload = {"clerk_id": created["clerk_id"], "anonymous_handle": created["anonymous_handle"], "fingerprint": "fp_123"}
     resp = client.post("/profiles", json=payload)
 
     assert resp.status_code == 201
@@ -209,7 +210,7 @@ def test_create_profile_insert_failed_500(client: TestClient, fake_db: FakeSupab
     fake_db.user_profiles.set_select([])
     fake_db.user_profiles.set_insert([])  # simulate DB insert returned no rows
 
-    payload = {"clerk_id": "clerk_123", "anonymous_handle": "alice"}
+    payload = {"clerk_id": "clerk_123", "anonymous_handle": "alice", "fingerprint": "fp_123"}
     resp = client.post("/profiles", json=payload)
 
     assert resp.status_code == 500
