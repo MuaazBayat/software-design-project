@@ -78,7 +78,8 @@ def test_create_profile_happy_path():
         "bio": "A student of culture and history from France.",
         "interests": ["history", "art", "travel"],
         "clerk_id": "user_123",
-        "anonymous_handle": "globetrotter"
+        "anonymous_handle": "globetrotter",
+        "fingerprint": "fp_123"
     }
     fake = FakeSupabaseClient(results=[[], [created_row]])
     override_db(fake)
@@ -93,7 +94,8 @@ def test_create_profile_happy_path():
         "bio": "A student of culture and history from France.",
         "interests": ["history", "art", "travel"],
         "clerk_id": "user_123",
-        "anonymous_handle": "globetrotter"
+        "anonymous_handle": "globetrotter",
+        "fingerprint": "fp_123"
     }
 
     resp = client.post("/profiles/", json=payload)
@@ -110,7 +112,7 @@ def test_create_profile_duplicate_200():
 
     resp = client.post(
         "/profiles/",  # no trailing slash to avoid redirect/422 weirdness
-        json={"clerk_id": "user_123", "anonymous_handle": "anyhandle"},
+        json={"clerk_id": "user_123", "anonymous_handle": "anyhandle", "fingerprint": "fp_123"},
     )
 
     assert resp.status_code == 200, f"Got {resp.status_code} with body: {resp.text}"
@@ -129,7 +131,8 @@ def test_create_profile_insert_failure_500():
     "/profiles/",
     json={
     "clerk_id": "user_999",
-    "anonymous_handle": "anyhandle"
+    "anonymous_handle": "anyhandle", 
+    "fingerprint": "fp_123"
     }
     # If your route requires a header, uncomment and adjust:
     # , headers={"X-User-Id": "user_999"}

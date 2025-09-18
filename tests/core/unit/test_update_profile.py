@@ -82,6 +82,7 @@ def _row_base(**overrides):
         "created_at": "2025-08-31T12:00:00+00:00",
         "updated_at": "2025-08-31T12:00:00+00:00",
         "last_active": None,
+        "fingerprint" : "fp_1234",
     }
     row.update(overrides)
     return row
