@@ -35,8 +35,9 @@ export default function RootLayout({
         >
           <FpjsProvider
             loadOptions={{
-              apiKey: process.env.NEXT_PUBLIC_FPJS_KEY || "",
+              apiKey: process.env.NEXT_PUBLIC_FPJS_KEY!,
               region: "eu",
+              scriptUrlPattern: `/api/fpjs/v3/${process.env.NEXT_PUBLIC_FPJS_KEY}/loader_v3.12.1.js`,
             }}
           >
             <ProfileProvider>
