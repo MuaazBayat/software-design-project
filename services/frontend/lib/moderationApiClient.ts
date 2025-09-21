@@ -1,0 +1,218 @@
+// types/moderation.ts
+export interface CheckProfanityRequest {
+  text: string;
+}
+
+export interface CheckProfanityResponse {
+  contains_profanity: boolean;
+  censored_text: string;
+}
+
+export interface ReportUserRequest {
+  reporterId: string;
+  reportedId: string;
+  violationType: string;
+}
+
+export interface ReportMessageRequest {
+  reporterId: string;
+  reportedUserId: string;
+  reportedMessageId: string;
+  violationType: string;
+}
+
+export interface BlockUserRequest {
+  reporterId: string;
+  reportedId: string;
+}
+
+export interface BanUserResponse {
+  message: string;
+}
+
+export interface FingerprintCheckResponse {
+  is_banned: boolean;
+  message: string;
+}
+
+export interface ModerationLogEntry {
+  target_type: string;
+  target_id: string;
+  reported_user_id: string;
+  reporting_user_id: string | null;
+  violation_type: string;
+  violation_description: string;
+  severity_level: string;
+  automated_detection: boolean;
+  status: string;
+  resolution_action?: string;
+  resolution_notes?: string;
+  reviewed_at?: string;
+}
+
+export interface ApiError {
+  detail: string;
+}
+
+export class ModerationApiClient {
+  private baseUrl: string;
+  private defaultHeaders: Record<string, string>;
+
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_MODERATION_API_URL || 'http://localhost:8000') {
+    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.defaultHeaders = {
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    headers: Record<string, string> = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    const requestOptions: RequestInit = {
+      ...options,
+      headers: {
+        ...this.defaultHeaders,
+        ...headers,
+        ...options.headers,
+      },
+    };
+
+    try {
+      const response = await fetch(url, requestOptions);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unknown error occurred');
+    }
+  }
+
+  /**
+   * Check text for profanity
+   * @param text - Text to check for profanity
+   * @param userId - Internal user ID (for X-User-Id header)
+   * @returns Promise with profanity check results
+   */
+  async checkProfanity(
+    text: string,
+    userId?: string
+  ): Promise<CheckProfanityResponse> {
+
+    const headers: Record<string, string> = {};
+    
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+
+    return this.makeRequest<CheckProfanityResponse>(
+      '/api/v1/check',
+      {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      },
+      headers
+    );
+  }
+
+  /**
+   * Report a user
+   * @param reporterId - ID of the user making the report
+   * @param reportedId - ID of the user being reported
+   * @param violationType - Type of violation
+   * @returns Promise with updated reported users list
+   */
+  async reportUser(
+    reporterId: string,
+    reportedId: string,
+    violationType: string
+  ): Promise<string[]> {
+    return this.makeRequest<string[]>('/api/v1/report-user', {
+      method: 'POST',
+      body: JSON.stringify({
+        reporterId,
+        reportedId,
+        violationType,
+      }),
+    });
+  }
+
+  /**
+   * Report a message
+   * @param reporterId - ID of the user making the report
+   * @param reportedUserId - ID of the user who sent the message
+   * @param reportedMessageId - ID of the message being reported
+   * @param violationType - Type of violation
+   * @returns Promise with moderation log entry
+   */
+  async reportMessage(
+    reporterId: string,
+    reportedUserId: string,
+    reportedMessageId: string,
+    violationType: string
+  ): Promise<ModerationLogEntry | ModerationLogEntry[]> {
+    return this.makeRequest<ModerationLogEntry | ModerationLogEntry[]>('/api/v1/report-message', {
+      method: 'POST',
+      body: JSON.stringify({
+        reporterId,
+        reportedUserId,
+        reportedMessageId,
+        violationType,
+      }),
+    });
+  }
+
+  /**
+   * Block a user
+   * @param reporterId - ID of the user doing the blocking
+   * @param reportedId - ID of the user being blocked
+   * @returns Promise with updated blocked users list
+   */
+  async blockUser(
+    reporterId: string,
+    reportedId: string
+  ): Promise<string[]> {
+    return this.makeRequest<string[]>('/api/v1/block-user', {
+      method: 'POST',
+      body: JSON.stringify({
+        reporterId,
+        reportedId,
+      }),
+    });
+  }
+
+  /**
+   * Ban a user (moderator function)
+   * @param userId - ID of the user to ban
+   * @returns Promise with ban confirmation
+   */
+  async banUser(userId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/ban-user/${encodeURIComponent(userId)}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Check if a fingerprint is banned
+   * @param fingerprint - Device fingerprint to check
+   * @returns Promise with ban status
+   */
+  async checkFingerprint(fingerprint: string): Promise<FingerprintCheckResponse> {
+    return this.makeRequest<FingerprintCheckResponse>(`/api/v1/fingerprint/${encodeURIComponent(fingerprint)}`, {
+      method: 'GET',
+    });
+  }
+}
+
+// Create a default instance
+export const moderationApi = new ModerationApiClient();
