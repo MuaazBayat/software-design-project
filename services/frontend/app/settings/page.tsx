@@ -1,68 +1,27 @@
 "use client";
-import Link from "next/link";
-import * as React from "react";
-import { useUser } from "@clerk/nextjs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
-import { User2, MessageSquareHeart, ArrowLeft } from "lucide-react";
+import React, { useMemo, useState } from "react";
 
-// ===== Types that match your FastAPI models =====
-export type ProfileModel = {
-  anonymous_handle?: string | null;
-  age_range?: string | null; // DB expects hyphen buckets, e.g. "26-35"
-  primary_language?: string | null; // DB expects ISO code, e.g. "fr"
-  secondary_languages?: string[] | null; // array of ISO codes
-  time_zone?: string | null;
-  country_code?: string | null; // ISO-3166 alpha‑2
-  bio?: string | null;
-  interests?: string[] | null;
-};
-
-// ----- helpers -----
-function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-2">
-      <div>
-        <Label className="text-[0.9rem] text-stone-800">{label}</Label>
-        {hint ? <p className="text-xs text-stone-500 mt-1 leading-snug">{hint}</p> : null}
-      </div>
-      {children}
-    </div>
-  );
+// ----------------------
+// Interfaces
+// ----------------------
+interface Message {
+  message_id: string;
+  conversation_thread_id: string;
+  sender_id: string;
+  recipient_id: string;
+  message_content: string;
+  created_at: string;
+  scheduled_delivery_at: string;
+  read_at?: string | null;
+  delivery_status?: string | null;
+  letter_url?: string | null;
+  letter_url_signed?: string | null;
 }
 
-function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm">
-      {text}
-      <button
-        type="button"
-        onClick={onRemove}
-        className="ml-1 inline-flex rounded-full p-0.5 opacity-60 hover:opacity-100 focus:outline-none"
-        aria-label={`Remove ${text}`}
-      >
-        ×
-      </button>
-    </span>
-  );
+interface UserProfile {
+  user_id: string;
+  anonymous_handle: string;
+  account_status: string;
 }
 
 // ===== API wiring ======
@@ -240,289 +199,274 @@ export default function Page() {
       alert("Sign in first.");
       return;
     }
-    if (handle && !HANDLE_RE.test(handle)) {
-      alert("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
-      return;
-    }
-
-    // CHANGE 3: send FULL body instead of diff
-    const body = buildFull();
-
-    setSaving(true);
-    setError(null);
+    setBusy(true);
     try {
-      const updated = await apiUpdateProfile(clerkId, body);
-      originalRef.current = {
-        anonymous_handle: updated.anonymous_handle ?? null,
-        age_range: updated.age_range ?? null,
-        primary_language: updated.primary_language ?? null,
-        secondary_languages: updated.secondary_languages ?? [],
-        time_zone: updated.time_zone ?? null,
-        country_code: updated.country_code ?? null,
-        bio: updated.bio ?? "",
-        interests: updated.interests ?? [],
-      };
-      alert("Saved changes.");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      const res = await fetch(`${baseUrl}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender_id: senderId,
+          recipient_id: recipientId,
+          message_content: message,
+          letter_url: uploadedUrl, // attach uploaded file path
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.detail || res.statusText);
+      logJSON("/messages →", json);
+    } catch (e) {
+      logJSON("Error", String(e));
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   }
 
-  // UI
+  // -------------------------
+  // Page messages
+  // -------------------------
+  async function pageMessages(reset = false) {
+    if (!myUserId || !otherUserId) {
+      alert("my_user_id and other_user_id are required for paging");
+      return;
+    }
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = {
+        my_user_id: myUserId,
+        other_user_id: otherUserId,
+        page_size: pageSize,
+        only_visible_now: onlyVisibleNow,
+      };
+      if (!reset && nextCursor) body.last_message_id = nextCursor;
+
+      const res = await fetch(`${baseUrl}/messages/page`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.detail || res.statusText);
+
+      setItems((prev) => (reset ? json.items : [...prev, ...json.items]));
+      setNextCursor(json.next_cursor || null);
+      logJSON("/messages/page →", json);
+    } catch (e) {
+      logJSON("Error", String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // -------------------------
+  // Search
+  // -------------------------
+  async function doSearch() {
+    if (!searchMyUserId) {
+      alert("my_user_id is required for /search");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`${baseUrl}/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anonymous_handle: searchHandle || "",
+          my_user_id: searchMyUserId,
+          limit: 20,
+          offset: 0,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.detail || res.statusText);
+      setSearchResults(json.items || []);
+      logJSON("/search →", json);
+    } catch (e) {
+      logJSON("Error", String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function fromMe(m: Message): boolean {
+    return m.sender_id === myUserId;
+  }
+
+  // -------------------------
+  // Render
+  // -------------------------
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#faf6ed,#f3eadc)]">
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-serif tracking-tight text-amber-700">Your Settings</h1>
-          {/* <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p> */}
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-              Return
-            </Link>
-          </Button>
-          {API_BASE === "" && (
-            <p className="mt-2 text-xs text-red-600">Set NEXT_PUBLIC_CORE_API_BASE_URL in .env.local</p>
-          )}
-          {error && <p className="mt-2 text-sm text-red-600 whitespace-pre-wrap">{error}</p>}
-        </div>
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+      <div className="max-w-6xl mx-auto grid gap-6">
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Messages API — Test UI</h1>
+          <div className="text-sm opacity-80">Status: {status}</div>
+        </header>
 
-        <Tabs defaultValue="profile">
-          <TabsList className="grid w-full grid-cols-2 border bg-amber-50/60 text-stone-700">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-700">
-              <User2 className="mr-2 h-4 w-4" /> Profile
-            </TabsTrigger>
-            <TabsTrigger value="language" className="data-[state=active]:bg-orange-700">
-              <MessageSquareHeart className="mr-2 h-4 w-4" /> Languages & Time
-            </TabsTrigger>
-          </TabsList>
+        {/* API Base URL */}
+        <section className="bg-neutral-900 rounded-2xl p-4 grid gap-3">
+          <h2 className="text-lg font-medium">API Target</h2>
+          <input
+            className="flex-1 bg-neutral-800 rounded-xl px-3 py-2 outline-none"
+            value={baseUrl}
+            onChange={(e) => persistBase(e.target.value)}
+            placeholder="http://localhost:8000"
+          />
+        </section>
 
-          {/* PROFILE TAB */}
-          <TabsContent value="profile" className="mt-4">
-            <Card className="border-amber-200/70 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-stone-800 ">Profile</CardTitle>
-                <CardDescription>Handle, country, age, bio, interests.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6">
-                {/* Anonymous handle */}
-                <div className="grid gap-2">
-                  <Label htmlFor="handle" className="text-[0.9rem] text-stone-800">Anonymous handle</Label>
-                  <div className="relative max-w-md">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">@</span>
-                    <Input
-                      id="handle"
-                      value={handle}
-                      onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 20))}
-                      placeholder="your_handle"
-                      className="pl-7 bg-white"
-                      disabled={loading}
+        {/* Send message */}
+        <section className="bg-neutral-900 rounded-2xl p-4 grid gap-3">
+          <h2 className="text-lg font-medium">Send message</h2>
+          <div className="grid md:grid-cols-2 gap-3">
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={senderId}
+              onChange={(e) => setSenderId(e.target.value)}
+              placeholder="sender_id (uuid)"
+            />
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={recipientId}
+              onChange={(e) => setRecipientId(e.target.value)}
+              placeholder="recipient_id (uuid)"
+            />
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2 md:col-span-2"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="message_content"
+            />
+            <div className="flex items-center gap-3">
+              <input type="file" accept="image/*" onChange={onFileChange} />
+              {uploadedUrl && (
+                <span className="text-sm opacity-80">Uploaded ✓</span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="px-4 py-2 bg-blue-400 text-neutral-900 rounded-xl"
+              onClick={sendMessage}
+              disabled={busy}
+            >
+              Send
+            </button>
+          </div>
+        </section>
+
+        {/* Page messages */}
+        <section className="bg-neutral-900 rounded-2xl p-4 grid gap-3">
+          <h2 className="text-lg font-medium">Page messages</h2>
+          <div className="grid md:grid-cols-3 gap-3">
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={myUserId}
+              onChange={(e) => setMyUserId(e.target.value)}
+              placeholder="my_user_id (uuid)"
+            />
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={otherUserId}
+              onChange={(e) => setOtherUserId(e.target.value)}
+              placeholder="other_user_id (uuid)"
+            />
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              className="px-4 py-2 bg-neutral-100 text-neutral-900 rounded-xl"
+              onClick={() => {
+                setItems([]); setNextCursor(null); pageMessages(true);
+              }}
+              disabled={busy}
+            >
+              Load first page
+            </button>
+          </div>
+
+          <div className="grid gap-3 mt-2">
+            {items.map((m: Message) => (
+              <div key={m.message_id} className="rounded-xl bg-neutral-800 p-3">
+                <div className="text-xs opacity-70 flex gap-2 flex-wrap">
+                  <span>{new Date(m.created_at).toLocaleString()}</span>
+                  <span>· {fromMe(m) ? "from me" : "from other"}</span>
+                  {m.delivery_status && <span>· {m.delivery_status}</span>}
+                </div>
+                <div className="mt-1">{m.message_content}</div>
+                {m.letter_url_signed && (
+                  <div className="mt-2">
+                    <img
+                      src={m.letter_url_signed}
+                      alt="attached"
+                      className="max-h-60 rounded-lg"
                     />
                   </div>
-                  <p className="text-xs text-stone-500">3–20 chars; lowercase letters, numbers, underscores.</p>
-                  {handle && !HANDLE_RE.test(handle) && (
-                    <p className="text-xs text-red-600">Invalid handle format.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Search */}
+        <section className="bg-neutral-900 rounded-2xl p-4 grid gap-3">
+          <h2 className="text-lg font-medium">Search (by anonymous handle)</h2>
+          <div className="grid md:grid-cols-3 gap-3">
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={searchMyUserId}
+              onChange={(e) => setSearchMyUserId(e.target.value)}
+              placeholder="my_user_id (uuid)"
+            />
+            <input
+              className="bg-neutral-800 rounded-xl px-3 py-2"
+              value={searchHandle}
+              onChange={(e) => setSearchHandle(e.target.value)}
+              placeholder="anonymous_handle (empty = inbox)"
+            />
+            <button
+              className="px-4 py-2 bg-neutral-100 text-neutral-900 rounded-xl"
+              onClick={doSearch}
+              disabled={busy}
+            >
+              Search
+            </button>
+          </div>
+          <div className="grid gap-3 mt-2">
+            {searchResults.map((r, i) => {
+              const latest = r.latest_message;
+              return (
+                <div key={i} className="rounded-xl bg-neutral-800 p-3">
+                  <div className="text-sm font-medium">
+                    {r.user_profile?.anonymous_handle}
+                  </div>
+                  {latest ? (
+                    <div className="text-xs opacity-80 mt-1">
+                      <div>Latest: {latest.message_content}</div>
+                      {latest.letter_url_signed && (
+                        <img
+                          src={latest.letter_url_signed}
+                          alt="latest"
+                          className="max-h-40 rounded-lg mt-2"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs opacity-60 mt-1">
+                      No visible messages yet.
+                    </div>
                   )}
                 </div>
+              );
+            })}
+          </div>
+        </section>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FieldRow label="Country code" hint="Used for culture & matching hints.">
-                    <Select value={countryCode} onValueChange={setCountryCode}>
-                      <SelectTrigger className="bg-white"><SelectValue placeholder="Select country" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        <SelectItem value="ZA">South Africa (ZA)</SelectItem>
-                        <SelectItem value="US">United States (US)</SelectItem>
-                        <SelectItem value="GB">United Kingdom (GB)</SelectItem>
-                        <SelectItem value="DE">Germany (DE)</SelectItem>
-                        <SelectItem value="FR">France (FR)</SelectItem>
-                        <SelectItem value="NG">Nigeria (NG)</SelectItem>
-                        <SelectItem value="IN">India (IN)</SelectItem>
-                        <SelectItem value="JP">Japan (JP)</SelectItem>
-                        <SelectItem value="BR">Brazil (BR)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FieldRow>
-                  <FieldRow label="Age range" hint="Used only for matching; not public.">
-                    <Select value={ageRange} onValueChange={setAgeRange}>
-                      <SelectTrigger className="bg-white"><SelectValue placeholder="Select age range" /></SelectTrigger>
-                      <SelectContent>
-                        {AGE_BUCKETS.map((v) => (
-                          <SelectItem key={v} value={v}>{v === "prefer-not" ? "Prefer not to say" : v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FieldRow>
-                </div>
-
-                <FieldRow label="Bio">
-                  <Textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell people about yourself…"
-                    className="bg-white min-h-[90px]"
-                  />
-                </FieldRow>
-
-                <FieldRow label="Interests" hint="Type and press Enter to add.">
-                  <div className="grid gap-2">
-                    {interests.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {interests.map((i) => (
-                          <Chip key={i} text={i} onRemove={() => setInterests((prev) => prev.filter((x) => x !== i))} />
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 max-w-md">
-                      <Input
-                        value={interestInput}
-                        onChange={(e) => setInterestInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const v = interestInput.trim();
-                            if (v) {
-                              setInterests((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                              setInterestInput("");
-                            }
-                          }
-                        }}
-                        placeholder="e.g. hiking, anime, cooking"
-                        className="bg-white"
-                      />
-                      <Button className="bg-rose-500 text-white" type="button" variant="secondary" onClick={() => {
-                        const v = interestInput.trim();
-                        if (v) {
-                          setInterests((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                          setInterestInput("");
-                        }
-                      }}>Add</Button>
-                    </div>
-                  </div>
-                </FieldRow>
-              </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
-                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-rose-500 hover:bg-rose-600">Save Changes</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-
-          {/* LANGUAGES & TIME TAB */}
-          <TabsContent value="language" className="mt-4">
-            <Card className="border-amber-200/70 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-stone-800">Languages & Time</CardTitle>
-                <CardDescription>Primary/secondary languages and your time zone.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FieldRow label="Primary language">
-                    <Select value={primaryLanguage} onValueChange={setPrimaryLanguage}>
-                      <SelectTrigger className="bg-white"><SelectValue placeholder="Select language" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {LANG.map(({ code, label }) => (
-                          <SelectItem key={code} value={code}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FieldRow>
-                  <FieldRow label="Time zone" hint="IANA time zone">
-                    <Select value={timeZone} onValueChange={setTimeZone}>
-                      <SelectTrigger className="bg-white"><SelectValue placeholder="Select time zone" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        <SelectItem value="Africa/Johannesburg">Africa/Johannesburg (UTC+2)</SelectItem>
-                        <SelectItem value="UTC">UTC</SelectItem>
-                        <SelectItem value="Europe/London">Europe/London (UTC±0/±1)</SelectItem>
-                        <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
-                        <SelectItem value="America/New_York">America/New_York (UTC−5/−4)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">America/Los_Angeles (UTC−8/−7)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Asia/Tokyo (UTC+9)</SelectItem>
-                        <SelectItem value="Asia/Kolkata">Asia/Kolkata (UTC+5:30)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FieldRow>
-                </div>
-                  <FieldRow
-                    label="Secondary languages"
-                    hint="Pick from the same list as primary; you can add multiple."
-                  >
-                    <div className="grid gap-2">
-                      {/* Selected chips */}
-                      {secondaryLanguages.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {secondaryLanguages.map((code) => (
-                            <Chip
-                              key={code}
-                              text={LANG.find((l) => l.code === code)?.label ?? code}
-                              onRemove={() =>
-                                setSecondaryLanguages((prev) => prev.filter((x) => x !== code))
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Add-more dropdown (multi via repeated selection) */}
-                      <Select
-                        // Remount the Select whenever the selection changes → placeholder resets
-                        key={secondaryLanguages.join(",") || "empty"}
-                        onValueChange={(code) => {
-                          setSecondaryLanguages((prev) =>
-                            prev.includes(code) ? prev : [...prev, code]
-                          )
-                        }}
-                        // Disable when nothing left to add
-                        disabled={
-                          LANG.filter(
-                            ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
-                          ).length === 0
-                        }
-                      >
-                        <SelectTrigger
-                          aria-label="Add a secondary language"
-                          className="w-full sm:max-w-md min-h-10 bg-white overflow-hidden text-ellipsis whitespace-nowrap"
-                        >
-                          <SelectValue
-                            placeholder={
-                              LANG.filter(
-                                ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
-                              ).length === 0
-                                ? "All available languages added"
-                                : "Add a secondary language"
-                            }
-                          />
-                        </SelectTrigger>
-
-                        {/* Match trigger width; ensure it overlays */}
-                        <SelectContent
-                          position="popper"
-                          className="z-50 w-[var(--radix-select-trigger-width)] max-h-64 overflow-auto"
-                        >
-                          {LANG
-                            .filter(
-                              ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
-                            )
-                            .map(({ code, label }) => (
-                              <SelectItem key={code} value={code}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </FieldRow>
-
-                                </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                <div className="text-xs text-stone-500">{loading ? "Loading…" : saving ? "Saving…" : ""}</div>
-                <Button onClick={onSave} disabled={saving || (handle !== "" && !HANDLE_RE.test(handle))} className="bg-rose-500 hover:bg-rose-600">Save Changes</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Log */}
+        <section className="bg-neutral-900 rounded-2xl p-4">
+          <h2 className="text-lg font-medium mb-2">Console</h2>
+          <pre className="bg-neutral-800 rounded-xl p-3 text-xs overflow-auto max-h-64 whitespace-pre-wrap">
+            {log}
+          </pre>
+        </section>
       </div>
     </div>
   );
