@@ -1,5 +1,6 @@
 # Define the builder stage
 FROM node:18-alpine AS builder
+
 # Set the working directory
 WORKDIR /app
 
@@ -9,7 +10,7 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Cppy all the files
+# Copy all the files
 COPY components ./components
 COPY . .
 
@@ -23,6 +24,7 @@ ARG NEXT_PUBLIC_CORE_URL
 ARG NEXT_PUBLIC_MATCHMAKING_URL
 ARG NEXT_PUBLIC_MESSAGING_URL
 ARG NEXT_PUBLIC_MODERATION_URL
+ARG NEXT_PUBLIC_FPJS_KEY
 
 RUN echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" > .env \
  && echo "CLERK_SECRET_KEY=$CLERK_SECRET_KEY" >> .env \
@@ -32,7 +34,8 @@ RUN echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" 
  && echo "NEXT_PUBLIC_CORE_URL=$NEXT_PUBLIC_CORE_URL" >> .env \
  && echo "NEXT_PUBLIC_MATCHMAKING_URL=$NEXT_PUBLIC_MATCHMAKING_URL" >> .env \
  && echo "NEXT_PUBLIC_MESSAGING_URL=$NEXT_PUBLIC_MESSAGING_URL" >> .env \
- && echo "NEXT_PUBLIC_MODERATION_URL=$NEXT_PUBLIC_MODERATION_URL" >> .env
+ && echo "NEXT_PUBLIC_MODERATION_URL=$NEXT_PUBLIC_MODERATION_URL" >> .env \
+ && echo "NEXT_PUBLIC_FPJS_KEY=$NEXT_PUBLIC_FPJS_KEY" >> .env
 
 # Build the Next.js app
 RUN npm run build
