@@ -290,3 +290,58 @@ def blockUser(body: BlockUser):
         status_code = status.HTTP_201_CREATED,
         content = response.data[0]["blocked_users"]
     )
+
+@app.post("/api/v1/ban-user/{user_id}")
+def banUser(user_id: str):
+    #Check if user exists
+    user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    #Update the user's is_banned status to True
+    supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_id).execute()
+
+    #log this action in the moderation_logs table
+    ban_log_entry = {
+        "target_type": "user",
+        "target_id": user_id,
+        "reported_user_id": user_id,
+        "reporting_user_id": None,  # System action
+        "violation_type": "other",
+        "violation_description": "User account banned by system",
+        "severity_level": "high",
+        "automated_detection": False,
+        "status": "resolved",
+        "resolution_action": "permanent_ban",
+        "resolution_notes": "User account banned due to policy violations",
+        "reviewed_at": datetime.utcnow().isoformat()
+    }
+    supabase.table("moderation_logs").insert(ban_log_entry).execute()
+
+    #Add to banned_fingerprints table
+    banned_fingerprint_entry = {
+        "user_id": user_id,
+        "fingerprint": user_res.data[0]["fingerprint"],
+        "banned_at": datetime.utcnow().isoformat()
+    }
+    supabase.table("banned_fingerprints").insert(banned_fingerprint_entry).execute()
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"User {user_id} has been banned."}
+    )
+
+@app.get("/api/v1/fingerprint/{fingerprint}")
+def check_fingerprint(fingerprint: str):
+    #Check if the fingerprint exists in the banned_fingerprints table
+    res = supabase.table("banned_fingerprints").select("*").eq("fingerprint", fingerprint).execute()
+    if res.data:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"is_banned": True, "message": "Fingerprint is banned."}
+        )
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"is_banned": False, "message": "Fingerprint is not banned."}
+        )
