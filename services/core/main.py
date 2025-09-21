@@ -71,7 +71,15 @@ async def create_profile(
     # First, check if a profile for this user ID already exists to prevent duplicates.
     existing_profile = db.table("user_profiles").select("*").eq("clerk_id", profile_data.clerk_id).execute()
     if existing_profile.data:
-        # Profile exists, return it with 200 OK status
+        # Profile exists, update fingerprint and return it with 200 OK status
+        fingerprints = existing_profile.data[0]["fingerprint"] or []
+
+        if profile_data.fingerprint not in fingerprints:
+            fingerprints.append(profile_data.fingerprint)
+            existing_profile.data[0]["fingerprint"] = fingerprints
+            
+        db.table("user_profiles").update({"fingerprint": fingerprints}).eq("clerk_id", profile_data.clerk_id).execute()
+        
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=existing_profile.data[0]
