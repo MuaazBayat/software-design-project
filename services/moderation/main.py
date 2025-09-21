@@ -50,7 +50,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=base_origins,
     allow_credentials=True,  # Allows cookies/auth headers
-    allow_methods=["POST", "OPTIONS"],  # POST for your endpoint + OPTIONS for preflight
+    allow_methods=["POST", "OPTIONS", "GET"],  # POST for your endpoint + OPTIONS for preflight
     allow_headers=[
         "X-User-Id", 
         "X-Api-Key", 

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
+import { moderationApi } from '@/lib/moderationApiClient';
 
 // Define the profile type based on your backend response
 export interface Profile {
@@ -52,6 +53,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (fpLoading) return;
     const visitorId = fpData?.visitorId || null;
 
+    //Check if fingerprint is banned
+    if (visitorId) {
+      try {
+        const fpCheck = await moderationApi.checkFingerprint(visitorId);
+        if (fpCheck.is_banned) {
+          setError(`Access denied: ${fpCheck.message}`);
+          return; // Stop further processing if banned
+        }
+      } catch (err) {
+        console.error("Fingerprint check failed:", err);
+        // Proceed even if the check fails, as it might be a transient error
+      }
+    }
     setLoading(true);
     setError(null);
 
