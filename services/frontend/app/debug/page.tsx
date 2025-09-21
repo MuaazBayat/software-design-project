@@ -100,6 +100,15 @@ export default function DebugPage() {
               {process.env.NEXT_PUBLIC_MODERATION_URL || 'undefined'}
             </div>
           </div>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-300 font-medium">NEXT_PUBLIC_FPJS_KEY</span>
+              <div className={`w-2 h-2 rounded-full ${process.env.NEXT_PUBLIC_FPJS_KEY ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            </div>s
+            <div className="font-mono text-sm bg-black rounded p-2 text-gray-300">
+              {process.env.NEXT_PUBLIC_FPJS_KEY || 'undefined'}
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 p-4 bg-gray-900 border border-gray-700 rounded-lg">
