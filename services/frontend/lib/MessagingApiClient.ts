@@ -1,4 +1,3 @@
-// lib/MessagingApiClient.ts
 export type UUID = string;
 
 export interface LetterStyles {
@@ -12,6 +11,12 @@ export interface SendLetterRequest {
   message_content: string;
   letter_styles?: LetterStyles;
 }
+
+export interface UploadImageResponse {
+  object_path: string;
+  data: { path: string };
+}
+
 
 export interface SendLetterResponse {
   message_id: UUID;
@@ -126,6 +131,47 @@ export default class MessagingApiClient {
   async searchUsers(body: SearchUsersRequest): Promise<SearchUsersResponse> {
     return this.post<SearchUsersResponse>("/search", body);
   }
+
+  async uploadImage(file: File): Promise<UploadImageResponse> {
+  const url = `${this.baseUrl}/upload-image`;
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    const maybeJson: unknown = text ? safeJsonParse(text) : null;
+
+    if (!res.ok) {
+      const msg = hasDetail(maybeJson)
+        ? `Request failed: ${JSON.stringify(maybeJson.detail)}`
+        : `Request failed with status ${res.status}`;
+      throw new ApiError(msg, res.status, maybeJson);
+    }
+
+    return (maybeJson as UploadImageResponse) ?? ({} as UploadImageResponse);
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw new ApiError("Request timed out", 408);
+    }
+    if (err instanceof ApiError) throw err;
+    if (err instanceof Error) {
+      throw new ApiError(err.message, 500);
+    }
+    throw new ApiError("Unknown error", 500);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 
   // --- core request helper ---
   private async post<T>(path: string, body: unknown): Promise<T> {
