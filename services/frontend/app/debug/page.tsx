@@ -100,7 +100,6 @@ export default function DebugPage() {
               {process.env.NEXT_PUBLIC_MODERATION_URL || 'undefined'}
             </div>
           </div>
-
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-300 font-medium">NEXT_PUBLIC_FPJS_KEY</span>
