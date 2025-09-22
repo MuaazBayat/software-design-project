@@ -348,6 +348,18 @@ def banUser(log_id: str):
         content={"message": f"User {user_id} has been banned."}
     )
 
+@app.post("/api/v1/ban-clerk-user/{clerk_id}")
+def banClerkUser(clerk_id: str):
+    try:
+        result = clerk.users.ban(user_id=clerk_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Clerk user {clerk_id} has been banned."}
+    )
+
 @app.get("/api/v1/fingerprint/{fingerprint}")
 def check_fingerprint(fingerprint: str):
     #Check if the fingerprint exists in the banned_fingerprints table
