@@ -4,7 +4,6 @@ import types
 import importlib
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
-
 import pytest
 from fastapi.testclient import TestClient
 
