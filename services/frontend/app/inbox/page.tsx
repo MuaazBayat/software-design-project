@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Mail, MailOpen, Mailbox } from 'lucide-react';
-import {useSyncProfile} from '../../lib/context/ProfileContext';
+import { useSyncProfile } from '../../lib/context/ProfileContext';
 import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from '../../lib/MessagingApiClient';
 import ConversationCard from '@/components/ConversationCard';
 import { useRouter } from 'next/navigation';
 import { useConversationUser } from '../../lib/context/ConversationUserContext';
 import Loader from '@/components/ui/loader';
-
 
 const LetterInbox = () => {
   const [conversations, setConversations] = useState<SearchUsersResponseItem[]>([]);
@@ -18,38 +17,87 @@ const LetterInbox = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { profile, synced} = useSyncProfile();
+  const { profile, synced } = useSyncProfile();
   const router = useRouter();
   const { setCurrentConversationUser, clearCurrentConversationUser } = useConversationUser();
 
-  const handleConversationClick = (conversation: SearchUsersResponseItem) => {
+  const apiClient = new MessagingApiClient();
+
+  const deriveFlags = (item: SearchUsersResponseItem) => {
+    const lm: any = item.latest_message ?? {};
+    const myId = profile?.user_id;
+
+    const fromMe =
+      typeof lm.from_me === 'boolean'
+        ? lm.from_me
+        : (lm.sender_id && myId ? lm.sender_id === myId : false);
+
+    const isRead =
+      typeof lm.is_read === 'boolean'
+        ? lm.is_read
+        : Boolean(lm.read_at);
+
+    const scheduledAtISO: string | undefined = lm.scheduled_delivery_at;
+    const scheduledTs = scheduledAtISO ? Date.parse(scheduledAtISO) : NaN;
+    const isFuture = Number.isFinite(scheduledTs) && scheduledTs > Date.now();
+
+    const inTransitFromMe = Boolean(item.in_transit_from_me || (fromMe && isFuture));
+
+    const isNewIncoming = !fromMe && !isRead; // unread and from them
+    return { fromMe, isRead, isNewIncoming, inTransitFromMe };
+  };
+
+  const handleConversationClick = async (conversation: SearchUsersResponseItem) => {
     clearCurrentConversationUser();
     setCurrentConversationUser(conversation.user_profile);
 
-    if (!conversation.latest_message?.conversation_thread_id) {
-      router.push(`/conversation`);
-      return;
+    const threadId = conversation.latest_message?.conversation_thread_id;
+    if (threadId && profile?.user_id) {
+      try {
+        await apiClient.markRead({
+          conversation_thread_id: threadId,
+          my_user_id: profile.user_id,
+        });
+      } catch (e) {
+        console.warn('markRead failed (non-fatal):', e);
+      }
+
+      // optimistic update: if latest was incoming, mark read locally
+      setConversations(prev =>
+        prev.map(it => {
+          if (it.user_profile.user_id !== conversation.user_profile.user_id) return it;
+          const lm = it.latest_message;
+          if (!lm) return it;
+          const myId = profile?.user_id;
+          const wasFromMe = lm.sender_id && myId ? lm.sender_id === myId : lm.from_me;
+          if (!wasFromMe) {
+            return {
+              ...it,
+              latest_message: { ...lm, read_at: new Date().toISOString(), is_read: true },
+            };
+          }
+          return it;
+        })
+      );
     }
-    router.push(`/conversation/${conversation.latest_message?.conversation_thread_id}`);
+
+    router.push(threadId ? `/conversation/${threadId}` : `/conversation`);
   };
 
- // Fetch conversations on component mount
   useEffect(() => {
-    
     if (!synced || !profile?.user_id) return;
 
-    const apiClient = new MessagingApiClient();
     const fetchConversations = async () => {
       try {
         setIsLoading(true);
         const response: SearchUsersResponse = await apiClient.searchUsers({
-          anonymous_handle: "", // Empty string acts like inbox
+          anonymous_handle: "",
           my_user_id: profile.user_id,
           limit: 50,
-          offset: 0
+          offset: 0,
         });
+        console.log('Fetched conversations:', response);
         setConversations(response.items);
-        console.log(response.items);
         setError(null);
       } catch (err) {
         setError('Failed to load conversations');
@@ -60,61 +108,79 @@ const LetterInbox = () => {
     };
 
     fetchConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [synced, profile?.user_id]);
 
-  // Filter conversations based on search term and read status
   useEffect(() => {
     let filtered = conversations;
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(conv =>
         conv.user_profile.anonymous_handle.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Apply read status filter - now using is_read boolean
     if (filterStatus !== 'all') {
       filtered = filtered.filter(conv => {
-        return filterStatus === 'read' ? conv.latest_message?.is_read : !conv.latest_message?.is_read;
+        const { fromMe, isNewIncoming, isRead } = deriveFlags(conv);
+        if (filterStatus === 'unread') return isNewIncoming;
+        // read: either from me (nothing for me to read) or incoming but already read
+        return fromMe || isRead;
       });
     }
 
     setFilteredConversations(filtered);
-  }, [conversations, searchTerm, filterStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations, searchTerm, filterStatus, profile?.user_id]);
 
-  // Format message preview
-  const formatMessagePreview = (content: string, maxLength: number = 60) => {
-    return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
-  };
+  const formatMessagePreview = (content: string, maxLength = 60) =>
+    content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
 
-  // Format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
-
     if (diffDays > 0) return `${diffDays}d ago`;
     if (diffHours > 0) return `${diffHours}h ago`;
     return 'Just now';
   };
 
-  // Get delivery status badge
-  const getDeliveryStatusBadge = (status: string, fromMe: boolean) => {
-    if (status === 'scheduled') {
+  // SA-time aware by comparing epoch (works regardless of local TZ)
+  // 4th arg meaning:
+  //  - if fromMe: inTransit flag
+  //  - if fromThem: isRead flag
+  const getDeliveryStatusBadge = (
+    _status: string,
+    fromMe: boolean,
+    scheduledISO?: string,
+    inTransitOrIsRead?: boolean
+  ) => {
+    const schedMs = scheduledISO ? Date.parse(scheduledISO) : NaN;
+    const nowMs = Date.now();
+    const isFuture = Number.isFinite(schedMs) && schedMs > nowMs;
+
+    if (fromMe) {
+      const inTransit = !!inTransitOrIsRead || isFuture;
+      return inTransit ? (
+        <span className="px-2 py-1 rounded-full text-[11px] font-medium bg-gray-100 text-blue-700 whitespace-nowrap">
+          Outgoing…
+        </span>
+      ) : null;
+    }
+
+    // from them
+    const visible = Number.isFinite(schedMs) ? schedMs <= nowMs : true;
+    const isRead = !!inTransitOrIsRead;
+    if (visible && !isRead) {
       return (
-        <span className="px-2 py-1 rounded-full text-xs text-gray-500">
-          {fromMe ? 'Sending...' : 'Incoming...'}
+        <span className="px-2 py-1 rounded-full text-[11px] font-medium bg-red-100 text-red-600 whitespace-nowrap">
+          Unread
         </span>
       );
     }
-    return (
-      <span className="px-2 py-1 rounded-full text-xs ">
-        ✅ Delivered
-      </span>
-    );
+    return null;
   };
 
   if (error) {
@@ -124,7 +190,7 @@ const LetterInbox = () => {
           <div className="text-red-500 text-6xl mb-4">📫</div>
           <h2 className="text-2xl font-bold text-amber-900 mb-2">Oops!</h2>
           <p className="text-amber-700">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="mt-4 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
           >
@@ -137,15 +203,11 @@ const LetterInbox = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      
-
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Search and Filter Bar */}
         <div className="bg-white rounded-sm p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search Bar */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by username..."
@@ -154,8 +216,6 @@ const LetterInbox = () => {
                 className="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-gray-100 focus:border-black focus:outline-none text-orange-900 placeholder-black"
               />
             </div>
-
-            {/* Filter Buttons */}
             <div className="flex gap-2">
               {[
                 { value: 'all', label: 'All Letters', icon: Mailbox },
@@ -168,7 +228,7 @@ const LetterInbox = () => {
                   className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                     filterStatus === value
                       ? 'bg-black text-white shadow-md'
-                      : 'bg-gray-100 text-gray-800 hover:bg-black  hover:text-white'
+                      : 'bg-gray-100 text-gray-800 hover:bg-black hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -179,45 +239,39 @@ const LetterInbox = () => {
           </div>
         </div>
 
-        {/* Loading State */}
         {isLoading && (
           <div className="text-center py-12">
-            <Loader/>
+            <Loader />
           </div>
         )}
 
-        {/* Empty State */}
         {!isLoading && filteredConversations.length === 0 && (
           <div className="text-center py-12">
             <div className="text-8xl mb-6">📭</div>
             <h3 className="text-2xl font-bold text-amber-900 mb-2">No letters found</h3>
             <p className="text-amber-700">
-              {searchTerm || filterStatus !== 'all' 
+              {searchTerm || filterStatus !== 'all'
                 ? 'Try adjusting your search or filters'
-                : 'Start a conversation with a pen pal!'
-              }
+                : 'Start a conversation with a pen pal!'}
             </p>
           </div>
         )}
 
-        {/* Conversations Grid */}
         {!isLoading && filteredConversations.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredConversations.map((conversation) => (
               <ConversationCard
-              key={conversation.user_profile.user_id}
-              conversation={conversation}
-              formatMessagePreview={formatMessagePreview}
-              formatTimeAgo={formatTimeAgo}
-              getDeliveryStatusBadge={getDeliveryStatusBadge}
-              onClick={() => handleConversationClick(conversation || '')}
+                key={conversation.user_profile.user_id}
+                conversation={conversation}
+                formatMessagePreview={(t, n) => formatMessagePreview(t, n)}
+                formatTimeAgo={formatTimeAgo}
+                getDeliveryStatusBadge={getDeliveryStatusBadge}
+                onClick={() => handleConversationClick(conversation)}
               />
             ))}
-            </div>
+          </div>
         )}
       </div>
-
-
     </div>
   );
 };

@@ -17,6 +17,31 @@ export interface UploadImageResponse {
   data: { path: string };
 }
 
+export interface SearchUsersResponseItem {
+  user_profile: UserProfile;
+  latest_message?: {
+    conversation_thread_id: UUID;
+    is_read?: boolean;
+    from_me?: boolean;
+    message_content: string;
+    scheduled_delivery_at: string;
+    delivery_status: string;
+    read_at?: string | null;
+    sender_id?: UUID;
+    recipient_id?: UUID;
+  };
+  in_transit_from_me?: boolean;
+  next_outgoing_at?: string | null;
+}
+
+export interface MarkReadRequest {
+  conversation_thread_id: UUID;
+  my_user_id: UUID;
+}
+export interface MarkReadResponse {
+  updated: number;
+}
+
 
 export interface SendLetterResponse {
   message_id: UUID;
@@ -71,18 +96,6 @@ export interface UserProfile {
   interests?: string[];
 }
 
-export interface SearchUsersResponseItem {
-  user_profile: UserProfile;
-  latest_message?: {
-    conversation_thread_id: UUID;
-    is_read: boolean;
-    from_me: boolean;
-    message_content: string;
-    scheduled_delivery_at: string;
-    delivery_status: string;
-  };
-}
-
 export interface SearchUsersResponse {
   count: number;
   items: SearchUsersResponseItem[];
@@ -123,6 +136,10 @@ export default class MessagingApiClient {
   async sendLetter(body: SendLetterRequest): Promise<SendLetterResponse> {
     return this.post<SendLetterResponse>("/messages", body);
   }
+
+async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
+  return this.post<MarkReadResponse>("/messages/mark-read", body);
+}
 
   async pageLetters(body: PageLettersRequest): Promise<PageLettersResponse> {
     return this.post<PageLettersResponse>("/messages/page", body);
