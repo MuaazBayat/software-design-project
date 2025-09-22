@@ -3,22 +3,38 @@
 import { render, screen } from '@testing-library/react';
 import Home from '@/app/page';
 
-//  Mock the Globe component BEFORE the tests run
-// We are telling Jest: "When any code asks for '@/components/globe',
-// give them this fake version instead of the real one."
-jest.mock('@/components/globe', () => ({
-  Globe: () => <div data-testid="mock-globe" />,
-}));
+// Mock Next.js Image component
+jest.mock('next/image', () => {
+  return function MockImage({ src, alt, fill, priority, ...props }) {
+    // Filter out Next.js specific props to avoid React warnings
+    const { width, height, ...imgProps } = props;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={typeof src === 'string' ? src : '/img.jpg'} alt={alt} width={width} height={height} {...imgProps} />;
+  };
+});
 
 describe('HomePage', () => {
-  it('should render the mocked Globe component', () => {
-    // 1. Render the Home component
+  it('should render the landing page content', () => {
     render(<Home />);
 
-    // 2. Look for the placeholder from our mock, not the real component
-    const mockGlobe = screen.getByTestId('mock-globe');
+    // Check for main heading
+    expect(screen.getByText(/Connecting Cultures/)).toBeInTheDocument();
+    expect(screen.getByText('Letter at a Time')).toBeInTheDocument();
 
-    // 3. Assert that our mock placeholder is in the document
-    expect(mockGlobe).toBeInTheDocument();
+    // Check for main CTA button
+    expect(screen.getByRole('link', { name: /Find Your Match/i })).toBeInTheDocument();
+
+    // Check for statistics section
+    expect(screen.getByText('50+')).toBeInTheDocument();
+    expect(screen.getByText('Countries')).toBeInTheDocument();
+  });
+
+  it('should render the globe image', () => {
+    render(<Home />);
+
+    // Check for the globe image
+    const globeImage = screen.getByAltText('Cute globe illustration');
+    expect(globeImage).toBeInTheDocument();
+    expect(globeImage).toHaveAttribute('src', '/globe.png');
   });
 });

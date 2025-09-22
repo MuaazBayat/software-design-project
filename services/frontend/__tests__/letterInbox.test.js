@@ -13,6 +13,25 @@ jest.mock('../lib/context/ProfileContext'); // Fixed mock path
 jest.mock('../lib/MessagingApiClient');
 jest.mock('../lib/context/ConversationUserContext');
 jest.mock('@/components/ConversationCard');
+
+// Mock the ldrs library to avoid ES module issues
+jest.mock('ldrs/react', () => ({
+  LineSpinner: ({ size, stroke, speed, color }) => (
+    <div data-testid="line-spinner" data-size={size} data-stroke={stroke} data-speed={speed} data-color={color}>
+      Loading spinner mock
+    </div>
+  ),
+}));
+
+// Mock the CSS import
+jest.mock('ldrs/react/LineSpinner.css', () => ({}));
+
+// Mock the Loader component
+jest.mock('../components/ui/loader', () => {
+  return function MockLoader() {
+    return <div data-testid="loader">Loading...</div>;
+  };
+});
  
 // Mock components
 jest.mock('@/components/ConversationCard', () => {
@@ -170,7 +189,8 @@ describe('LetterInbox', () => {
 
       render(<LetterInbox />);
 
-      expect(screen.getByText('Loading your letters...')).toBeInTheDocument();
+      // The mocked loader component shows "Loading..."
+      expect(screen.getByTestId('loader')).toBeInTheDocument();
     });
 
     it('does not fetch conversations when profile is not synced', () => {
@@ -520,7 +540,7 @@ describe('LetterInbox', () => {
       expect(deliveryStatuses[0]).toHaveTextContent('✅ Delivered');
       
       // Third conversation: scheduled
-      expect(deliveryStatuses[2]).toHaveTextContent('📤 Incoming...');
+      expect(deliveryStatuses[2]).toHaveTextContent('Incoming...');
     });
   });
 

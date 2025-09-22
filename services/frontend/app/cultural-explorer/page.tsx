@@ -299,6 +299,11 @@ const CulturalExplorer = () => {
 
   const shuffleDeck = () => {
     if (selectedDeck === 'random') {
+      // Cancel any active quiz when shuffling
+      if (quizState === 'active' || quizState === 'loading') {
+        restartQuiz();
+      }
+
       setSelectedCountry(getRandomCountry());
       setCurrentFactIndex(0);
       fadeCardOutIn();
@@ -306,6 +311,11 @@ const CulturalExplorer = () => {
   };
 
   const handleDeckChange = (deck: DeckType) => {
+    // Cancel any active quiz when changing decks
+    if (quizState === 'active' || quizState === 'loading') {
+      restartQuiz();
+    }
+
     setSelectedDeck(deck);
     setCurrentFactIndex(0);
     if (deck === 'random') {
@@ -497,21 +507,21 @@ const CulturalExplorer = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="text-8xl mb-4 animate-spin">🃏</div>
-          <p className="text-2xl text-gray-700">Loading the deck...</p>
+          <p className="text-2xl text-white">Loading the deck...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf6f0]">
+    <div className="min-h-screen bg-black">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Deck Selection */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-center text-[#6b3f2a] tracking-tighter mb-6">
+          <h2 className="text-3xl font-bold text-center text-white tracking-tighter mb-6">
             Explore your country of choice!
           </h2>
 
@@ -564,6 +574,11 @@ const CulturalExplorer = () => {
               <select
                 value={selectedCountry}
                 onChange={(e) => {
+                  // Cancel any active quiz when changing country
+                  if (quizState === 'active' || quizState === 'loading') {
+                    restartQuiz();
+                  }
+
                   setSelectedCountry(e.target.value);
                   setCurrentFactIndex(0);
                   fadeCardOutIn();
@@ -590,7 +605,7 @@ const CulturalExplorer = () => {
 
             <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden">
               {/* Loading header */}
-              <div className="bg-gradient-to-r from-[#6b3f2a] via-[#8b5d42] to-[#a67c5a] text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
@@ -629,7 +644,7 @@ const CulturalExplorer = () => {
               }`}
             >
               {/* Quiz header */}
-              <div className="bg-gradient-to-r from-[#6b3f2a] via-[#8b5d42] to-[#a67c5a] text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
@@ -703,7 +718,7 @@ const CulturalExplorer = () => {
                   {showExplanation && (
                     <button
                       onClick={nextQuestion}
-                      className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
                     >
                       {currentQuizIndex < quizData.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </button>
@@ -733,7 +748,7 @@ const CulturalExplorer = () => {
               }`}
             >
               {/* Results header */}
-              <div className="bg-gradient-to-r from-[#6b3f2a] via-[#8b5d42] to-[#a67c5a] text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
@@ -783,7 +798,7 @@ const CulturalExplorer = () => {
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={generateQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
                   >
                     <Brain className="w-5 h-5" />
                     Try Again
@@ -813,7 +828,7 @@ const CulturalExplorer = () => {
               }`}
             >
               {/* Card header */}
-              <div className="bg-gradient-to-r from-amber-700 to-orange-700 via-amber-500 text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-teal-400 to-yellow-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
@@ -845,7 +860,7 @@ const CulturalExplorer = () => {
                     className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 ${
                       isFlipping
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-orange-800 rounded-sm text-white hover:scale-105 shadow-lg'
+                        : 'bg-gradient-to-r from-teal-400 to-yellow-200 rounded-sm text-white hover:scale-105 shadow-lg'
                     }`}
                   >
                     <RotateCw className={`w-5 h-5 ${isFlipping ? 'animate-spin' : ''}`} />
@@ -858,7 +873,7 @@ const CulturalExplorer = () => {
                     className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 ${
                       !currentFacts.length
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-[#6b3f2a] rounded-sm text-white hover:scale-105 hover:bg-[#5a3e2b] shadow-lg'
+                        : 'bg-gradient-to-r from-pink-500 to-rose-500 rounded-sm text-white hover:scale-105 shadow-lg'
                     }`}
                   >
                     <Brain className="w-5 h-5" />

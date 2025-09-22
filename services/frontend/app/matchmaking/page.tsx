@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
-import { Heart, X, Settings, Globe, MapPin, Camera, Book, Mountain, Star, Clock, MessageCircle } from 'lucide-react';
-
+import { Heart, X, UserSearch, Globe, MapPin, Camera, Book, Mountain, Star, Clock, MessageCircle } from 'lucide-react';
+import Loader from '@/components/ui/loader';
 interface UserProfile {
   user_id: string;
   anonymous_handle: string;
@@ -154,7 +154,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={type.value}
                   className={`p-3 rounded-xl text-center transition-all border-2 ${
                     matchingPreferences.match_type === type.value
-                      ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border-yellow-400 shadow-lg'
+                      ? 'bg-gradient-to-br from-violet-200 to-pink-200 text-white  shadow-lg'
                       : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300'
                   }`}
                   onClick={() => setMatchingPreferences({ ...matchingPreferences, match_type: type.value })}
@@ -174,7 +174,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={range}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     matchingPreferences.age_ranges.includes(range)
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-violet-200 to-pink-200 text-white shadow-md'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                   onClick={() => {
@@ -206,7 +206,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   key={lang.code}
                   className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
                     matchingPreferences.languages.includes(lang.code)
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-violet-200 to-pink-200 text-white shadow-md'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                   onClick={() => {
@@ -414,10 +414,7 @@ const MatchScreen: React.FC = () => {
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-stone-600 font-medium">Loading...</p>
-        </div>
+        <Loader />
       </div>
     );
   }
@@ -426,7 +423,7 @@ const MatchScreen: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-24 h-24 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-24 h-24 bg-gradient-to-r from-violet-200 to-pink-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <Globe className="w-12 h-12 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-stone-800 mb-2">Please Sign In</h2>
@@ -439,10 +436,7 @@ const MatchScreen: React.FC = () => {
   if (!currentProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-stone-600 font-medium">Loading your profile...</p>
-        </div>
+        <Loader />
       </div>
     );
   }
@@ -454,7 +448,7 @@ const MatchScreen: React.FC = () => {
       <div className="max-w-md mx-auto px-6 py-8">
         {/* User Stats Card */}
         <div className="mb-8">
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg">
+          <div className="bg-white/70 backdrop-blur-sm rounded-sm p-6 border border-white/20 ">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-stone-800 mb-1">
@@ -464,27 +458,21 @@ const MatchScreen: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowFilters(true)}
-                className="p-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full text-white shadow-lg hover:shadow-xl transition-all"
+                className="p-3 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Settings className="w-5 h-5" />
+                <UserSearch className="w-5 h-5" />
               </button>
             </div>
 
             {dailyStats && (
-              <div className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border border-amber-500">
+              <div className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50 rounded-sm p-4 borde">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-white" />
-                  </div>
                   <div>
                     <p className="text-sm font-semibold text-stone-700">Daily Matches</p>
                     <p className="text-xs text-stone-500">
                       {dailyStats.matches_remaining} of {dailyStats.total_daily_limit} remaining
                     </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-orange-500">{dailyStats.matches_remaining}</div>
                 </div>
               </div>
             )}
@@ -494,18 +482,17 @@ const MatchScreen: React.FC = () => {
         {/* Profile Card with Loading Overlay */}
         <div className="relative">
           {actionLoading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-3xl z-10 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-3"></div>
-                <p className="text-stone-600 font-medium">Processing your choice...</p>
+                <Loader />
               </div>
             </div>
           )}
 
           {suggestedProfile ? (
-            <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden mb-8 border border-white/20">
+            <div className="relative bg-white rounded-xl shadow-2xl overflow-hidden mb-8 border border-white/20">
               {/* Profile Header with Country Flag */}
-              <div className="relative h-48 bg-gradient-to-br from-amber-700 to-orange-700 via-amber-500 flex items-center justify-center">
+              <div className="relative h-48 bg-gradient-to-br from-violet-200 to-pink-200 flex items-center justify-center">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative text-center text-white">
                   <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl mb-3 mx-auto">
@@ -559,7 +546,7 @@ const MatchScreen: React.FC = () => {
 
                   {suggestedProfile.cultural_completeness_score && (
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm mb-1">
+                      <div className="w-16 h-16 bg-gradient-to-r from-violet-200 to-pink-200 rounded-full flex items-center justify-center text-white font-bold text-sm mb-1">
                         {Math.round(suggestedProfile.cultural_completeness_score * 100)}%
                       </div>
                       <p className="text-xs text-stone-500 font-medium">Complete</p>
@@ -578,7 +565,7 @@ const MatchScreen: React.FC = () => {
                 {suggestedProfile.favorite_local_fact && (
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl mb-6 border border-amber-200">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 bg-gradient-to-r from-violet-200 to-pink-200 rounded-full flex items-center justify-center flex-shrink-0">
                         <Star className="w-4 h-4 text-white" />
                       </div>
                       <div>

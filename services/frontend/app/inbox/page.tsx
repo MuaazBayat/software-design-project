@@ -7,6 +7,7 @@ import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from
 import ConversationCard from '@/components/ConversationCard';
 import { useRouter } from 'next/navigation';
 import { useConversationUser } from '../../lib/context/ConversationUserContext';
+import Loader from '@/components/ui/loader';
 
 
 const LetterInbox = () => {
@@ -104,13 +105,13 @@ const LetterInbox = () => {
   const getDeliveryStatusBadge = (status: string, fromMe: boolean) => {
     if (status === 'scheduled') {
       return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-          📤 {fromMe ? 'Sending...' : 'Incoming...'}
+        <span className="px-2 py-1 rounded-full text-xs text-gray-500">
+          {fromMe ? 'Sending...' : 'Incoming...'}
         </span>
       );
     }
     return (
-      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+      <span className="px-2 py-1 rounded-full text-xs ">
         ✅ Delivered
       </span>
     );
@@ -140,17 +141,17 @@ const LetterInbox = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Search and Filter Bar */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-orange-300">
+        <div className="bg-white rounded-sm p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search Bar */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-700 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by username..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-orange-700 focus:border-orange-600 focus:outline-none text-orange-900 placeholder-orange-700"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border-2 border-gray-100 focus:border-black focus:outline-none text-orange-900 placeholder-black"
               />
             </div>
 
@@ -166,8 +167,8 @@ const LetterInbox = () => {
                   onClick={() => setFilterStatus(value as 'all' | 'read' | 'unread')}
                   className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                     filterStatus === value
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-orange-300 text-orange-800 hover:bg-orange-500 hover:text-white'
+                      ? 'bg-black text-white shadow-md'
+                      : 'bg-gray-100 text-gray-800 hover:bg-black  hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -181,8 +182,7 @@ const LetterInbox = () => {
         {/* Loading State */}
         {isLoading && (
           <div className="text-center py-12">
-            <div className="animate-spin text-6xl mb-4">📮</div>
-            <p className="text-amber-700 text-lg">Loading your letters...</p>
+            <Loader/>
           </div>
         )}
 
