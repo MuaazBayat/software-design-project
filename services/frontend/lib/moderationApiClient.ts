@@ -250,6 +250,27 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
 
     return response.logs;
   }
+
+  /**
+   * Resolve a moderation case
+   * @param logId - ID of the moderation log entry
+   * @param action - Resolution action ("warning", "no_action", "content_removal", "temporary_ban", "permanent_ban")
+   * @param notes - Notes explaining the resolution
+   * @returns Promise with confirmation message
+   */
+  async resolveCase(
+    log_id: string,
+    action: string,
+    notes: string
+  ): Promise<{ message: string }> {
+    return this.makeRequest<{ message: string }>(
+      `/api/v1/resolve-case/`,
+      {
+        method: "POST",
+        body: JSON.stringify({ log_id, action, notes }),
+      }
+    );
+  }
 }
 
 // Create a default instance

@@ -94,22 +94,9 @@ const ModerationDashboard = () => {
   const handleResolveCase = async (logId: string, action: string, notes: string) => {
     setActionLoading(logId);
     try {
-      // In a real implementation, you'd have an API endpoint to update moderation logs
-      // For now, we'll update the local state
-      setModerationLogs(prev => 
-        prev.map(log => 
-          log.log_id === logId 
-            ? { 
-                ...log, 
-                status: 'resolved' as const, 
-                resolution_action: action,
-                resolution_notes: notes,
-                reviewed_at: new Date().toISOString(),
-                moderator_id: profile.user_id
-              }
-            : log
-        )
-      );
+      await moderationApi.resolveCase(logId, action, notes);
+      // Refresh the logs
+      await fetchModerationLogs();
       setSelectedCase(null);
       alert('Case resolved successfully.');
     } catch (error) {
@@ -138,7 +125,7 @@ const ModerationDashboard = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'text-red-600 bg-red-50';
-      case 'in_review': return 'text-yellow-600 bg-yellow-50';
+      case 'under_review': return 'text-yellow-600 bg-yellow-50';
       case 'resolved': return 'text-green-600 bg-green-50';
       case 'dismissed': return 'text-gray-600 bg-gray-50';
       default: return 'text-gray-600 bg-gray-50';
@@ -422,7 +409,7 @@ const ModerationDashboard = () => {
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Resolve Case</h4>
                     <div className="space-y-3">
                       <button
-                        onClick={() => handleResolveCase(selectedCase.log_id, 'warning_issued', 'Warning issued to user')}
+                        onClick={() => handleResolveCase(selectedCase.log_id, 'warning', 'Warning issued to user')}
                         disabled={actionLoading === selectedCase.log_id}
                         className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
                       >
@@ -437,7 +424,7 @@ const ModerationDashboard = () => {
                         <span>Ban User</span>
                       </button>
                       <button
-                        onClick={() => handleResolveCase(selectedCase.log_id, 'dismissed', 'Case dismissed - no violation found')}
+                        onClick={() => handleResolveCase(selectedCase.log_id, 'no_action', 'Case dismissed - no violation found')}
                         disabled={actionLoading === selectedCase.log_id}
                         className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
                       >

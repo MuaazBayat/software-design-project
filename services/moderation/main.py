@@ -56,7 +56,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=base_origins,
     allow_credentials=True,  # Allows cookies/auth headers
-    allow_methods=["POST", "OPTIONS", "GET"],  # POST for your endpoint + OPTIONS for preflight
+    allow_methods=["POST", "OPTIONS", "GET", "PUT"],  # POST for your endpoint + OPTIONS for preflight
     allow_headers=[
         "X-User-Id", 
         "X-Api-Key", 
@@ -319,7 +319,12 @@ def banUser(log_id: str):
     supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_id).execute()
 
     #update old log to resolved and add notes
-    supabase.table("moderation_logs").update({"status": "resolved", "resolution_action": "permanent_ban", "resolution_notes": "User banned"}).eq("log_id", log_id).execute()
+    supabase.table("moderation_logs").update({
+        "status": "resolved", 
+        "resolution_action": "permanent_ban", 
+        "resolution_notes": "User banned",
+        "reviewed_at": datetime.utcnow().isoformat()
+        }).eq("log_id", log_id).execute()
 
     #Add to banned_fingerprints table
     # Add all fingerprints to banned_fingerprints table
@@ -358,6 +363,39 @@ def banClerkUser(clerk_id: str):
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"Clerk user {clerk_id} has been banned."}
+    )
+
+class ResolveCase(BaseModel):
+    log_id: str
+    action: str
+    notes: str
+
+@app.post("/api/v1/resolve-case")
+def resolve_case(body: ResolveCase):
+
+    # Validate action
+    valid_actions = ["warning", "no_action", "content_removal", "temporary_ban", "permanent_ban"]
+    if body.action not in valid_actions:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    # Fetch the moderation log entry
+    log_res = supabase.table("moderation_logs").select("*").eq("log_id", body.log_id).execute()
+    if not log_res.data:
+        raise HTTPException(status_code=404, detail="Moderation log not found")
+
+    status_value = "resolved" if body.action in ["warning", "content_removal", "temporary_ban", "permanent_ban"] else "dismissed"
+    # Update the log entry
+    update_data = {
+        "status": "resolved" ,
+        "resolution_action": body.action,
+        "resolution_notes": body.notes,
+        "reviewed_at": datetime.utcnow().isoformat()
+    }
+    supabase.table("moderation_logs").update(update_data).eq("log_id", body.log_id).execute()
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Moderation log {body.log_id} has been updated."}
     )
 
 @app.get("/api/v1/fingerprint/{fingerprint}")
