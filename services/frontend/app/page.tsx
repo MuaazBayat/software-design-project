@@ -78,7 +78,7 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8 items-center">
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center rounded-full">
-              <img src="/letter.png" alt="Cute letters illustration" className="w-64 h-64 object-contain rounded-full" />
+              <Image src="/letter.png" alt="Cute letters illustration" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Letters Exchanged</h3>
             <p className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-yellow-200 bg-clip-text text-transparent mb-2">50,000+</p>
@@ -87,7 +87,7 @@ export default function Home() {
 
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center">
-              <img src="/friends.png" alt="Cute friends illustration" className="w-64 h-64 object-contain rounded-full" />
+              <Image src="/friends.png" alt="Cute friends illustration" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Friendships Formed</h3>
             <p className="text-4xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">25,000+</p>
@@ -96,7 +96,7 @@ export default function Home() {
 
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center">
-              <img src="/globe.png" alt="Cute globe illustration" className="w-64 h-64 object-contain" />
+              <Image src="/globe.png" alt="Cute globe illustration" width={256} height={256} className="w-64 h-64 object-contain" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Countries Connected</h3>
             <p className="text-4xl font-bold bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent mb-2">180+</p>
@@ -182,7 +182,7 @@ export default function Home() {
           <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
             <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
-              "
+              &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
@@ -200,7 +200,7 @@ export default function Home() {
             </div>
 
             <blockquote className="text-gray-800 leading-relaxed mb-6 italic text-lg">
-              "Through GlobeTalk, I found my Japanese pen pal Yuki. Her letters taught me about tea ceremonies and origami, while I shared maple syrup recipes! We're planning to meet this summer."
+              &ldquo;Through GlobeTalk, I found my Japanese pen pal Yuki. Her letters taught me about tea ceremonies and origami, while I shared maple syrup recipes! We&rsquo;re planning to meet this summer.&rdquo;
             </blockquote>
 
             <div className="flex justify-end">
@@ -213,7 +213,7 @@ export default function Home() {
           <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
             <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
-              "
+              &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
@@ -231,7 +231,7 @@ export default function Home() {
             </div>
 
             <blockquote className="text-gray-800 leading-relaxed mb-6 italic text-lg">
-              "I started learning Portuguese through letters with Carlos from São Paulo. His stories about Carnival inspired me to visit Brazil. Now we're best friends across continents!"
+              &ldquo;I started learning Portuguese through letters with Carlos from São Paulo. His stories about Carnival inspired me to visit Brazil. Now we&rsquo;re best friends across continents!&rdquo;
             </blockquote>
 
             <div className="flex justify-end">
@@ -244,7 +244,7 @@ export default function Home() {
           <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
             <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
-              "
+              &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
@@ -262,7 +262,7 @@ export default function Home() {
             </div>
 
             <blockquote className="text-gray-800 leading-relaxed mb-6 italic text-lg">
-              "Exchanging letters with Amina from Marrakech opened my eyes to beautiful Moroccan culture. She taught me Arabic calligraphy through her letters - pure magic!"
+              &ldquo;Exchanging letters with Amina from Marrakech opened my eyes to beautiful Moroccan culture. She taught me Arabic calligraphy through her letters - pure magic!&rdquo;
             </blockquote>
 
             <div className="flex justify-end">
