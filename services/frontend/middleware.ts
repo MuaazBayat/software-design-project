@@ -6,10 +6,10 @@ const isProtectedRoute = createRouteMatcher([
   '/inbox(.*)',
   '/compose-letter(.*)',
   '/conversation(.*)',
-  
-  //'/dashboard(.*)',
-  //'/profile(.*)',
-  //'/admin(.*)',
+  '/settings(.*)',
+  '/moderation(.*)',
+  // '/matchmaking(.*)',
+  '/api/(.*)',
   
 ])
 
