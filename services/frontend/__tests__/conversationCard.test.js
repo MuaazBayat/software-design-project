@@ -11,6 +11,22 @@ jest.mock('next/image', () => {
   };
 });
 
+// Mock the ProfileContext so components that call useProfile() don't throw
+jest.mock('../lib/context/ProfileContext', () => {
+  // Return a simple useProfile hook that yields a profile object used by tests.
+  return {
+    useProfile: () => ({
+      // Tests assume presence of a "current user" to allow logic that checks
+      // "from_me" etc. We'll give a stable user id here; tests set conversation
+      // latest_message.from_me boolean as needed, so keeping this minimal is fine.
+      profile: { user_id: 'test-current-user' },
+    }),
+    // Provide a harmless provider so any code importing ProfileProvider will work
+    ProfileProvider: ({ children }) => children,
+  };
+});
+
+
 describe('ConversationCard', () => {
   // Mock functions
   const mockFormatMessagePreview = jest.fn((content, maxLength = 100) => 
