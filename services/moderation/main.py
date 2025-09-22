@@ -319,12 +319,20 @@ def banUser(user_id: str):
     supabase.table("moderation_logs").insert(ban_log_entry).execute()
 
     #Add to banned_fingerprints table
-    banned_fingerprint_entry = {
-        "user_id": user_id,
-        "fingerprint": user_res.data[0]["fingerprint"],
-        "banned_at": datetime.utcnow().isoformat()
-    }
-    supabase.table("banned_fingerprints").insert(banned_fingerprint_entry).execute()
+    # Add all fingerprints to banned_fingerprints table
+    fingerprints = user_res.data[0].get("fingerprint", [])
+    if isinstance(fingerprints, list):
+        for fp in fingerprints:
+            supabase.table("banned_fingerprints").insert({
+                "user_id": user_id,
+                "fingerprint": fp
+            }).execute()
+    elif isinstance(fingerprints, str):
+        # In case it's a single string, not a list
+        supabase.table("banned_fingerprints").insert({
+            "user_id": user_id,
+            "fingerprint": fingerprints
+        }).execute()
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
