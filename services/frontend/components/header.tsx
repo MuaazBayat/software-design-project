@@ -24,7 +24,7 @@ export default function Header() {
   }, [pathname]);
 
   return (
-    <header className="relative flex flex-wrap p-4 gap-4 h-16 bg-orange-900 items-center justify-between z-50">
+    <header className="relative flex flex-wrap p-4 gap-4 h-16 bg-black items-center justify-between z-50">
       {/* Logo */}
 
       <Link href="/" className="text-xl text-white font-bold tracking-tighter lg:text-2xl lg:text-3xl">
