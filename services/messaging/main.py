@@ -1,14 +1,15 @@
 # main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile, Request
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List, Iterable, Tuple
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo  # Python 3.9+
 from supabase import create_client, Client
 from dotenv import load_dotenv
-import os
-
 from fastapi.middleware.cors import CORSMiddleware
+import os, time
+from uuid import uuid4
+from threading import RLock
 
 # -----------------------------
 # Environment / Supabase client
@@ -24,17 +25,11 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # -------------
 # FastAPI app
 # -------------
-app = FastAPI(title="Simple Messages API (SA time, ID cursor)")
-
-ALLOWED_ORIGINS = [
-    "http://localhost:3000", 
-    "http://127.0.0.1:3000"
-] 
-ALLOWED_ORIGINS.append(os.getenv("FRONTEND_URL", ""))
+app = FastAPI(title="Messages API (fast, SA time)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -43,16 +38,6 @@ app.add_middleware(
 # -------------
 # Models
 # -------------
-class LetterStyles(BaseModel):
-    font_size: int = Field(ge=8, le=96)
-    font_family: str = Field(min_length=1, max_length=100)
-
-class MessageCreate(BaseModel):
-    sender_id: str
-    recipient_id: str
-    message_content: str = Field(min_length=1, max_length=5000)
-    letter_styles: Optional[LetterStyles] = None
-
 class MessagesPage(BaseModel):
     conversation_thread_id: str
     page_size: int = Field(5, ge=1, le=100)
@@ -68,7 +53,6 @@ class SearchUsers(BaseModel):
 # Time helpers (South Africa)
 # ---------------------------
 def now_in_sa() -> datetime:
-    """Current time in Africa/Johannesburg as aware datetime."""
     return datetime.now(ZoneInfo("Africa/Johannesburg"))
 
 # ---------------------------
@@ -86,7 +70,6 @@ def _safe_execute(q):
         raise
 
 def _normalize_pair(a: str, b: str) -> Tuple[str, str]:
-    """Deterministically order a user pair so (a,b) == (b,a)."""
     return (a, b) if a <= b else (b, a)
 
 def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, str]:
@@ -105,34 +88,11 @@ def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, str]:
     row = (res.data or [None])[0]
     if not row:
         raise HTTPException(status_code=404, detail="No active match between users.")
-    thread_id = row.get("conversation_thread_id")
-    if not thread_id:
-        # Enforce that you populate conversation_thread_id at match creation time
-        raise HTTPException(
-            status_code=409,
-            detail="Active match found but conversation_thread_id is NULL. Populate it first."
-        )
-    return {"match_id": row["match_id"], "conversation_thread_id": thread_id}
-
-def _next_sequence(conversation_thread_id: str) -> int:
-    """Compute next message_sequence within the thread."""
-    res = _safe_execute(
-        supabase.table("messages")
-        .select("message_sequence")
-        .eq("conversation_thread_id", conversation_thread_id)
-        .order("message_sequence", desc=True)
-        .limit(1)
-    )
-    return (int(res.data[0]["message_sequence"]) + 1) if res.data else 1
+    return {"match_id": row["match_id"], "conversation_thread_id": row.get("conversation_thread_id")}
 
 def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
-    """
-    Return {other_user_id: conversation_thread_id} for active matches where a conversation exists.
-    Combines both roles (user_1 and user_2).
-    """
     conv_map: Dict[str, str] = {}
 
-    # I'm user_1
     r1 = _safe_execute(
         supabase.table("match_records")
         .select("user_1_id,user_2_id,conversation_thread_id,status")
@@ -143,7 +103,6 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
     for r in (r1.data or []):
         conv_map[r["user_2_id"]] = r["conversation_thread_id"]
 
-    # I'm user_2
     r2 = _safe_execute(
         supabase.table("match_records")
         .select("user_1_id,user_2_id,conversation_thread_id,status")
@@ -156,91 +115,54 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
 
     return conv_map
 
-
-def _fetch_active_profiles(user_ids: Iterable[str], handle_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-    """
-    (Legacy) Fetch ACTIVE profiles; optionally filter with ilike on anonymous_handle.
-    Left here for reference; FTS search below supersedes this for /search.
-    """
-    user_ids = list(user_ids)
-    if not user_ids:
-        return []
-
-    q = (
-        supabase.table("user_profiles")
-        .select("*")
-        .in_("user_id", user_ids)
-        .eq("account_status", "active")
-    )
-    if handle_filter is not None:
-        q = q.ilike("anonymous_handle", f"%{handle_filter}%").order("anonymous_handle", desc=False)
-
-    res = _safe_execute(q)
-    return res.data or []
-
 def _search_active_profiles_fts(user_ids: Iterable[str], qtext: Optional[str]) -> List[Dict[str, Any]]:
-    """
-    Active profile search using Postgres full-text search (websearch) on anonymous_handle.
-    If qtext is empty/None -> return all active profiles ordered by handle (inbox behavior).
-    """
     user_ids = list(user_ids)
     if not user_ids:
         return []
 
     base = (
         supabase.table("user_profiles")
-        .select("*")
+        .select("user_id,anonymous_handle,account_status")
         .in_("user_id", user_ids)
         .eq("account_status", "active")
     )
 
-    # Inbox behavior: no query -> all active, ordered
     if not qtext or not qtext.strip():
         res = _safe_execute(base.order("anonymous_handle", desc=False))
         return res.data or []
 
     qtext = qtext.strip()
-
-    # Prefer supabase-py text_search if available
     try:
         res = _safe_execute(
             base.text_search("anonymous_handle", qtext, {"type": "websearch", "config": "simple"})
                .order("anonymous_handle", desc=False)
         )
     except AttributeError:
-        # Fallback: use PostgREST operator directly ("wfts" = websearch_to_tsquery)
         res = _safe_execute(
             base.filter("anonymous_handle", "wfts", qtext)
                .order("anonymous_handle", desc=False)
         )
-
     return res.data or []
 
-def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, limit_cap: int = 2000) -> Dict[str, Dict[str, Any]]:
-    """
-    For the given conversation IDs, fetch messages visible up to now_sa_iso and
-    return a dict {conversation_thread_id: latest_message_row}.
-    """
+def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, limit_cap: int = 1000) -> Dict[str, Dict[str, Any]]:
     convo_ids = list(convo_ids)
     if not convo_ids:
         return {}
-
     msgs_res = _safe_execute(
         supabase.table("messages")
         .select(
             "message_id,conversation_thread_id,message_content,"
-            "sender_id,recipient_id,scheduled_delivery_at,read_at,delivery_status,created_at"
+            "sender_id,recipient_id,scheduled_delivery_at,read_at,delivery_status,created_at,letter_url"
         )
         .in_("conversation_thread_id", convo_ids)
         .lte("scheduled_delivery_at", now_sa_iso)
         .order("scheduled_delivery_at", desc=True)
         .limit(limit_cap)
     )
-
     latest_by_convo: Dict[str, Dict[str, Any]] = {}
     for m in (msgs_res.data or []):
         cid = m["conversation_thread_id"]
-        if cid not in latest_by_convo:  # first seen due to desc order
+        if cid not in latest_by_convo:
             latest_by_convo[cid] = m
     return latest_by_convo
 
@@ -273,7 +195,7 @@ def _paginate_list(items: List[Any], limit: int, offset: int) -> Tuple[List[Any]
 # ---------------------------
 @app.get("/health")
 def health():
-    return {"ok": True}
+    return {"ok": True, "time_sa": now_in_sa().isoformat()}
 
 @app.post("/messages")
 def send_message(msg: MessageCreate):
@@ -324,28 +246,28 @@ def page_messages_sa(body: MessagesPage):
 
     q = (
         supabase.table("messages")
-        .select("*")
-        .eq("conversation_thread_id", body.conversation_thread_id)
-        .lte("scheduled_delivery_at", now_sa_iso)
+        .select(
+            "message_id,conversation_thread_id,message_sequence,message_content,"
+            "sender_id,recipient_id,scheduled_delivery_at,read_at,delivery_status,created_at,letter_url"
+        )
+        .eq("conversation_thread_id", thread_id)
     )
+
+    if body.only_visible_now:
+        q = q.lte("scheduled_delivery_at", now_sa_iso)
 
     if body.last_message_id:
         cur = _safe_execute(
-            supabase.table("messages")
-            .select("created_at")
-            .eq("message_id", body.last_message_id)
-            .single()
+            supabase.table("messages").select("created_at").eq("message_id", body.last_message_id).single()
         )
         if not cur.data:
             raise HTTPException(status_code=404, detail="last_message_id not found")
-        last_created_at = cur.data["created_at"]
-        q = q.lt("created_at", last_created_at)
+        q = q.lt("created_at", cur.data["created_at"])
 
     res = _safe_execute(q.order("created_at", desc=True).limit(body.page_size))
     rows = res.data or []
 
     next_cursor = rows[-1]["message_id"] if rows else None
-
     return {
         "items": rows,
         "count": len(rows),
@@ -370,8 +292,7 @@ def _search_users_impl(
     if not conv_map:
         return {"count": 0, "items": []}
 
-    # 2) Active profiles via FTS (or all if query empty)
-    profiles = _search_active_profiles_fts(conv_map.keys(), qtext=anonymous_handle)
+    profiles = _search_active_profiles_fts(conv_map.keys(), qtext=body.anonymous_handle)
     if not profiles:
         return {"count": 0, "items": []}
 
@@ -380,7 +301,6 @@ def _search_users_impl(
     if not paged_profiles:
         return {"count": 0, "items": []}
 
-    # 4) Latest visible message per convo using SA cutoff
     now_sa_iso = now_in_sa().isoformat()
     convo_ids = [conv_map[p["user_id"]] for p in paged_profiles]
     latest_by_convo = _fetch_latest_visible_messages(convo_ids, now_sa_iso, limit_cap=1000)
