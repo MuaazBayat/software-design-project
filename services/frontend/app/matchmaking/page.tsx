@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { Heart, X, UserSearch, Globe, MapPin, Camera, Book, Mountain, Star, Clock, MessageCircle } from 'lucide-react';
-import { Loader } from '@/components/ui/loader';
+import Loader from '@/components/ui/loader';
 interface UserProfile {
   user_id: string;
   anonymous_handle: string;
