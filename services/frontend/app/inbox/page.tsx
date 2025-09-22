@@ -7,7 +7,7 @@ import MessagingApiClient, { SearchUsersResponse, SearchUsersResponseItem } from
 import ConversationCard from '@/components/ConversationCard';
 import { useRouter } from 'next/navigation';
 import { useConversationUser } from '../../lib/context/ConversationUserContext';
-import { Loader } from '@/components/ui/loader';
+import Loader from '@/components/ui/loader';
 
 
 const LetterInbox = () => {

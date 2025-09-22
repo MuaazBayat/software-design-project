@@ -78,13 +78,15 @@ describe('NoConversationPage - Simple Tests', () => {
   describe('Component Rendering', () => {
     it('renders without crashing', () => {
       render(<NoConversationPage />);
-      expect(screen.getByText('New Pen Pal Connection')).toBeInTheDocument();
+      expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
+      expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
 
     it('displays main heading and welcome message', () => {
       render(<NoConversationPage />);
       
-      expect(screen.getByText('Your Letter Adventure Begins! ✨')).toBeInTheDocument();
+      expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
+      expect(screen.getByText(/Begins!/)).toBeInTheDocument();
       expect(screen.getByText(/You've been matched with a wonderful pen pal/)).toBeInTheDocument();
     });
 
@@ -98,16 +100,18 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('displays the call-to-action section', () => {
       render(<NoConversationPage />);
-      
-      expect(screen.getByText('Ready to make a new friend? 🌍')).toBeInTheDocument();
-      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
+
+      expect(screen.getByText(/Your letter will be delivered in 12 hours/)).toBeInTheDocument();
+      expect(screen.getByText('Start Writting')).toBeInTheDocument();
     });
 
     it('shows the tips section with letter ideas', () => {
       render(<NoConversationPage />);
-      
-      expect(screen.getByText('First Letter Ideas')).toBeInTheDocument();
+
+      // The tips are now in a bullet list without a heading
       expect(screen.getByText(/Tell them about your hometown/)).toBeInTheDocument();
+      expect(screen.getByText(/Share what you had for breakfast/)).toBeInTheDocument();
+      expect(screen.getByText(/Describe the weather where you are/)).toBeInTheDocument();
     });
   });
 
@@ -117,7 +121,7 @@ describe('NoConversationPage - Simple Tests', () => {
       // Default mock has currentConversationUser: null
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Write Your First Letter');
+      const writeButton = screen.getByText('Start Writting');
       fireEvent.click(writeButton);
       
       // Should not navigate if no current user
@@ -137,7 +141,7 @@ describe('NoConversationPage - Simple Tests', () => {
 
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Write Your First Letter');
+      const writeButton = screen.getByText('Start Writting');
       fireEvent.click(writeButton);
       
       expect(mockPush).toHaveBeenCalledWith('/compose-letter/user123');
@@ -165,7 +169,7 @@ describe('NoConversationPage - Simple Tests', () => {
 
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Write Your First Letter');
+      const writeButton = screen.getByText('Start Writting');
       const backButton = screen.getByText('Back to Inbox');
       
       fireEvent.click(writeButton);
@@ -181,9 +185,11 @@ describe('NoConversationPage - Simple Tests', () => {
   describe('UI Structure', () => {
     it('renders the correct number of cards', () => {
       render(<NoConversationPage />);
-      
-      const cards = screen.getAllByTestId('card');
-      expect(cards).toHaveLength(4); // 3 encouragement + 1 tips
+
+      // The component no longer uses Card components - check for content sections instead
+      expect(screen.getByText('Break the Ice')).toBeInTheDocument();
+      expect(screen.getByText('Be Authentic')).toBeInTheDocument();
+      expect(screen.getByText('Start Simple')).toBeInTheDocument();
     });
 
     it('renders the correct number of buttons', () => {
@@ -195,12 +201,10 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('includes all expected icons', () => {
       render(<NoConversationPage />);
-      
-      // Just verify key icons are present
-      expect(screen.getAllByTestId('mail-icon')).toHaveLength(2);
-      expect(screen.getAllByTestId('send-icon')).toHaveLength(2);
+
+      // Only these icons are actually used in the current component
+      expect(screen.getByTestId('send-icon')).toBeInTheDocument();
       expect(screen.getByTestId('arrow-left-icon')).toBeInTheDocument();
-      expect(screen.getByTestId('globe-icon')).toBeInTheDocument();
     });
   });
 
@@ -218,12 +222,14 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('has proper heading structure', () => {
       render(<NoConversationPage />);
-      
-      const h1 = screen.getByRole('heading', { level: 1 });
-      expect(h1).toHaveTextContent('New Pen Pal Connection');
-      
-      const h2 = screen.getByRole('heading', { level: 2 });
-      expect(h2).toHaveTextContent('Your Letter Adventure Begins! ✨');
+
+      // Check that the main heading exists
+      const mainHeading = screen.getByRole('heading', { level: 2 });
+      expect(mainHeading).toHaveTextContent(/Your Letter Adventure.*Begins!/s);
+
+      // Check for sub-headings (h3 elements for the cards)
+      const cardHeadings = screen.getAllByRole('heading', { level: 3 });
+      expect(cardHeadings.length).toBeGreaterThan(0);
     });
   });
 
@@ -240,15 +246,14 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('includes all letter writing tips', () => {
       render(<NoConversationPage />);
-      
+
+      // Only check for tips that are actually in the component
       const tips = [
         'hometown',
         'breakfast',
-        'weather',
-        'culture',
-        'fun fact'
+        'weather'
       ];
-      
+
       tips.forEach(tip => {
         expect(screen.getByText(new RegExp(tip, 'i'))).toBeInTheDocument();
       });
@@ -256,10 +261,9 @@ describe('NoConversationPage - Simple Tests', () => {
 
     it('displays encouraging and motivational language', () => {
       render(<NoConversationPage />);
-      
+
       expect(screen.getByText(/magical journey/)).toBeInTheDocument();
       expect(screen.getByText(/beautiful friendships/)).toBeInTheDocument();
-      expect(screen.getByText(/make a new friend/)).toBeInTheDocument();
     });
   });
 
@@ -268,12 +272,13 @@ describe('NoConversationPage - Simple Tests', () => {
     it('maintains consistent content across re-renders', () => {
       const { rerender } = render(<NoConversationPage />);
       
-      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
+      expect(screen.getByText('Start Writting')).toBeInTheDocument();
       
       rerender(<NoConversationPage />);
       
-      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
-      expect(screen.getByText('Your Letter Adventure Begins! ✨')).toBeInTheDocument();
+      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
+      expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
   });
 
@@ -284,8 +289,9 @@ describe('NoConversationPage - Simple Tests', () => {
       render(<NoConversationPage />);
       
       // Should still render all content
-      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
-      expect(screen.getByText('New Pen Pal Connection')).toBeInTheDocument();
+      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
+      expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
 
     it('renders correctly when current user is set', () => {
@@ -302,8 +308,9 @@ describe('NoConversationPage - Simple Tests', () => {
       render(<NoConversationPage />);
       
       // Should render the same content regardless of current user
-      expect(screen.getByText('Write Your First Letter')).toBeInTheDocument();
-      expect(screen.getByText('New Pen Pal Connection')).toBeInTheDocument();
+      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
+      expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
   });
 });

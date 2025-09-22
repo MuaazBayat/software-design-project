@@ -3,12 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ConversationCard from '../components/ConversationCard';
 
-// Mock lucide-react icons
-jest.mock('lucide-react', () => ({
-  Clock: () => <div data-testid="clock-icon">Clock</div>,
-  Heart: () => <div data-testid="heart-icon">Heart</div>,
-  MapPin: () => <div data-testid="mappin-icon">MapPin</div>,
-}));
+// Mock Next.js Image component
+jest.mock('next/image', () => {
+  return function MockImage({ src, alt, ...props }) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={typeof src === 'string' ? src : '/img.jpg'} alt={alt} {...props} />;
+  };
+});
 
 describe('ConversationCard', () => {
   // Mock functions
@@ -86,7 +87,6 @@ describe('ConversationCard', () => {
 
       expect(screen.getByText('TestUser123')).toBeInTheDocument();
       expect(screen.getByText('US • 25-30')).toBeInTheDocument();
-      expect(screen.getByTestId('mappin-icon')).toBeInTheDocument();
     });
 
     test('renders interests with truncation when more than 2', () => {
@@ -167,7 +167,7 @@ describe('ConversationCard', () => {
       expect(mockFormatTimeAgo).toHaveBeenCalledWith('2023-10-01T12:00:00Z');
     });
 
-    test('displays "No messages yet" when latest_message is null', () => {
+    test('displays "You havent written to each other..." when latest_message is null', () => {
       render(
         <ConversationCard
           conversation={mockConversationNoMessage}
@@ -177,7 +177,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('No messages yet')).toBeInTheDocument();
+      expect(screen.getByText('You havent written to each other...')).toBeInTheDocument();
       expect(mockFormatMessagePreview).not.toHaveBeenCalled();
     });
 
@@ -219,7 +219,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('FROM:')).toBeInTheDocument();
+      expect(screen.getByText('From:')).toBeInTheDocument();
 
       rerender(
         <ConversationCard
@@ -230,7 +230,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('TO:')).toBeInTheDocument();
+      expect(screen.getByText('To:')).toBeInTheDocument();
     });
 
     test('displays correct status for unread message not from user', () => {
@@ -243,7 +243,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('• NEW MAIL •')).toBeInTheDocument();
+      expect(screen.getByText('New Mail')).toBeInTheDocument();
     });
 
     test('displays correct status for message from user', () => {
@@ -256,7 +256,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('✓ SENT')).toBeInTheDocument();
+      expect(screen.getByText('✓ Sent')).toBeInTheDocument();
     });
 
     test('displays correct status for read message not from user', () => {
@@ -269,7 +269,7 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('✓ READ')).toBeInTheDocument();
+      expect(screen.getByText('✓ Read')).toBeInTheDocument();
     });
 
     test('displays correct status when no messages exist', () => {
@@ -282,13 +282,13 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByText('• SEND A MESSAGE •')).toBeInTheDocument();
+      expect(screen.getByText('Send a message')).toBeInTheDocument();
     });
   });
 
   describe('Visual Elements', () => {
     test('shows wax seal for unread messages', () => {
-      const { container } = render(
+      render(
         <ConversationCard
           conversation={mockConversationUnread}
           formatMessagePreview={mockFormatMessagePreview}
@@ -297,50 +297,10 @@ describe('ConversationCard', () => {
         />
       );
 
-      const waxSeal = container.querySelector('.animate-pulse');
-      expect(waxSeal).toBeInTheDocument();
-      expect(waxSeal.textContent).toBe('✉');
+      expect(screen.getByAltText('Wax Seal')).toBeInTheDocument();
     });
 
     test('does not show wax seal for read messages', () => {
-      const { container } = render(
-        <ConversationCard
-          conversation={mockConversationWithMessage}
-          formatMessagePreview={mockFormatMessagePreview}
-          formatTimeAgo={mockFormatTimeAgo}
-          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
-        />
-      );
-
-      const waxSeal = container.querySelector('.animate-pulse');
-      expect(waxSeal).not.toBeInTheDocument();
-    });
-
-    test('displays different stamp emojis based on read status', () => {
-      const { container: unreadContainer } = render(
-        <ConversationCard
-          conversation={mockConversationUnread}
-          formatMessagePreview={mockFormatMessagePreview}
-          formatTimeAgo={mockFormatTimeAgo}
-          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
-        />
-      );
-
-      expect(unreadContainer.textContent).toContain('🌍');
-
-      const { container: readContainer } = render(
-        <ConversationCard
-          conversation={mockConversationWithMessage}
-          formatMessagePreview={mockFormatMessagePreview}
-          formatTimeAgo={mockFormatTimeAgo}
-          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
-        />
-      );
-
-      expect(readContainer.textContent).toContain('📬');
-    });
-
-    test('renders required icons', () => {
       render(
         <ConversationCard
           conversation={mockConversationWithMessage}
@@ -350,9 +310,55 @@ describe('ConversationCard', () => {
         />
       );
 
-      expect(screen.getByTestId('mappin-icon')).toBeInTheDocument();
-      expect(screen.getByTestId('clock-icon')).toBeInTheDocument();
-      expect(screen.getByTestId('heart-icon')).toBeInTheDocument();
+      expect(screen.queryByAltText('Wax Seal')).not.toBeInTheDocument();
+    });
+
+    test('displays wax seal for unread messages only', () => {
+      const { rerender } = render(
+        <ConversationCard
+          conversation={mockConversationUnread}
+          formatMessagePreview={mockFormatMessagePreview}
+          formatTimeAgo={mockFormatTimeAgo}
+          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
+        />
+      );
+
+      expect(screen.getByAltText('Wax Seal')).toBeInTheDocument();
+
+      rerender(
+        <ConversationCard
+          conversation={mockConversationWithMessage}
+          formatMessagePreview={mockFormatMessagePreview}
+          formatTimeAgo={mockFormatTimeAgo}
+          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
+        />
+      );
+
+      expect(screen.queryByAltText('Wax Seal')).not.toBeInTheDocument();
+    });
+
+    test('renders stamp images correctly', () => {
+      const { rerender } = render(
+        <ConversationCard
+          conversation={mockConversationUnread}
+          formatMessagePreview={mockFormatMessagePreview}
+          formatTimeAgo={mockFormatTimeAgo}
+          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
+        />
+      );
+
+      expect(screen.getByAltText('Unread - Wax Seal')).toBeInTheDocument();
+
+      rerender(
+        <ConversationCard
+          conversation={mockConversationWithMessage}
+          formatMessagePreview={mockFormatMessagePreview}
+          formatTimeAgo={mockFormatTimeAgo}
+          getDeliveryStatusBadge={mockGetDeliveryStatusBadge}
+        />
+      );
+
+      expect(screen.getByAltText('Read - Opened Letter')).toBeInTheDocument();
     });
   });
 
