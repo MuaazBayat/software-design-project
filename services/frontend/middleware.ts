@@ -9,7 +9,6 @@ const isProtectedRoute = createRouteMatcher([
   '/settings(.*)',
   '/moderation(.*)',
   // '/matchmaking(.*)',
-  '/api/(.*)',
   
 ])
 

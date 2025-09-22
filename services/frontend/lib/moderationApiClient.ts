@@ -204,11 +204,11 @@ export class ModerationApiClient {
 
   /**
    * Ban a user (moderator function)
-   * @param userId - ID of the user to ban
+   * @param logId - ID of the user to ban
    * @returns Promise with ban confirmation
    */
-  async banUser(userId: string): Promise<BanUserResponse> {
-    return this.makeRequest<BanUserResponse>(`/api/v1/ban-user/${encodeURIComponent(userId)}`, {
+  async banUser(logId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/ban-user/${encodeURIComponent(logId)}`, {
       method: 'POST',
     });
   }

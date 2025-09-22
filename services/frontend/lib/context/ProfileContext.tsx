@@ -53,6 +53,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     // Wait until fingerprint is ready
     if (fpLoading) return;
     const visitorId = fpData?.visitorId || null;
+    console.log("Fingerprint visitorId:", visitorId);
 
     //Check if fingerprint is banned
     if (visitorId) {

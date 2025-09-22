@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from better_profanity import profanity
 from supabase import create_client, Client
+# from clerk_backend_api import Clerk
+# from clerk_backend_api import models as clerk_models
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -16,11 +18,14 @@ load_dotenv(dotenv_path)
 # Retrieve Supabase credentials from environment variables.
 SUPABASE_URL: str | None = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY: str | None = os.environ.get("SUPABASE_KEY")
+CLERK_SECRET_KEY: str | None = os.environ.get("CLERK_SECRET_KEY")
 
 if not SUPABASE_URL:
     raise ValueError("SUPABASE_URL environment variable is not set.")
 if not SUPABASE_KEY:
     raise ValueError("SUPABASE_KEY environment variable is not set.")
+if not CLERK_SECRET_KEY:
+    raise ValueError("CLERK_SECRET_KEY not found in environment variables.")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -291,8 +296,16 @@ def blockUser(body: BlockUser):
         content = response.data[0]["blocked_users"]
     )
 
-@app.post("/api/v1/ban-user/{user_id}")
-def banUser(user_id: str):
+@app.post("/api/v1/ban-user/{log_id}")
+def banUser(log_id: str):
+
+    #Fetch the moderation log entry
+    log_res = supabase.table("moderation_logs").select("*").eq("log_id", log_id).execute()
+    if not log_res.data:
+        raise HTTPException(status_code=404, detail="Moderation log not found")
+    log_entry = log_res.data[0]
+    user_id = log_entry["reported_user_id"]
+
     #Check if user exists
     user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
     if not user_res.data:
@@ -301,22 +314,8 @@ def banUser(user_id: str):
     #Update the user's is_banned status to True
     supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_id).execute()
 
-    #log this action in the moderation_logs table
-    ban_log_entry = {
-        "target_type": "user",
-        "target_id": user_id,
-        "reported_user_id": user_id,
-        "reporting_user_id": None,  # System action
-        "violation_type": "other",
-        "violation_description": "User account banned by system",
-        "severity_level": "high",
-        "automated_detection": False,
-        "status": "resolved",
-        "resolution_action": "permanent_ban",
-        "resolution_notes": "User account banned due to policy violations",
-        "reviewed_at": datetime.utcnow().isoformat()
-    }
-    supabase.table("moderation_logs").insert(ban_log_entry).execute()
+    #update old log to resolved and add notes
+    supabase.table("moderation_logs").update({"status": "resolved", "resolution_action": "permanent_ban", "resolution_notes": "User banned"}).eq("log_id", log_id).execute()
 
     #Add to banned_fingerprints table
     # Add all fingerprints to banned_fingerprints table
@@ -333,6 +332,8 @@ def banUser(user_id: str):
             "user_id": user_id,
             "fingerprint": fingerprints
         }).execute()
+
+    #TODO: ban clerk user
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,

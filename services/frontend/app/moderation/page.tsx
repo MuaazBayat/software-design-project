@@ -72,14 +72,14 @@ const ModerationDashboard = () => {
     }
   };
 
-  const handleBanUser = async (userId: string) => {
+  const handleBanUser = async (logId: string) => {
     if (!confirm('Are you sure you want to ban this user? This action cannot be undone.')) {
       return;
     }
 
-    setActionLoading(userId);
+    setActionLoading(logId);
     try {
-      await moderationApi.banUser(userId);
+      await moderationApi.banUser(logId);
       // Refresh the logs
       await fetchModerationLogs();
       alert('User has been banned successfully.');
@@ -334,19 +334,6 @@ const ModerationDashboard = () => {
                         >
                           View
                         </button>
-                        {log.status !== 'resolved' && (
-                          <button
-                            onClick={() => handleBanUser(log.reported_user_id)}
-                            disabled={actionLoading === log.reported_user_id}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            {actionLoading === log.reported_user_id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              'Ban User'
-                            )}
-                          </button>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -442,15 +429,8 @@ const ModerationDashboard = () => {
                         Issue Warning
                       </button>
                       <button
-                        onClick={() => handleResolveCase(selectedCase.log_id, 'content_removed', 'Content removed')}
+                        onClick={() => handleBanUser(selectedCase.log_id)}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
-                      >
-                        Remove Content
-                      </button>
-                      <button
-                        onClick={() => handleBanUser(selectedCase.reported_user_id)}
-                        disabled={actionLoading === selectedCase.reported_user_id}
                         className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
                       >
                         <Ban className="h-4 w-4" />
