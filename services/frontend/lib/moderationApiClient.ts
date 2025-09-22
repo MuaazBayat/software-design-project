@@ -36,18 +36,29 @@ export interface FingerprintCheckResponse {
 }
 
 export interface ModerationLogEntry {
-  target_type: string;
+  log_id: string;
+  created_at: string;
+  target_type: 'user' | 'message';
   target_id: string;
   reported_user_id: string;
   reporting_user_id: string | null;
   violation_type: string;
   violation_description: string;
-  severity_level: string;
+  severity_level: 'low' | 'medium' | 'high';
   automated_detection: boolean;
-  status: string;
+  status: 'open' | 'in_review' | 'resolved' | 'dismissed';
+  moderator_id?: string;
+  reviewed_at?: string;
   resolution_action?: string;
   resolution_notes?: string;
-  reviewed_at?: string;
+  appeal_status?: string;
+  evidence_message_ids?: string[];
+  evidence_screenshots?: string[];
+  system_context?: any;
+}
+
+export interface ModerationLogResponse {
+    logs: ModerationLogEntry[];
 }
 
 export interface ApiError {
@@ -211,6 +222,22 @@ export class ModerationApiClient {
     return this.makeRequest<FingerprintCheckResponse>(`/api/v1/fingerprint/${encodeURIComponent(fingerprint)}`, {
       method: 'GET',
     });
+  }
+
+  /**
+   * Fetch all moderation logs
+   * @param userId - ID of the user making the request (for X-User-Id header)
+   * @returns Promise with a list of moderation log entries
+   */
+  async getModerationLogs(userId: string): Promise<ModerationLogEntry[]> {
+    const headers: Record<string, string> = {
+      'X-User-Id': userId,
+    };
+    const response = await this.makeRequest<ModerationLogResponse>('/api/v1/logs', {
+      method: 'GET',
+    }, headers);
+
+    return response.logs;
   }
 }
 

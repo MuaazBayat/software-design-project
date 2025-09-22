@@ -345,3 +345,25 @@ def check_fingerprint(fingerprint: str):
             status_code=status.HTTP_200_OK,
             content={"is_banned": False, "message": "Fingerprint is not banned."}
         )
+    
+@app.get("/api/v1/logs")
+def get_moderation_logs(
+    x_user_id: str | None = Header(None, alias="X-User-Id")
+):
+    # Verify that the user is a moderator
+    if not x_user_id:
+        raise HTTPException(status_code=400, detail="Missing X-User-Id header")
+
+    #check idf user exists
+    user_res = supabase.table("user_profiles").select("*").eq("user_id", x_user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    #check if user is a moderator
+    user = user_res.data[0]
+    if user["moderator"] != True:
+        raise HTTPException(status_code=403, detail="Access denied. User is not a moderator.")
+
+    # Fetch all moderation logs
+    logs_res = supabase.table("moderation_logs").select("*").order("created_at", desc=True).execute()
+    return {"logs": logs_res.data}

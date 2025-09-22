@@ -18,6 +18,7 @@ export interface Profile {
   fingerprint?: string;
   created_at?: string;
   updated_at?: string;
+  moderator: boolean;
 }
 
 interface ProfileContextType {
