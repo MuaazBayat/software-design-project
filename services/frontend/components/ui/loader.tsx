@@ -25,7 +25,7 @@ const funnyMessages = [
   "Matching you with someone just far enough to miss, but close enough to find."
 ]
 
-export function Loader() {
+export default function Loader() {
   const [messageIndex, setMessageIndex] = useState(0)
 
   useEffect(() => {
