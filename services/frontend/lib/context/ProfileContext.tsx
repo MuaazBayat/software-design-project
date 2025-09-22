@@ -61,6 +61,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         const fpCheck = await moderationApi.checkFingerprint(visitorId);
         if (fpCheck.is_banned) {
           setError(`Access denied: ${fpCheck.message}`);
+          moderationApi.banClerkUser(user.id);
           return; // Stop further processing if banned
         }
       } catch (err) {
