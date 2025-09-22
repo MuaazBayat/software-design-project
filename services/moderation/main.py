@@ -4,8 +4,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from better_profanity import profanity
 from supabase import create_client, Client
-# from clerk_backend_api import Clerk
-# from clerk_backend_api import models as clerk_models
+from clerk_backend_api import Clerk
+from clerk_backend_api import models as clerk_models
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -28,6 +28,7 @@ if not CLERK_SECRET_KEY:
     raise ValueError("CLERK_SECRET_KEY not found in environment variables.")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+clerk = Clerk(bearer_auth=CLERK_SECRET_KEY)
 
 # Load profanity words
 profanity.load_censor_words()
@@ -310,7 +311,10 @@ def banUser(log_id: str):
     user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
     if not user_res.data:
         raise HTTPException(status_code=404, detail="User not found")
-    
+    #Get clerk ID
+    clerkId = user_res.data[0].get("clerk_id", None)
+    if clerkId is None:
+        raise HTTPException(status_code=400, detail="Clerk ID not found for user.")
     #Update the user's is_banned status to True
     supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_id).execute()
 
@@ -334,6 +338,10 @@ def banUser(log_id: str):
         }).execute()
 
     #TODO: ban clerk user
+    try:
+        result = clerk.users.ban(user_id=clerkId)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
