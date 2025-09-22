@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useProfile } from '../../lib/context/ProfileContext';
 import { moderationApi, ModerationLogEntry } from '@/lib/moderationApiClient';
+import { Toaster, toast } from 'sonner';
 import { 
   Shield, 
   AlertTriangle, 
@@ -73,22 +74,31 @@ const ModerationDashboard = () => {
   };
 
   const handleBanUser = async (logId: string) => {
-    if (!confirm('Are you sure you want to ban this user? This action cannot be undone.')) {
-      return;
-    }
-
-    setActionLoading(logId);
-    try {
-      await moderationApi.banUser(logId);
-      // Refresh the logs
-      await fetchModerationLogs();
-      alert('User has been banned successfully.');
-    } catch (error) {
-      console.error('Failed to ban user:', error);
-      alert('Failed to ban user. Please try again.');
-    } finally {
-      setActionLoading(null);
-    }
+    // Show confirmation toast
+    toast('Are you sure you want to ban this user?', {
+      description: 'This action cannot be undone.',
+      action: {
+        label: 'Ban User',
+        onClick: async () => {
+          setActionLoading(logId);
+          try {
+            await moderationApi.banUser(logId);
+            // Refresh the logs
+            await fetchModerationLogs();
+            toast.success('User has been banned successfully.');
+          } catch (error) {
+            console.error('Failed to ban user:', error);
+            toast.error('Failed to ban user. Please try again.');
+          } finally {
+            setActionLoading(null);
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => toast.dismiss(),
+      },
+    });
   };
 
   const handleResolveCase = async (logId: string, action: string, notes: string) => {
@@ -98,10 +108,10 @@ const ModerationDashboard = () => {
       // Refresh the logs
       await fetchModerationLogs();
       setSelectedCase(null);
-      alert('Case resolved successfully.');
+      toast.success('Case resolved successfully.');
     } catch (error) {
       console.error('Failed to resolve case:', error);
-      alert('Failed to resolve case. Please try again.');
+      toast.error('Failed to resolve case. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -134,6 +144,7 @@ const ModerationDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      <Toaster richColors position="top-center"/>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

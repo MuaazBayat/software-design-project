@@ -342,7 +342,7 @@ def banUser(log_id: str):
             "fingerprint": fingerprints
         }).execute()
 
-    #TODO: ban clerk user
+    #ban clerk user
     try:
         result = clerk.users.ban(user_id=clerkId)
     except Exception as e:
