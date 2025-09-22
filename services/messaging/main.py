@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI, HTTPException, File, UploadFile, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from typing import Optional, Dict, Any, List, Iterable, Tuple
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -342,17 +342,15 @@ def page_messages_sa(body: MessagesPage):
     }
 
 class MarkRead(BaseModel):
-    # accept both "conversation_thread_id" and "conversationThreadId"
-    conversation_thread_id: str = Field(..., alias="conversation_thread_id")
-    my_user_id: str = Field(..., alias="my_user_id")
+    # enforce non-empty strings, whitespace stripped
+    conversation_thread_id: constr(strip_whitespace=True, min_length=1) = Field(..., alias="conversation_thread_id")
+    my_user_id: constr(strip_whitespace=True, min_length=1) = Field(..., alias="my_user_id")
 
-    class Config:  # Pydantic v1
+    class Config:
         allow_population_by_field_name = True
-        anystr_strip_whitespace = True
-        # If your frontend sends camelCase by mistake, also add these aliases:
         fields = {
-            'conversation_thread_id': {'alias': 'conversationThreadId'},
-            'my_user_id': {'alias': 'myUserId'},
+            "conversation_thread_id": {"alias": "conversationThreadId"},
+            "my_user_id": {"alias": "myUserId"},
         }
 
 def _latest_delivered_by_convo(convo_ids: List[str], now_sa_iso: str) -> Dict[str, Dict[str, Any]]:
@@ -585,3 +583,5 @@ def get_image(object_path: str):
     if object_path not in signed_map:
         raise HTTPException(status_code=404, detail="Image not found or failed to sign URL")
     return {"signed_url": signed_map[object_path]}
+
+
