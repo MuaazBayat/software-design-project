@@ -6,7 +6,7 @@ certifi==2025.8.3
 click==8.2.1
 deprecation==2.1.0
 dnspython==2.7.0
-pytest-asyncio=1.2.0
+pytest-asyncio==1.2.0
 email-validator==2.3.0
 fastapi==0.116.1
 fastapi-cli==0.0.8
