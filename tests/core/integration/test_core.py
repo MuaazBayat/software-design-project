@@ -107,6 +107,9 @@ class FakeTable:
 
     def upsert(self, *_args, **_kwargs) -> FakeBuilder:
         return FakeBuilder(self, "upsert")
+    
+    def update(self, *_args, **_kwargs) -> FakeBuilder:
+        return FakeBuilder(self, "update")
 
 
 class FakeSupabase:
