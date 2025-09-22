@@ -7,6 +7,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import os
+
 from fastapi.middleware.cors import CORSMiddleware
 import os, time
 from uuid import uuid4
@@ -20,17 +22,9 @@ from threading import RLock
 # -----------------------------
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # Use SERVICE ROLE on the server
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # Use service role key server-side
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Missing SUPABASE_URL or SUPABASE_KEY")
-
-# IMPORTANT: must be project root, not the storage subdomain.
-# Example OK: https://kvoiazgvavwtkzloaaib.supabase.co
-# Example BAD: https://kvoiazgvavwtkzloaaib.storage.supabase.co
-if ".storage.supabase.co" in SUPABASE_URL:
-    raise RuntimeError(
-        "SUPABASE_URL must be the project root (…supabase.co), not the storage subdomain."
-    )
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -52,15 +46,20 @@ app.add_middleware(
 # -------------
 # Models
 # -------------
-class MessagesPage(BaseModel):
-    # Either provide conversation_thread_id, OR my_user_id+other_user_id
-    conversation_thread_id: Optional[str] = None
-    my_user_id: Optional[str] = None
-    other_user_id: Optional[str] = None
+class LetterStyles(BaseModel):
+    font_size: int = Field(ge=8, le=96)
+    font_family: str = Field(min_length=1, max_length=100)
 
-    page_size: int = Field(10, ge=1, le=100)
+class MessageCreate(BaseModel):
+    sender_id: str
+    recipient_id: str
+    message_content: str = Field(min_length=1, max_length=5000)
+    letter_styles: Optional[LetterStyles] = None
+
+class MessagesPage(BaseModel):
+    conversation_thread_id: str
+    page_size: int = Field(5, ge=1, le=100)
     last_message_id: Optional[str] = None
-    only_visible_now: bool = True  # respect SA time visibility
 
 class SearchUsers(BaseModel):
     anonymous_handle: str
@@ -72,6 +71,7 @@ class SearchUsers(BaseModel):
 # Time helpers (South Africa)
 # ---------------------------
 def now_in_sa() -> datetime:
+    """Current time in Africa/Johannesburg as aware datetime."""
     return datetime.now(ZoneInfo("Africa/Johannesburg"))
 
 # ---------------------------
@@ -81,17 +81,21 @@ def _safe_execute(q):
     try:
         return q.execute()
     except Exception as e:
-        # Surface PostgREST/RPC errors cleanly
-        raise HTTPException(status_code=500, detail=str(e))
+        err = str(e)
+        if "23503" in err:
+            raise HTTPException(status_code=400, detail="Foreign key violation.")
+        if "23514" in err:
+            raise HTTPException(status_code=400, detail="Check constraint failed.")
+        raise
 
 def _normalize_pair(a: str, b: str) -> Tuple[str, str]:
+    """Deterministically order a user pair so (a,b) == (b,a)."""
     return (a, b) if a <= b else (b, a)
 
-def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, Optional[str]]:
+def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, str]:
     """
-    Return {'match_id': ..., 'conversation_thread_id': ...} for ACTIVE match between two users.
-    If active match exists but conversation_thread_id is NULL, we DO NOT create one here
-    (RPC will create when sending; for paging we just return None -> empty set).
+    Return {'match_id': ..., 'conversation_thread_id': ...} for the ACTIVE match between two users,
+    regardless of ordering. Requires conversation_thread_id to be non-null.
     """
     a, b = _normalize_pair(user_x, user_y)
     res = _safe_execute(
@@ -108,8 +112,13 @@ def _get_active_match_and_thread(user_x: str, user_y: str) -> Dict[str, Optional
     return {"match_id": row["match_id"], "conversation_thread_id": row.get("conversation_thread_id")}
 
 def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
+    """
+    Return {other_user_id: conversation_thread_id} for active matches where a conversation exists.
+    Combines both roles (user_1 and user_2).
+    """
     conv_map: Dict[str, str] = {}
 
+    # I'm user_1
     r1 = _safe_execute(
         supabase.table("match_records")
         .select("user_1_id,user_2_id,conversation_thread_id,status")
@@ -120,6 +129,7 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
     for r in (r1.data or []):
         conv_map[r["user_2_id"]] = r["conversation_thread_id"]
 
+    # I'm user_2
     r2 = _safe_execute(
         supabase.table("match_records")
         .select("user_1_id,user_2_id,conversation_thread_id,status")
@@ -132,7 +142,33 @@ def _get_conv_map_for_user(my_user_id: str) -> Dict[str, str]:
 
     return conv_map
 
+
+def _fetch_active_profiles(user_ids: Iterable[str], handle_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    (Legacy) Fetch ACTIVE profiles; optionally filter with ilike on anonymous_handle.
+    Left here for reference; FTS search below supersedes this for /search.
+    """
+    user_ids = list(user_ids)
+    if not user_ids:
+        return []
+
+    q = (
+        supabase.table("user_profiles")
+        .select("*")
+        .in_("user_id", user_ids)
+        .eq("account_status", "active")
+    )
+    if handle_filter is not None:
+        q = q.ilike("anonymous_handle", f"%{handle_filter}%").order("anonymous_handle", desc=False)
+
+    res = _safe_execute(q)
+    return res.data or []
+
 def _search_active_profiles_fts(user_ids: Iterable[str], qtext: Optional[str]) -> List[Dict[str, Any]]:
+    """
+    Active profile search using Postgres full-text search (websearch) on anonymous_handle.
+    If qtext is empty/None -> return all active profiles ordered by handle (inbox behavior).
+    """
     user_ids = list(user_ids)
     if not user_ids:
         return []
@@ -145,21 +181,26 @@ def _search_active_profiles_fts(user_ids: Iterable[str], qtext: Optional[str]) -
         .eq("account_status", "active")
     )
 
+    # Inbox behavior: no query -> all active, ordered
     if not qtext or not qtext.strip():
         res = _safe_execute(base.order("anonymous_handle", desc=False))
         return res.data or []
 
     qtext = qtext.strip()
+
+    # Prefer supabase-py text_search if available
     try:
         res = _safe_execute(
             base.text_search("anonymous_handle", qtext, {"type": "websearch", "config": "simple"})
                .order("anonymous_handle", desc=False)
         )
     except AttributeError:
+        # Fallback: use PostgREST operator directly ("wfts" = websearch_to_tsquery)
         res = _safe_execute(
             base.filter("anonymous_handle", "wfts", qtext)
                .order("anonymous_handle", desc=False)
         )
+
     return res.data or []
 
 def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, limit_cap: int = 1000) -> Dict[str, Dict[str, Any]]:
@@ -167,6 +208,7 @@ def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, li
     convo_ids = list(convo_ids)
     if not convo_ids:
         return {}
+
     msgs_res = _safe_execute(
         supabase.table("messages")
         .select(
@@ -179,6 +221,7 @@ def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, li
         .order("scheduled_delivery_at", desc=True)
         .limit(limit_cap)
     )
+
     latest_by_convo: Dict[str, Dict[str, Any]] = {}
     for m in (msgs_res.data or []):
         cid = m["conversation_thread_id"]
@@ -187,44 +230,29 @@ def _fetch_latest_visible_messages(convo_ids: Iterable[str], now_sa_iso: str, li
             latest_by_convo[cid] = m
     return latest_by_convo
 
-# ---------------------------
-# Signed URL cache
-# ---------------------------
-_SIGNED_URL_CACHE: Dict[str, Tuple[str, float]] = {}
-_CACHE_LOCK = RLock()
-
-def _get_signed_url_cached(object_path: str, ttl_seconds: int = 1800) -> Optional[str]:
-    if not object_path:
+def _format_latest_message(m: Optional[Dict[str, Any]], my_user_id: str) -> Optional[Dict[str, Any]]:
+    if not m:
         return None
-    now = time.time()
-    with _CACHE_LOCK:
-        entry = _SIGNED_URL_CACHE.get(object_path)
-        if entry:
-            url, exp = entry
-            if exp - now > 60:
-                return url
-        signed = supabase.storage.from_("letters").create_signed_url(object_path, ttl_seconds)
-        if signed and signed.get("signedURL"):
-            url = signed["signedURL"]
-            _SIGNED_URL_CACHE[object_path] = (url, now + ttl_seconds)
-            return url
-    return None
+    return {
+        "message_id": m["message_id"],
+        "conversation_thread_id": m["conversation_thread_id"],
+        "message_content": m["message_content"],
+        "sender_id": m["sender_id"],
+        "recipient_id": m["recipient_id"],
+        "scheduled_delivery_at": m["scheduled_delivery_at"],
+        "read_at": m["read_at"],
+        "from_me": m["sender_id"] == my_user_id,
+        "is_read": m["read_at"] is not None,
+        "delivery_status": m.get("delivery_status"),
+    }
 
-# ---------------------------
-# Upload helper (for /messages multipart)
-# ---------------------------
-async def _upload_from_uploadfile(file: UploadFile) -> str:
-    file_bytes = await file.read()
-    object_path = f"uploads/{uuid4()}_{file.filename}"
-    content_type = file.content_type or "application/octet-stream"
-    res = supabase.storage.from_("letters").upload(
-        object_path,
-        file_bytes,
-        {"content-type": content_type, "x-upsert": "true", "cache-control": "public, max-age=31536000, immutable"},
-    )
-    if hasattr(res, "error") and res.error:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {res.error}")
-    return object_path
+def _paginate_list(items: List[Any], limit: int, offset: int) -> Tuple[List[Any], bool, Optional[int]]:
+    start = max(offset, 0)
+    end = start + max(limit, 1)
+    sliced = items[start:end]
+    has_more = end < len(items)
+    next_offset = end if has_more else None
+    return sliced, has_more, next_offset
 
 # ---------------------------
 # Routes
@@ -234,79 +262,51 @@ def health():
     return {"ok": True, "time_sa": now_in_sa().isoformat()}
     return {"ok": True, "time_sa": now_in_sa().isoformat()}
 
-# SEND: JSON or multipart, default 12h delay, image+message in one call.
 @app.post("/messages")
-async def send_message(request: Request):
-    ctype = (request.headers.get("content-type") or "").lower()
-    is_multipart = "multipart/form-data" in ctype
+def send_message(msg: MessageCreate):
+    """
+    Create a message visible in South African time.
+    Requires: sender_id, recipient_id, message_content, optional letter_styles.
+    Uses match_records to resolve both match_id and conversation_thread_id.
+    """
+    # 1) Resolve active match + conversation thread id from match_records
+    ids = _get_active_match_and_thread(msg.sender_id, msg.recipient_id)
+    match_id = ids["match_id"]
+    thread_id = ids["conversation_thread_id"]
 
-    sender_id = recipient_id = message_content = None
-    delay_hours = 12  # default
-    object_path: Optional[str] = None
+    # 2) Schedule in SA time (example: +12 hours)
+    scheduled_dt = now_in_sa() + timedelta(hours=12)
 
-    try:
-        if is_multipart:
-            form = await request.form()
-            sender_id = (form.get("sender_id") or "").strip()
-            recipient_id = (form.get("recipient_id") or "").strip()
-            message_content = (form.get("message_content") or "").strip()
-            if form.get("delay_hours") is not None:
-                delay_hours = int(form.get("delay_hours"))
-            file_field = form.get("file")
-            if isinstance(file_field, UploadFile) and file_field.filename:
-                object_path = await _upload_from_uploadfile(file_field)
-                
-            else:
-                object_path = (form.get("letter_url") or None)
-        else:
-            try:
-                body = await request.json()
-            except Exception:
-                body = {}
-            sender_id = (body.get("sender_id") or "").strip()
-            recipient_id = (body.get("recipient_id") or "").strip()
-            message_content = (body.get("message_content") or "").strip()
-            if body.get("delay_hours") is not None:
-                delay_hours = int(body.get("delay_hours"))
-            object_path = body.get("letter_url") or None
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Bad request body: {e}")
+    # 3) Next sequence within this thread
+    seq = _next_sequence(thread_id)
 
-    if not sender_id or not recipient_id or not message_content:
-        raise HTTPException(status_code=422, detail="sender_id, recipient_id, message_content required")
-
+    # 4) Insert message
     payload = {
-        "p_sender_id": sender_id,
-        "p_recipient_id": recipient_id,
-        "p_message_content": message_content,
-        "p_letter_url": object_path,
-        "p_delay_hours": delay_hours,
+        "match_id": match_id,
+        "sender_id": msg.sender_id,
+        "recipient_id": msg.recipient_id,
+        "conversation_thread_id": thread_id,
+        "message_sequence": seq,
+        "message_content": msg.message_content,
+        "scheduled_delivery_at": scheduled_dt.isoformat(),
     }
+    if msg.letter_styles is not None:
+        payload["letter_styles"] = msg.letter_styles.model_dump()
 
-    res = _safe_execute(supabase.rpc("send_message_oneshot", payload))
-    if not res.data:
+    ins = _safe_execute(supabase.table("messages").insert(payload))
+    if not ins.data:
         raise HTTPException(status_code=500, detail="Failed to insert message")
-    row = res.data
+    return ins.data[0]
 
-    return row
 
-# PAGE: accepts conversation_thread_id OR (my_user_id, other_user_id)
 @app.post("/messages/page")
 def page_messages_sa(body: MessagesPage):
-    # Resolve thread id
-    thread_id = body.conversation_thread_id
-    if not thread_id:
-        if not body.my_user_id or not body.other_user_id:
-            raise HTTPException(
-                status_code=422,
-                detail="Provide either conversation_thread_id OR my_user_id and other_user_id"
-            )
-        info = _get_active_match_and_thread(body.my_user_id, body.other_user_id)
-        thread_id = info.get("conversation_thread_id")
-        if not thread_id:
-            # No thread yet => no messages yet
-            return {"items": [], "count": 0, "next_cursor": None, "has_more": False}
-
+    """
+    Paginate messages for a conversation:
+      - Only include rows where scheduled_delivery_at <= now (SA time)
+      - Return newest -> oldest (created_at DESC)
+      - Use 'next_cursor' (message_id) to fetch older pages
+    """
     now_sa_iso = now_in_sa().isoformat()
 
     q = (
@@ -343,12 +343,8 @@ def page_messages_sa(body: MessagesPage):
     res = _safe_execute(q.order("created_at", desc=True).limit(body.page_size))
     rows = res.data or []
 
-    for r in rows:
-        if r.get("letter_url"):
-            r["letter_url_signed"] = _get_signed_url_cached(r["letter_url"], ttl_seconds=1800)
-
-
     next_cursor = rows[-1]["message_id"] if rows else None
+
     return {
         "items": rows,
         "count": len(rows),
@@ -356,10 +352,20 @@ def page_messages_sa(body: MessagesPage):
         "has_more": len(rows) == body.page_size,
     }
 
-# SEARCH (inbox-style, returns latest visible msg per convo + signed URL)
-@app.post("/search")
-def search(body: SearchUsers):
-    conv_map = _get_conv_map_for_user(body.my_user_id)
+# ---- search implementation (FTS; "" acts like inbox) ----
+def _search_users_impl(
+    anonymous_handle: str,
+    my_user_id: str,
+    limit: int = 20,
+    offset: int = 0,
+):
+    """
+    Search users you have an active conversation with.
+    Full-text search on anonymous_handle (websearch).
+    Pass empty anonymous_handle ('') to fetch all conversations (inbox behavior).
+    """
+    # 1) Map other_user_id → conversation_thread_id
+    conv_map = _get_conv_map_for_user(my_user_id)
     if not conv_map:
         return {"count": 0, "items": []}
 
@@ -368,35 +374,39 @@ def search(body: SearchUsers):
     if not profiles:
         return {"count": 0, "items": []}
 
-    # simple paging in memory
-    start, end = max(body.offset, 0), max(body.offset, 0) + max(body.limit, 1)
-    paged_profiles = profiles[start:end]
+    # 3) Page profiles
+    paged_profiles, _, _ = _paginate_list(profiles, limit=limit, offset=offset)
     if not paged_profiles:
         return {"count": 0, "items": []}
 
+    # 4) Latest visible message per convo using SA cutoff
     now_sa_iso = now_in_sa().isoformat()
     convo_ids = [conv_map[p["user_id"]] for p in paged_profiles]
     latest_by_convo = _fetch_latest_visible_messages(convo_ids, now_sa_iso, limit_cap=1000)
 
+    # 5) Build items
     items = []
     for p in paged_profiles:
         cid = conv_map[p["user_id"]]
-        latest = latest_by_convo.get(cid)
-        if latest and latest.get("letter_url"):
-            latest["letter_url_signed"] = _get_signed_url_cached(latest["letter_url"], ttl_seconds=1800)
-        items.append({"user_profile": p, "latest_message": latest})
-
+        latest = _format_latest_message(latest_by_convo.get(cid), my_user_id)
+        items.append(
+            {
+                "user_profile": p,                 # active-only
+                "latest_message": latest,          # may be None if all are future-scheduled
+            }
+        )
     return {"count": len(items), "items": items}
 
-# Legacy/compat image helpers (optional for external tools)
-@app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...)):
-    object_path = await _upload_from_uploadfile(file)
-    return {"object_path": object_path, "data": {"path": object_path}}
-
-@app.get("/get-image")
-def get_image(object_path: str):
-    signed = _get_signed_url_cached(object_path, ttl_seconds=1800)
-    if not signed:
-        raise HTTPException(status_code=404, detail="Image not found or failed to sign URL")
-    return {"signed_url": signed}
+# ---- POST (JSON body) ----
+@app.post("/search")
+def search(body: SearchUsers):
+    """
+    Search users you have an active conversation with (full-text on handle).
+    Pass empty anonymous_handle ('') to fetch all conversations (inbox).
+    """
+    return _search_users_impl(
+        anonymous_handle=body.anonymous_handle,
+        my_user_id=body.my_user_id,
+        limit=body.limit,
+        offset=body.offset,
+    )
