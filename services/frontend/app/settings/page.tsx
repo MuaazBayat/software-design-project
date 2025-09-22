@@ -273,10 +273,10 @@ export default function Page() {
 
   // UI
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#faf6ed,#f3eadc)]">
+    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-serif tracking-tight text-amber-700">Your Settings</h1>
+          <h1 className="text-2xl text-black mb-2">Your Settings</h1>
           {/* <p className="mt-1 text-sm text-stone-600">Fields match the backend model. Data loads via GET.</p> */}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link href="/">
@@ -291,18 +291,18 @@ export default function Page() {
         </div>
 
         <Tabs defaultValue="profile">
-          <TabsList className="grid w-full grid-cols-2 border bg-amber-50/60 text-stone-700">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-700">
+          <TabsList className="grid w-full grid-cols-2 border bg-white text-black">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-black data-[state=active]:text-white">
               <User2 className="mr-2 h-4 w-4" /> Profile
             </TabsTrigger>
-            <TabsTrigger value="language" className="data-[state=active]:bg-orange-700">
+            <TabsTrigger value="language" className="data-[state=active]:bg-black data-[state=active]:text-white">
               <MessageSquareHeart className="mr-2 h-4 w-4" /> Languages & Time
             </TabsTrigger>
           </TabsList>
 
           {/* PROFILE TAB */}
           <TabsContent value="profile" className="mt-4">
-            <Card className="border-amber-200/70 shadow-sm">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-stone-800 ">Profile</CardTitle>
                 <CardDescription>Handle, country, age, bio, interests.</CardDescription>
@@ -412,7 +412,7 @@ export default function Page() {
 
           {/* LANGUAGES & TIME TAB */}
           <TabsContent value="language" className="mt-4">
-            <Card className="border-amber-200/70 shadow-sm">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-stone-800">Languages & Time</CardTitle>
                 <CardDescription>Primary/secondary languages and your time zone.</CardDescription>

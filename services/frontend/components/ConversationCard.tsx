@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Clock, Heart, MapPin } from 'lucide-react';
 import { SearchUsersResponseItem } from '../lib/MessagingApiClient';
-
+import Image from 'next/image';
+import waxseal from "@/public/wax.png"
+import read from "@/public/read.png"
+import notread from "@/public/not_read.png"
 interface ConversationCardProps {
   conversation: SearchUsersResponseItem;
   formatMessagePreview: (content: string, maxLength?: number) => string;
@@ -29,14 +31,14 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   };
 
   return (
-    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-red-100 rounded-b-lg"
+    <div className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-white shadow-2xl"
         onClick={handleClick}>
       {/* Envelope Flap - Top Triangle */}
-      <div className="absolute inset-x-0 top-0 z-10">
+      <div className="absolute inset-x-0 top-0 z-10 rounded-sm">
         <div className="relative">
           {/* Back flap (shadow) */}
           <div 
-            className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-amber-100 to-amber-50"
+            className="absolute inset-x-0 top-0 h-20 bg-gray-900 rounded-sm"
             style={{
               clipPath: 'polygon(0 0, 50% 100%, 100% 0)',
             }}
@@ -45,10 +47,10 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
           <div 
             className={`relative h-20 transition-all duration-300 ${
               isUnread 
-                ? 'bg-gradient-to-br from-red-50 via-white to-red-50' 
-                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50'
+                ? 'bg-white border-2 border-black' 
+                : 'bg-gradient-to-br from-amber-50 via-white to-gray-50 border-2 border-amber-300'
             } border-t-2 border-l-2 border-r-2 ${
-              isUnread ? 'border-red-200' : 'border-amber-200'
+              isUnread ? 'border-2 border-amber-300' : ' border-2 border-amber-300'
             } group-hover:translate-y-[-8px]`}
             style={{
               clipPath: 'polygon(0 0, 50% 100%, 100% 0)',
@@ -57,10 +59,8 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
           >
             {/* Wax Seal */}
             {isUnread && (
-              <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-white text-lg">✉</span>
-                </div>
+              <div className="absolute top-11 left-1/2 transform -translate-x-1/2">
+                <Image src={waxseal} alt="Wax Seal" width={32} height={32} className="w-8 h-8" />
               </div>
             )}
           </div>
@@ -69,22 +69,34 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
 
       {/* Envelope Body */}
       <div 
-        className={`relative mt-16 h-100 bg-gradient-to-b from-white via-amber-50/30 to-white rounded-b-lg shadow-xl border-2 ${
-          isUnread ? 'border-red-200' : 'border-amber-200'
+        className={`relative mt-16 h-100  ${
+          isUnread ? 'border-red-200' : 'border-black-200'
         } overflow-hidden flex flex-col`}
       >
-        {/* Airmail Stripes */}
-        <div className="absolute inset-x-0 top-0 h-2 bg-repeating-linear-gradient(45deg, transparent, transparent 10px, red 10px, red 20px, blue 20px, blue 30px) opacity-20" />
         
         {/* Stamp Area */}
         <div className="absolute top-4 right-4">
-          <div className="w-16 h-20 bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-300 rounded shadow-sm p-1 transform rotate-3">
-            <div className="w-full h-full bg-white rounded-sm flex items-center justify-center text-2xl">
-              {isUnread ? '🌍' : '📬'}
-            </div>
-            <div className="text-[6px] text-center text-amber-700 mt-0.5">PigeonMAIL</div>
+          <div className="w-15 h-20 transform rotate-3">
+            {isUnread ? (
+              <Image
+                src={notread}
+                alt="Unread - Wax Seal"
+                width={32}
+                height={32}
+                className="w-13 h-16 top-1 right-1"
+              />
+            ) : (
+              <Image
+                src={read}
+                alt="Read - Opened Letter"
+                width={32}
+                height={32}
+                className="w-13 h-16 top-1 right-1"
+              />
+            )}
           </div>
         </div>
+
 
         {/* {/*Postmark}
         <div className="absolute top-4 left-4 opacity-30">
@@ -100,14 +112,13 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
         <div className="relative p-6 pt-12 flex-1 flex flex-col">
           <div className="mb-4">
             <div className="text-xs text-gray-500 mb-2 font-mono">
-                {isFromMe ? "TO:" : "FROM:"}
+                {isFromMe ? "To:" : "From:"}
             </div>
-            <div className="ml-4 space-y-1">
+            <div className="space-y-1">
               <h3 className="font-bold text-gray-800 text-lg font-serif">
                 {user_profile.anonymous_handle}
               </h3>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-3 h-3" />
                 <span className="font-mono text-xs">
                   {user_profile.country_code || 'Unknown'} • {user_profile.age_range}
                 </span>
@@ -117,13 +128,13 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                   {user_profile.interests.slice(0, 2).map((interest, index) => (
                     <span
                       key={index}
-                      className="px-2 py-0.5 bg-amber-100/50 text-amber-700 text-[10px] rounded-full font-mono"
+                      className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono"
                     >
                       {interest}
                     </span>
                   ))}
                   {user_profile.interests.length > 2 && (
-                    <span className="px-2 py-0.5 bg-amber-100/50 text-amber-700 text-[10px] rounded-full font-mono">
+                    <span className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono">
                       +{user_profile.interests.length - 2}
                     </span>
                   )}
@@ -132,14 +143,12 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
             </div>
           </div>
 
-          {/* Divider Line */}
-          <div className="border-t-2 border-dashed border-gray-300 my-4 opacity-30" />
 
           {/* Letter Content Preview */}
           <div className="relative flex-1 overflow-hidden">
-            <div className="text-xs text-gray-500 mb-2 font-mono">MESSAGE:</div>
+            <div className="text-xs text-gray-500 mb-2 font-mono">Message:</div>
             {latest_message ? (
-              <div className="ml-4 bg-white/50 rounded p-3 border border-gray-200">
+              <div className=" bg-white/50 rounded p-3 border border-gray-200">
                 <p className="text-gray-700 text-sm italic font-serif leading-relaxed line-clamp-3">
                   <span className="text-gray-500 not-italic text-xs">
                     {latest_message.from_me ? '(You wrote) ' : ''}
@@ -148,14 +157,13 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                 </p>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Clock className="w-3 h-3" />
                     <span className="font-mono">{formatTimeAgo(latest_message.scheduled_delivery_at)}</span>
                   </div>
                   {getDeliveryStatusBadge(latest_message.delivery_status, latest_message.from_me)}
                 </div>
               </div>
             ) : (
-              <div className="ml-4 text-gray-400 italic text-sm">No messages yet</div>
+              <div className=" text-gray-400 italic text-sm">You havent written to each other...</div>
             )}
           </div>
 
@@ -168,28 +176,25 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                   : latest_message && isUnread && !isFromMe
                   ? 'bg-red-100 text-red-600 font-bold'
                   : isFromMe
-                  ? 'bg-blue-100 text-blue-600'
-                  : 'bg-green-100 text-green-600'
+                  ? 'bg-gray-100 text-blue-600'
+                  : 'bg-gray-100 text-green-600'
               }`}
             >
               {!latest_message 
-                ? '• SEND A MESSAGE •' 
+                ? 'Send a message' 
                 : latest_message && isUnread && !isFromMe 
-                ? '• NEW MAIL •' 
+                ? 'New Mail' 
                 : isFromMe 
-                ? '✓ SENT'
-                : '✓ READ'}
+                ? '✓ Sent'
+                : '✓ Read'}
             </span>
-            <Heart className="w-4 h-4 text-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
         {/* Envelope Bottom Fold Line */}
-        <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
       </div>
 
       {/* Shadow for depth */}
-      <div className="absolute inset-x-0 top-16 h-80 rounded-b-lg shadow-2xl -z-10 transform translate-y-1 opacity-20" />
     </div>
   );
 };
