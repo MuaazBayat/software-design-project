@@ -32,6 +32,10 @@ class FakeTable:
         self._client.last_insert_payload = payload
         return self
 
+    def update(self, payload):
+        self._client.last_update_payload = payload
+        return self
+
     # Terminal call
     def execute(self):
         # Pop the next queued "data" payload (list or None), wrap like Supabase's response
@@ -106,7 +110,7 @@ def test_create_profile_happy_path():
 
 def test_create_profile_duplicate_200():
     # 1) SELECT returns a row -> endpoint should 200 and return that row
-    fake = FakeSupabaseClient(results=[[{"clerk_id": "user_123"}]])
+    fake = FakeSupabaseClient(results=[[{"clerk_id": "user_123", "fingerprint": []}]])
     override_db(fake)
     client = make_client()
 
@@ -116,7 +120,7 @@ def test_create_profile_duplicate_200():
     )
 
     assert resp.status_code == 200, f"Got {resp.status_code} with body: {resp.text}"
-    assert resp.json() == {"clerk_id": "user_123"}  # matches your FakeSupabase row
+    assert resp.json() == {"clerk_id": "user_123", "fingerprint": ["fp_123"]}
 
 def test_create_profile_insert_failure_500():
 # 1) SELECT returns empty list (ok to create)

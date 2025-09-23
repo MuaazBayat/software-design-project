@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from better_profanity import profanity
 from supabase import create_client, Client
+from clerk_backend_api import Clerk
+from clerk_backend_api import models as clerk_models
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -16,13 +18,17 @@ load_dotenv(dotenv_path)
 # Retrieve Supabase credentials from environment variables.
 SUPABASE_URL: str | None = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY: str | None = os.environ.get("SUPABASE_KEY")
+CLERK_SECRET_KEY: str | None = os.environ.get("CLERK_SECRET_KEY")
 
 if not SUPABASE_URL:
     raise ValueError("SUPABASE_URL environment variable is not set.")
 if not SUPABASE_KEY:
     raise ValueError("SUPABASE_KEY environment variable is not set.")
+if not CLERK_SECRET_KEY:
+    raise ValueError("CLERK_SECRET_KEY not found in environment variables.")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+clerk = Clerk(bearer_auth=CLERK_SECRET_KEY)
 
 # Load profanity words
 profanity.load_censor_words()
@@ -50,7 +56,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=base_origins,
     allow_credentials=True,  # Allows cookies/auth headers
-    allow_methods=["POST", "OPTIONS"],  # POST for your endpoint + OPTIONS for preflight
+    allow_methods=["POST", "OPTIONS", "GET", "PUT"],  # POST for your endpoint + OPTIONS for preflight
     allow_headers=[
         "X-User-Id", 
         "X-Api-Key", 
@@ -290,3 +296,141 @@ def blockUser(body: BlockUser):
         status_code = status.HTTP_201_CREATED,
         content = response.data[0]["blocked_users"]
     )
+
+@app.post("/api/v1/ban-user/{log_id}")
+def banUser(log_id: str):
+
+    #Fetch the moderation log entry
+    log_res = supabase.table("moderation_logs").select("*").eq("log_id", log_id).execute()
+    if not log_res.data:
+        raise HTTPException(status_code=404, detail="Moderation log not found")
+    log_entry = log_res.data[0]
+    user_id = log_entry["reported_user_id"]
+
+    #Check if user exists
+    user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    #Get clerk ID
+    clerkId = user_res.data[0].get("clerk_id", None)
+    if clerkId is None:
+        raise HTTPException(status_code=400, detail="Clerk ID not found for user.")
+    #Update the user's is_banned status to True
+    supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_id).execute()
+
+    #update old log to resolved and add notes
+    supabase.table("moderation_logs").update({
+        "status": "resolved", 
+        "resolution_action": "permanent_ban", 
+        "resolution_notes": "User banned",
+        "reviewed_at": datetime.utcnow().isoformat()
+        }).eq("log_id", log_id).execute()
+
+    #Add to banned_fingerprints table
+    # Add all fingerprints to banned_fingerprints table
+    fingerprints = user_res.data[0].get("fingerprint", [])
+    if isinstance(fingerprints, list):
+        for fp in fingerprints:
+            supabase.table("banned_fingerprints").insert({
+                "user_id": user_id,
+                "fingerprint": fp
+            }).execute()
+    elif isinstance(fingerprints, str):
+        # In case it's a single string, not a list
+        supabase.table("banned_fingerprints").insert({
+            "user_id": user_id,
+            "fingerprint": fingerprints
+        }).execute()
+
+    #ban clerk user
+    try:
+        result = clerk.users.ban(user_id=clerkId)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"User {user_id} has been banned."}
+    )
+
+@app.post("/api/v1/ban-clerk-user/{clerk_id}")
+def banClerkUser(clerk_id: str):
+    try:
+        result = clerk.users.ban(user_id=clerk_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Clerk user {clerk_id} has been banned."}
+    )
+
+class ResolveCase(BaseModel):
+    log_id: str
+    action: str
+    notes: str
+
+@app.post("/api/v1/resolve-case")
+def resolve_case(body: ResolveCase):
+
+    # Validate action
+    valid_actions = ["warning", "no_action", "content_removal", "temporary_ban", "permanent_ban"]
+    if body.action not in valid_actions:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    # Fetch the moderation log entry
+    log_res = supabase.table("moderation_logs").select("*").eq("log_id", body.log_id).execute()
+    if not log_res.data:
+        raise HTTPException(status_code=404, detail="Moderation log not found")
+
+    status_value = "resolved" if body.action in ["warning", "content_removal", "temporary_ban", "permanent_ban"] else "dismissed"
+    # Update the log entry
+    update_data = {
+        "status": "resolved" ,
+        "resolution_action": body.action,
+        "resolution_notes": body.notes,
+        "reviewed_at": datetime.utcnow().isoformat()
+    }
+    supabase.table("moderation_logs").update(update_data).eq("log_id", body.log_id).execute()
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Moderation log {body.log_id} has been updated."}
+    )
+
+@app.get("/api/v1/fingerprint/{fingerprint}")
+def check_fingerprint(fingerprint: str):
+    #Check if the fingerprint exists in the banned_fingerprints table
+    res = supabase.table("banned_fingerprints").select("*").eq("fingerprint", fingerprint).execute()
+    if res.data:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"is_banned": True, "message": "Fingerprint is banned."}
+        )
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"is_banned": False, "message": "Fingerprint is not banned."}
+        )
+    
+@app.get("/api/v1/logs")
+def get_moderation_logs(
+    x_user_id: str | None = Header(None, alias="X-User-Id")
+):
+    # Verify that the user is a moderator
+    if not x_user_id:
+        raise HTTPException(status_code=400, detail="Missing X-User-Id header")
+
+    #check idf user exists
+    user_res = supabase.table("user_profiles").select("*").eq("user_id", x_user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    #check if user is a moderator
+    user = user_res.data[0]
+    if user["moderator"] != True:
+        raise HTTPException(status_code=403, detail="Access denied. User is not a moderator.")
+
+    # Fetch all moderation logs
+    logs_res = supabase.table("moderation_logs").select("*").order("created_at", desc=True).execute()
+    return {"logs": logs_res.data}

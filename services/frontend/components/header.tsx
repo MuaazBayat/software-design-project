@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Settings, Menu } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { useProfile } from '@/lib/context/ProfileContext';
 
 const DynamicMobileNav = dynamic(() => import('@/components/MobileNav').then(mod => mod.MobileNav), {
   ssr: false,
@@ -17,6 +18,7 @@ export default function Header() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const pathname = usePathname();  // Track the current path
+  const { profile } = useProfile();
 
   // This effect ensures that once the component mounts, it's fully loaded
   useEffect(() => {
@@ -39,6 +41,9 @@ export default function Header() {
             <li><Link href="/inbox" className="hover:text-orange-300 transition-colors">My Inbox</Link></li>
             <li><Link href="/compose-letter" className="hover:text-orange-300 transition-colors">Write a Letter</Link></li>
             <li><Link href="/cultural-explorer" className="hover:text-orange-300 transition-colors">Explore</Link></li>
+            {profile?.moderator && (
+              <li><Link href="/moderation" className="hover:text-orange-300 transition-colors">Moderation</Link></li>
+            )}
           </ul>
         </nav>
       </SignedIn>
