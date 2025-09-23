@@ -69,7 +69,7 @@ export class ModerationApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_MODERATION_API_URL || 'http://localhost:8001') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_MODERATION_URL || '') {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.defaultHeaders = {
       'Content-Type': 'application/json',
