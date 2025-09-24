@@ -298,7 +298,7 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
     notes: string
   ): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(
-      `/api/v1/resolve-case/`,
+      `/api/v1/resolve-case`,
       {
         method: "POST",
         body: JSON.stringify({ log_id, action, notes }),
