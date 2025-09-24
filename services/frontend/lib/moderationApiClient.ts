@@ -225,6 +225,28 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
 }
 
   /**
+   * Unban a user (moderator function)
+   * @param userId - user ID to unban
+   * @returns Promise with unban confirmation
+   */
+  async unbanUser(userId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/unban-user/${encodeURIComponent(userId)}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Unban a Clerk user (moderator function)
+   * @param clerkId - Clerk user ID to unban
+   * @returns Promise with unban confirmation
+   */
+  async unbanClerkUser(clerkId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/unban-clerk-user/${encodeURIComponent(clerkId)}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
    * Check if a fingerprint is banned
    * @param fingerprint - Device fingerprint to check
    * @returns Promise with ban status
@@ -271,6 +293,8 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
       }
     );
   }
+
+
 }
 
 // Create a default instance
