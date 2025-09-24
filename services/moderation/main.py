@@ -485,3 +485,10 @@ def get_moderation_logs(
     # Fetch all moderation logs
     logs_res = supabase.table("moderation_logs").select("*").order("created_at", desc=True).execute()
     return {"logs": logs_res.data}
+
+#fetch all banned users
+@app.get("/api/v1/banned-users")
+def get_banned_users():
+    # Fetch all banned users
+    banned_res = supabase.table("user_profiles").select("*").eq("account_status", "banned").execute()
+    return {"banned_users": banned_res.data}

@@ -274,6 +274,18 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
   }
 
   /**
+   * Fetch all banned users
+   * @returns Promise with an array of banned user objects
+   */
+  async getBannedUsers(): Promise<any[]> {
+    const response = await this.makeRequest<{ banned_users: any[] }>(`/api/v1/banned-users`, {
+      method: 'GET',
+    });
+
+    return response.banned_users;
+  }
+
+  /**
    * Resolve a moderation case
    * @param logId - ID of the moderation log entry
    * @param action - Resolution action ("warning", "no_action", "content_removal", "temporary_ban", "permanent_ban")
