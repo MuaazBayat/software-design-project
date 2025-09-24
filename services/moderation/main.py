@@ -355,6 +355,12 @@ def banUser(log_id: str):
 
 @app.post("/api/v1/ban-clerk-user/{clerk_id}")
 def banClerkUser(clerk_id: str):
+    #Check if user exists
+    user_res = supabase.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+    if user_res.data:
+        #Update the user's is_banned status to True
+        supabase.table("user_profiles").update({"account_status": "banned"}).eq("user_id", user_res.data[0]["user_id"]).execute()
+
     try:
         result = clerk.users.ban(user_id=clerk_id)
     except Exception as e:
@@ -363,6 +369,51 @@ def banClerkUser(clerk_id: str):
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"Clerk user {clerk_id} has been banned."}
+    )
+
+@app.post("/api/v1/unban-user/{user_id}")
+def unbanUser(user_id: str):
+    #Check if user exists
+    user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    #Get clerk ID
+    clerkId = user_res.data[0].get("clerk_id", None)
+    if clerkId is None:
+        raise HTTPException(status_code=400, detail="Clerk ID not found for user.")
+    #Update the user's is_banned status to False
+    supabase.table("user_profiles").update({"account_status": "active"}).eq("user_id", user_id).execute()
+
+    #delete from banned_fingerprints table
+    supabase.table("banned_fingerprints").delete().eq("user_id", user_id).execute()
+
+    #unban clerk user
+    try:
+        result = clerk.users.unban(user_id=clerkId)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"User {user_id} has been unbanned."}
+    )
+
+@app.post("/api/v1/unban-clerk-user/{clerk_id}")
+def unbanClerkUser(clerk_id: str):
+    #Check if user exists
+    user_res = supabase.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+    if user_res.data:
+        #Update the user's is_banned status to False
+        supabase.table("user_profiles").update({"account_status": "active"}).eq("user_id", user_res.data[0]["user_id"]).execute()
+
+    try:
+        result = clerk.users.unban(user_id=clerk_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Clerk user {clerk_id} has been unbanned."}
     )
 
 class ResolveCase(BaseModel):
@@ -434,3 +485,10 @@ def get_moderation_logs(
     # Fetch all moderation logs
     logs_res = supabase.table("moderation_logs").select("*").order("created_at", desc=True).execute()
     return {"logs": logs_res.data}
+
+#fetch all banned users
+@app.get("/api/v1/banned-users")
+def get_banned_users():
+    # Fetch all banned users
+    banned_res = supabase.table("user_profiles").select("*").eq("account_status", "banned").execute()
+    return {"banned_users": banned_res.data}
