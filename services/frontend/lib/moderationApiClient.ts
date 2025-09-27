@@ -225,6 +225,28 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
 }
 
   /**
+   * Unban a user (moderator function)
+   * @param userId - user ID to unban
+   * @returns Promise with unban confirmation
+   */
+  async unbanUser(userId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/unban-user/${encodeURIComponent(userId)}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Unban a Clerk user (moderator function)
+   * @param clerkId - Clerk user ID to unban
+   * @returns Promise with unban confirmation
+   */
+  async unbanClerkUser(clerkId: string): Promise<BanUserResponse> {
+    return this.makeRequest<BanUserResponse>(`/api/v1/unban-clerk-user/${encodeURIComponent(clerkId)}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
    * Check if a fingerprint is banned
    * @param fingerprint - Device fingerprint to check
    * @returns Promise with ban status
@@ -252,6 +274,18 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
   }
 
   /**
+   * Fetch all banned users
+   * @returns Promise with an array of banned user objects
+   */
+  async getBannedUsers(): Promise<any[]> {
+    const response = await this.makeRequest<{ banned_users: any[] }>(`/api/v1/banned-users`, {
+      method: 'GET',
+    });
+
+    return response.banned_users;
+  }
+
+  /**
    * Resolve a moderation case
    * @param logId - ID of the moderation log entry
    * @param action - Resolution action ("warning", "no_action", "content_removal", "temporary_ban", "permanent_ban")
@@ -264,13 +298,15 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
     notes: string
   ): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(
-      `/api/v1/resolve-case/`,
+      `/api/v1/resolve-case`,
       {
         method: "POST",
         body: JSON.stringify({ log_id, action, notes }),
       }
     );
   }
+
+
 }
 
 // Create a default instance
