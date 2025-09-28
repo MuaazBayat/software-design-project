@@ -152,6 +152,7 @@ const TemplateItem = React.memo(({
               overflow: 'hidden'
             }} 
             className="rounded border border-gray-300 shadow-sm"
+            aria-hidden="true"
           >
             {/* Template preview visualization */}
             <div className="absolute inset-0 flex flex-col p-2">
@@ -760,6 +761,8 @@ export default function TemplateSidePanel({
   const baseClasses = anchorWithinSidebar
     ? 'absolute inset-0 w-full h-full bg-white backdrop-blur-sm border-r border-amber-200 shadow-lg flex flex-col z-50'
     : 'w-full h-full bg-white border-0 shadow-none flex flex-col min-h-0';
+
+  if (!open) return null;
 
   return (
     <motion.div 
