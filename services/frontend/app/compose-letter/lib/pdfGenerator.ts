@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { captureLetterCloneAsPng, adjustFontSizeForExport } from './jpegGenerator';
 
 export interface LetterPDFData {
@@ -15,17 +14,6 @@ export interface LetterPDFData {
 }
 
 export class PDFGenerator {
-  private static async captureElement(element: HTMLElement): Promise<HTMLCanvasElement> {
-    return html2canvas(element, {
-      scale: 2, // Higher resolution
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-    });
-  }
-
   static async generateLetterPDF(
     element: HTMLElement,
     data: LetterPDFData,

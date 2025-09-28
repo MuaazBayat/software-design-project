@@ -100,6 +100,13 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
     }
   }, [open, resetAutoCloseTimer])
 
+  // Clear preview when panel closes
+  useEffect(() => {
+    if (!open) {
+      onPreview(null)
+    }
+  }, [open, onPreview])
+
   useEffect(() => {
     if (isHovering) return // Don't start timer while hovering
 
@@ -135,6 +142,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
           e.preventDefault()
           if (selectedIndex >= 0 && selectedIndex < filtered.length) {
             onSelect(filtered[selectedIndex].id)
+            onClose()
           }
           break
         case 'Escape':
@@ -155,7 +163,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
     : 'w-full h-full bg-white border-0 shadow-none flex flex-col min-h-0'
 
   return (
-    <motion.div 
+    <motion.aside 
       ref={containerRef} 
       initial={{ x: -300 }} 
       animate={{ x: 0 }}
@@ -274,7 +282,10 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
                   transition: { duration: 0.1 }
                 }}
                 onMouseEnter={() => onPreview(fp.id)}
-                onClick={() => onSelect(fp.id)}
+                onClick={() => {
+                  onSelect(fp.id)
+                  onClose()
+                }}
                 className={`pl-4 pr-1 py-4 cursor-pointer text-sm flex items-center justify-between gap-3 rounded-md border transition-all duration-200 ease-out hover:shadow-lg ${selected ? 'ring-2 ring-gray-300 ring-opacity-50' : ''} ${active ? 'ring-2 ring-black border-black border-2 shadow-lg' : 'shadow-md'}`}
                 style={{ 
                   background: `linear-gradient(135deg, ${lightBgColor} 0%, ${lightBgColor}90 25%, ${lightBgColor}60 50%, ${lightBgColor}30 75%, ${lightBgColor}10 100%), radial-gradient(circle at 20% 80%, ${lightBgColor}40 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${lightBgColor}20 0%, transparent 50%)`,
@@ -310,7 +321,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
         <span>Enter = select</span>
         <span>Esc = close</span>
       </div>
-    </motion.div>
+    </motion.aside>
   )
 }
 

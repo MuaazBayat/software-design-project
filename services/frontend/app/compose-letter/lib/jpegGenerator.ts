@@ -76,11 +76,14 @@ export const adjustFontSizeForExport = (
   const targetHeight = (targetWidth ?? element.offsetWidth) * US_LETTER_ASPECT_RATIO;
   const currentHeight = element.scrollHeight;
 
+  const baseScalingFactor = targetHeight / currentHeight;
+
+  if (debugMode) console.debug('[adjustFontSizeForExport] baseScalingFactor', baseScalingFactor, 'currentHeight', currentHeight, 'targetHeight', targetHeight);
+
   let finalScalingFactor = 1;
 
-  if (currentHeight < targetHeight && currentHeight > 0) {
-    const baseScalingFactor = targetHeight / currentHeight;
-
+  if (baseScalingFactor < 1) {
+    // Shrink: content is larger than target, reduce font sizes
     const computedSizes: number[] = [];
     for (const styles of originalFontSizes.values()) {
       const n = parseFloat(styles.computed || '0');
@@ -98,73 +101,79 @@ export const adjustFontSizeForExport = (
     const maxComputed = computedSizes.length ? Math.max(...computedSizes) : 16;
     const minAllowedFactor = Math.max(0.35, 10 / Math.max(1, maxComputed));
 
-    let finalScalingFactor = baseScalingFactor * boost;
+    finalScalingFactor = baseScalingFactor * boost;
     finalScalingFactor = Math.min(finalScalingFactor, 10);
 
     if (debugMode) console.debug('[adjustFontSizeForExport] baseScalingFactor, boost, avgComputed', baseScalingFactor, boost, avgComputed);
 
-    if (baseScalingFactor < 1) {
-      let candidate = Math.min(baseScalingFactor, finalScalingFactor);
+    let candidate = Math.min(baseScalingFactor, finalScalingFactor);
 
-      const applyFactor = (factor: number) => {
-        for (const [el, styles] of originalFontSizes.entries()) {
-          const computedSize = parseFloat(styles.computed || '0');
-          if (!isNaN(computedSize) && computedSize > 0) {
-            const newFont = computedSize * factor;
-            el.style.fontSize = `${newFont}px`;
-
-            let compLH = parseFloat(styles.computedLineHeight || '0');
-            if (isNaN(compLH) || compLH === 0) compLH = computedSize * 1.25;
-            const minLH = Math.max(newFont * 1.18, compLH * 0.9);
-            const newLH = Math.max(compLH * factor, minLH);
-            try { el.style.lineHeight = `${newLH}px`; } catch {}
-
-            const compLS = parseFloat(styles.computedLetterSpacing || '0');
-            if (!isNaN(compLS)) {
-              const newLS = compLS * factor;
-              try { el.style.letterSpacing = `${Math.max(newLS, 0)}px`; } catch {}
-            }
-          }
-        }
-      };
-
-      let attempts = 0;
-      applyFactor(candidate);
-      while (element.scrollHeight > targetHeight && attempts < 12 && candidate > minAllowedFactor) {
-        attempts += 1;
-        candidate = Math.max(minAllowedFactor, candidate * 0.92);
-        applyFactor(candidate);
-      }
-      finalScalingFactor = candidate;
-      if (debugMode) console.debug('[adjustFontSizeForExport] shrink attempts', attempts, 'finalScalingFactor', finalScalingFactor, 'element.scrollHeight', element.scrollHeight, 'targetHeight', targetHeight);
-    } else {
+    const applyFactor = (factor: number) => {
       for (const [el, styles] of originalFontSizes.entries()) {
         const computedSize = parseFloat(styles.computed || '0');
         if (!isNaN(computedSize) && computedSize > 0) {
-          const newFont = computedSize * finalScalingFactor;
+          const newFont = computedSize * factor;
           el.style.fontSize = `${newFont}px`;
 
           let compLH = parseFloat(styles.computedLineHeight || '0');
           if (isNaN(compLH) || compLH === 0) compLH = computedSize * 1.25;
-          const newLH = Math.max(compLH * finalScalingFactor, newFont * 1.12);
+          const minLH = Math.max(newFont * 1.18, compLH * 0.9);
+          const newLH = Math.max(compLH * factor, minLH);
           try { el.style.lineHeight = `${newLH}px`; } catch {}
 
           const compLS = parseFloat(styles.computedLetterSpacing || '0');
-          if (!isNaN(compLS) && Math.abs(compLS) > 0.01) {
-            try { el.style.letterSpacing = `${compLS * finalScalingFactor}px`; } catch {}
+          if (!isNaN(compLS)) {
+            const newLS = compLS * factor;
+            try { el.style.letterSpacing = `${Math.max(newLS, 0)}px`; } catch {}
           }
         }
       }
+    };
+
+    let attempts = 0;
+    applyFactor(candidate);
+    while (element.scrollHeight > targetHeight && attempts < 12 && candidate > minAllowedFactor) {
+      attempts += 1;
+      candidate = Math.max(minAllowedFactor, candidate * 0.92);
+      applyFactor(candidate);
     }
-    if (debugMode) {
-      const report: Array<{ tag: string; old: string; new: string }> = [];
-      let i = 0;
-      for (const [el, styles] of originalFontSizes.entries()) {
-        if (i++ > 6) break;
-        report.push({ tag: el.tagName.toLowerCase(), old: styles.computed || '', new: el.style.fontSize || '' });
+    finalScalingFactor = candidate;
+    if (debugMode) console.debug('[adjustFontSizeForExport] shrink attempts', attempts, 'finalScalingFactor', finalScalingFactor, 'element.scrollHeight', element.scrollHeight, 'targetHeight', targetHeight);
+  } else if (baseScalingFactor > 1) {
+    // Grow: content is smaller than target, increase font sizes
+    finalScalingFactor = baseScalingFactor;
+    for (const [el, styles] of originalFontSizes.entries()) {
+      const computedSize = parseFloat(styles.computed || '0');
+      if (!isNaN(computedSize) && computedSize > 0) {
+        const newFont = computedSize * finalScalingFactor;
+        el.style.fontSize = `${newFont}px`;
+
+        let compLH = parseFloat(styles.computedLineHeight || '0');
+        if (isNaN(compLH) || compLH === 0) compLH = computedSize * 1.25;
+        const newLH = Math.max(compLH * finalScalingFactor, newFont * 1.12);
+        try { el.style.lineHeight = `${newLH}px`; } catch {}
+
+        const compLS = parseFloat(styles.computedLetterSpacing || '0');
+        if (!isNaN(compLS) && Math.abs(compLS) > 0.01) {
+          try { el.style.letterSpacing = `${compLS * finalScalingFactor}px`; } catch {}
+        }
       }
-      console.debug('[adjustFontSizeForExport] sample scaled elements', report);
     }
+    if (debugMode) console.debug('[adjustFontSizeForExport] grow finalScalingFactor', finalScalingFactor, 'element.scrollHeight', element.scrollHeight, 'targetHeight', targetHeight);
+  } else {
+    // No scaling needed
+    finalScalingFactor = 1;
+    if (debugMode) console.debug('[adjustFontSizeForExport] no scaling needed');
+  }
+
+  if (debugMode) {
+    const report: Array<{ tag: string; old: string; new: string }> = [];
+    let i = 0;
+    for (const [el, styles] of originalFontSizes.entries()) {
+      if (i++ > 6) break;
+      report.push({ tag: el.tagName.toLowerCase(), old: styles.computed || '', new: el.style.fontSize || '' });
+    }
+    console.debug('[adjustFontSizeForExport] sample scaled elements', report);
   }
 
   return {
