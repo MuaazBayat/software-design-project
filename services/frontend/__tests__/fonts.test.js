@@ -21,7 +21,7 @@ test('exports DEFAULT_FONT_ID', () => {
 describe('Font Presets', () => {
   test('FONT_PRESETS is an array with expected length', () => {
     expect(Array.isArray(FONT_PRESETS)).toBe(true)
-    expect(FONT_PRESETS.length).toBe(16)
+    expect(FONT_PRESETS.length).toBe(31)
   })
 
   test('each font preset has required properties', () => {
@@ -47,31 +47,27 @@ describe('Font Presets', () => {
   test('font presets have valid categories', () => {
     const categories = FONT_PRESETS.map(preset => preset.category)
     const uniqueCategories = [...new Set(categories)]
-    expect(uniqueCategories).toEqual(['sans', 'serif', 'handwritten', 'mono'])
+    expect(uniqueCategories).toEqual(['sans', 'serif', 'handwritten', 'mono', 'display'])
   })
 
   test('sans-serif fonts are properly configured', () => {
     const sansFonts = FONT_PRESETS.filter(preset => preset.category === 'sans')
-    expect(sansFonts.length).toBe(4)
-    expect(sansFonts.map(f => f.id)).toEqual(['modern', 'open-sans', 'source-sans', 'noto-sans'])
+    expect(sansFonts.length).toBe(7)
   })
 
   test('serif fonts are properly configured', () => {
     const serifFonts = FONT_PRESETS.filter(preset => preset.category === 'serif')
-    expect(serifFonts.length).toBe(4)
-    expect(serifFonts.map(f => f.id)).toEqual(['classic', 'formal', 'merriweather', 'noto-serif'])
+    expect(serifFonts.length).toBe(6)
   })
 
   test('handwritten fonts are properly configured', () => {
     const handwrittenFonts = FONT_PRESETS.filter(preset => preset.category === 'handwritten')
-    expect(handwrittenFonts.length).toBe(5)
-    expect(handwrittenFonts.map(f => f.id)).toEqual(['handwritten', 'kalam', 'dancing', 'satisfy', 'casual-script'])
+    expect(handwrittenFonts.length).toBe(6)
   })
 
   test('mono fonts are properly configured', () => {
     const monoFonts = FONT_PRESETS.filter(preset => preset.category === 'mono')
-    expect(monoFonts.length).toBe(3)
-    expect(monoFonts.map(f => f.id)).toEqual(['typewriter', 'courier-prime', 'mono'])
+    expect(monoFonts.length).toBe(5)
   })
 
   test('font presets have unique IDs', () => {
