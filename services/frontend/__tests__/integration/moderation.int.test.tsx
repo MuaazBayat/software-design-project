@@ -170,7 +170,7 @@ describe('ModerationDashboard (MSW-backed)', () => {
     seedModerationDb({
       users: [
         factories.user({ user_id: 'mod_4', moderator: true, clerk_id: 'clrk_mod4' }),
-        factories.user({ user_id: 'banned_1', clerk_id: 'clrk_banned', account_status: 'banned', anonymous_handle: 'badguy' }),
+        factories.user({ user_id: 'banned_1', clerk_id: 'clrk_banned', account_status: 'banned' }),
       ],
     });
 
