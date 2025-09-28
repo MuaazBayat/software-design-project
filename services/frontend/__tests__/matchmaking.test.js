@@ -6,11 +6,23 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MatchScreen from '../app/matchmaking/page';
 import { useUser } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
 // Mock the useUser hook
 jest.mock('@clerk/nextjs', () => ({
   useUser: jest.fn(),
 }));
+
+const mockToast = {
+  success: jest.fn(),
+  error: jest.fn(),
+};
+
+jest.mock('sonner', () => ({
+  toast: mockToast,
+  Toaster: () => <div data-testid="toaster" />,
+}));
+
 
 // Mock the ldrs library to avoid ES module issues
 jest.mock('ldrs/react', () => ({
@@ -25,11 +37,16 @@ jest.mock('ldrs/react', () => ({
 jest.mock('ldrs/react/LineSpinner.css', () => ({}));
 
 // Mock the Loader component
-jest.mock('../components/ui/loader', () => {
+jest.mock('@/components/ui/loader', () => {
   return function MockLoader() {
     return <div data-testid="loader">Loading...</div>;
   };
 });
+
+jest.mock('sonner', () => ({
+  ...jest.requireActual('sonner'),
+  Toaster: () => <div data-testid="toaster" />,
+}));
 
 // Reset mocks before each test
 beforeEach(() => {
@@ -68,7 +85,7 @@ describe('MatchScreen - Additional Tests', () => {
   });
 
   test('opens and closes filter modal', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -120,7 +137,7 @@ describe('MatchScreen - Additional Tests', () => {
   });
 
   test('displays no suggestions message when no profiles available', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -138,7 +155,7 @@ describe('MatchScreen - Additional Tests', () => {
     render(<MatchScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText('No more suggestions')).toBeInTheDocument();
+      expect(screen.getByText('No profiles available')).toBeInTheDocument();
       expect(screen.getByText('Try adjusting your filters or check back later!')).toBeInTheDocument();
     });
   });
@@ -246,10 +263,7 @@ describe('MatchScreen - Additional Tests', () => {
   });
 
   test('handles API errors gracefully during match creation', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
-
-    // Mock window.alert
-    window.alert = jest.fn();
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -275,19 +289,16 @@ describe('MatchScreen - Additional Tests', () => {
     });
 
     // Click like button
-    const likeButton = screen.getByRole('button', { name: /like/i });
+    const likeButton = screen.getByLabelText(/like/i);
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Match creation failed');
+      expect(toast.error).toHaveBeenCalledWith('Error creating match. Please try again.');
     });
   });
 
-  test('handles network errors during API calls', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
-
-    // Mock window.alert
-    window.alert = jest.fn();
+   test('handles network errors during API calls', async () => {
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -313,16 +324,16 @@ describe('MatchScreen - Additional Tests', () => {
     });
 
     // Click like button
-    const likeButton = screen.getByRole('button', { name: /like/i });
+    const likeButton = screen.getByLabelText(/like/i);
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Connection error. Please check if the server is running and try again.');
+      expect(toast.error).toHaveBeenCalledWith('Error creating match. Please try again.');
     });
   });
 
   test('shows loading state during action processing', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     let resolveMatchPromise;
     const matchPromise = new Promise(resolve => {
@@ -355,7 +366,7 @@ describe('MatchScreen - Additional Tests', () => {
     });
 
     // Click like button
-    const likeButton = screen.getByRole('button', { name: /like/i });
+    const likeButton = screen.getByLabelText(/like/i);
     fireEvent.click(likeButton);
 
     // Check loading state (mocked loader shows "Loading...")
@@ -407,10 +418,7 @@ describe('MatchScreen - Additional Tests', () => {
   });
 
   test('handles successful match creation and shows success message', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
-
-    // Mock window.alert
-    window.alert = jest.fn();
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -436,14 +444,14 @@ describe('MatchScreen - Additional Tests', () => {
     });
 
     // Click like button
-    const likeButton = screen.getByRole('button', { name: /like/i });
+    const likeButton = screen.getByLabelText(/like/i);
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Match created with MatchUser! 🎉');
+      expect(toast.success).toHaveBeenCalledWith('Match created with MatchUser! 🎉');
     });
   });
-
+  
   test('displays age range correctly', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
 
@@ -548,8 +556,8 @@ describe('MatchScreen - Additional Tests', () => {
     });
   });
 
-  test('displays loading spinner when processing actions', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
+test('displays loading spinner when processing actions', async () => {
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     let resolvePromise;
     const slowPromise = new Promise(resolve => {
@@ -579,7 +587,7 @@ describe('MatchScreen - Additional Tests', () => {
     });
 
     // Click pass button
-    const passButton = screen.getByRole('button', { name: /pass/i });
+    const passButton = screen.getByLabelText(/pass/i);
     fireEvent.click(passButton);
 
     // Should show loading (mocked loader shows "Loading...")
