@@ -1,6 +1,6 @@
 // __tests__/setup/msw/handlers.ts
 import { http, HttpResponse } from 'msw';
-
+import { moderationHandlers } from './moderation-handler';
 /**
  * In-memory store to simulate your Supabase table `user_profiles`.
  * Keyed by clerk_id; enforces uniqueness of anonymous_handle.
@@ -139,5 +139,5 @@ export const handlers = [
     return HttpResponse.json(updated, { status: 200 });
   }),
 
-  
+  ...moderationHandlers,
 ];

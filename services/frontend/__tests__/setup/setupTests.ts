@@ -3,6 +3,7 @@ import 'whatwg-fetch';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
+
 // Point at your frontend-root env file (pick one)
 const ENV_PATH = path.resolve(__dirname, '../../.env.local'); // or '.env.test'
 dotenv.config({ path: ENV_PATH });
@@ -45,9 +46,9 @@ if (!(global as any).IntersectionObserver) (global as any).IntersectionObserver 
 // ---- NOW import MSW (it will see the globals above) ----
 const { server } = require('./msw/server');
 const { resetDb } = require('./msw/handlers');
-
+const { resetModerationDb } = require('./msw/moderation-handler');
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => { server.resetHandlers(); resetDb(); });
+afterEach(() => { server.resetHandlers(); resetDb();resetModerationDb();  });
 afterAll(() => server.close());
 
 // (Optional) Next.js App Router stubs
