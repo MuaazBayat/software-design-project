@@ -11,7 +11,7 @@ jest.mock('../app/compose-letter/fonts', () => ({
   ]
 }))
 
-const { FontSidePanel } = require('../components/FontSidePanel')
+const { FontSidePanel } = require('../app/compose-letter/components/FontSidePanel')
 
 beforeEach(() => {
   // reset localStorage between tests
@@ -128,14 +128,14 @@ test('close button calls onClose and open=false triggers onPreview(null)', async
   const onSelect = jest.fn()
   const onClose = jest.fn()
 
-  // Render open=true and verify close button triggers onClose
-  const { rerender } = render(<FontSidePanel open={true} currentId={''} onSelect={onSelect} onPreview={onPreview} onClose={onClose} />)
+  // Render open=true with anchorWithinSidebar=true to show close button
+  const { rerender } = render(<FontSidePanel open={true} currentId={''} onSelect={onSelect} onPreview={onPreview} onClose={onClose} anchorWithinSidebar={true} />)
   const closeBtn = screen.getByLabelText('close')
   fireEvent.click(closeBtn)
   expect(onClose).toHaveBeenCalled()
 
   // Now render with open=false to exercise the else branch in the effect
-  rerender(<FontSidePanel open={false} currentId={''} onSelect={onSelect} onPreview={onPreview} onClose={onClose} />)
+  rerender(<FontSidePanel open={false} currentId={''} onSelect={onSelect} onPreview={onPreview} onClose={onClose} anchorWithinSidebar={true} />)
 
   await waitFor(() => {
     expect(onPreview).toHaveBeenCalledWith(null)
