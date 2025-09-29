@@ -24,6 +24,7 @@ import { generateJPEG, generateJPEGDataUrl, captureLetterCloneAsPng } from "../l
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { toJpeg, toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
+import { moderationApi } from "@/lib/moderationApiClient";
 
 // FONT_PRESETS definition
 const FONT_PRESETS = [
@@ -255,9 +256,45 @@ function LetterPageContent() {
     setSuccess(false);
 
     try {
+      // Check for profanity
+      let profanityResult;
+      try {
+        profanityResult = await moderationApi.checkProfanity(letterContent, userId);
+      } catch (error) {
+        console.error('Failed to check profanity:', error);
+      }
+
+      let contentToSend = letterContent;
+      let imageDataUrl = jpgDataUrl;
+
+      // If we need to generate censored image
+      if (profanityResult?.contains_profanity && profanityResult.censored_text) {
+        contentToSend = profanityResult.censored_text;
+        
+        // Generate censored image if we don't have one or need to replace it
+        if (!jpgDataUrl) {
+          const letterElement = document.querySelector('.letter-content') as HTMLElement;
+          const editorElement = letterElement?.querySelector('[contenteditable="true"]') as HTMLElement;
+          
+          if (editorElement) {
+            const originalContent = editorElement.innerHTML;
+            editorElement.innerHTML = profanityResult.censored_text.replace(/\n/g, '<br>');
+            
+            try {
+              imageDataUrl = await generateJPEGDataUrl(letterElement, { 
+                targetWidth: window.innerWidth < 1280 ? 1024 : 768, 
+                isMobile: window.innerWidth < 1280 
+              });
+            } finally {
+              editorElement.innerHTML = originalContent;
+            }
+          }
+        }
+      }
+
       // Convert data URL to File
-      if (!jpgDataUrl) throw new Error('No image data available');
-      const response = await fetch(jpgDataUrl);
+      if (!imageDataUrl) throw new Error('No image data available');
+      const response = await fetch(imageDataUrl);
       const blob = await response.blob();
       const file = new File([blob], 'folded-letter.jpg', { type: 'image/jpeg' });
 
@@ -278,7 +315,7 @@ function LetterPageContent() {
       const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
         sender_id: senderID,
         recipient_id: recipientID,
-        message_content: letterContent,
+        message_content: contentToSend,
         letter_url: imagePath,
         scheduled_delivery_at: scheduledIso,
         letter_heading: letterHeading,
@@ -692,6 +729,15 @@ function LetterPageContent() {
   const handleSend = async () => {
     if (!selectedMatch || !userId) return;
 
+    // Check for profanity before sending
+    let profanityResult;
+    try {
+      profanityResult = await moderationApi.checkProfanity(letterContent, userId);
+    } catch (error) {
+      console.error('Failed to check profanity:', error);
+      // Continue with sending if check fails (fail-open approach)
+    }
+
     const originalSize = [...fontSize];
 
     setSending(true);
@@ -702,6 +748,21 @@ function LetterPageContent() {
     const letterElement = document.querySelector('.letter-content') as HTMLElement;
     let cleanup: (() => void) | null = null;
     let scalingFactor = 1;
+    let contentToSend = letterContent;
+    let editorElement: HTMLElement | null = null;
+    let originalEditorContent = '';
+
+    // Handle censored content for image generation
+    if (profanityResult?.contains_profanity && profanityResult.censored_text) {
+      // Find the contentEditable editor
+      editorElement = letterElement?.querySelector('[contenteditable="true"]') as HTMLElement;
+      if (editorElement) {
+        originalEditorContent = editorElement.innerHTML;
+        // Temporarily replace with censored text for image generation
+        editorElement.innerHTML = profanityResult.censored_text.replace(/\n/g, '<br>');
+        contentToSend = profanityResult.censored_text;
+      }
+    }
 
     // Store original scroll container styles
     const scrollContainers: Array<{ element: HTMLElement; originalStyles: Partial<CSSStyleDeclaration> }> = [];
@@ -763,7 +824,7 @@ function LetterPageContent() {
       const body: SendLetterRequest & { scheduled_delivery_at?: string, letter_heading?: string, letter_footer?: string } = {
         sender_id: senderID,
         recipient_id: recipientID,
-        message_content: `${letterContent}\n\n[Letter Image: ${imagePath}]`,
+        message_content: contentToSend,
         letter_url: imagePath,
         scheduled_delivery_at: scheduledIso,
         letter_heading: letterHeading,
@@ -815,6 +876,12 @@ function LetterPageContent() {
     } finally {
       setSending(false);
       setIsProcessing(false);
+      
+      // Restore original editor content if it was modified
+      if (editorElement && originalEditorContent) {
+        editorElement.innerHTML = originalEditorContent;
+      }
+      
       if (cleanup) cleanup();
       setFontSize(originalSize);
       
