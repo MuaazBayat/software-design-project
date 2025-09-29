@@ -507,21 +507,21 @@ const CulturalExplorer = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-8xl mb-4 animate-spin">🃏</div>
-          <p className="text-2xl text-white">Loading the deck...</p>
+          <p className="text-2xl text-black">Loading the deck...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Deck Selection */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-center text-white tracking-tighter mb-6">
+          <h2 className="text-3xl font-bold text-center text-black tracking-tighter mb-6">
             Explore your country of choice!
           </h2>
 
