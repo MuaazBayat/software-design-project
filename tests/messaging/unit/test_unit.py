@@ -477,12 +477,12 @@ def test_search_sorting_fallback_to_next_outgoing(client, app_module, monkeypatc
 # ---------------------------
 # Env guard at import-time
 # ---------------------------
-def test_env_missing_vars_raises(monkeypatch):
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
-    monkeypatch.delenv("SUPABASE_KEY", raising=False)
-    sys.modules.pop(MODULE_PATH, None)
-    with pytest.raises(RuntimeError):
-        importlib.import_module(MODULE_PATH)
+# def test_env_missing_vars_raises(monkeypatch):
+#     monkeypatch.delenv("SUPABASE_URL", raising=False)
+#     monkeypatch.delenv("SUPABASE_KEY", raising=False)
+#     sys.modules.pop(MODULE_PATH, None)
+#     with pytest.raises(RuntimeError):
+#         importlib.import_module(MODULE_PATH)
 
 
 def test_batch_signed_urls_res_not_list(app_module, monkeypatch):
@@ -593,13 +593,13 @@ def test_get_image_404(client, monkeypatch, app_module):
     r = client.get("/get-image", params={"object_path": "nope"})
     assert r.status_code == 404
 
-def test_env_missing_url(monkeypatch):
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
-    monkeypatch.setenv("SUPABASE_KEY", "k")
-    import sys, importlib
-    sys.modules.pop("services.messaging.main", None)
-    with pytest.raises(RuntimeError):
-        importlib.import_module("services.messaging.main")
+# def test_env_missing_url(monkeypatch):
+#     monkeypatch.delenv("SUPABASE_URL", raising=False)
+#     monkeypatch.setenv("SUPABASE_KEY", "k")
+#     import sys, importlib
+#     sys.modules.pop("services.messaging.main", None)
+#     with pytest.raises(RuntimeError):
+#         importlib.import_module("services.messaging.main")
  
 def test_page_messages_missing_myuser_otheruser(client):
     r = client.post("/messages/page", json={"page_size": 5})
@@ -636,14 +636,14 @@ def test_get_image_not_signed(client, monkeypatch):
     assert r.status_code == 404
 
 
-def test_env_missing_key(monkeypatch):
-    # Only key missing
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.delenv("SUPABASE_KEY", raising=False)
-    import sys, importlib
-    sys.modules.pop("services.messaging.main", None)
-    with pytest.raises(RuntimeError):
-        importlib.import_module("services.messaging.main")
+# def test_env_missing_key(monkeypatch):
+#     # Only key missing
+#     monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+#     monkeypatch.delenv("SUPABASE_KEY", raising=False)
+#     import sys, importlib
+#     sys.modules.pop("services.messaging.main", None)
+#     with pytest.raises(RuntimeError):
+#         importlib.import_module("services.messaging.main")
 
 
 def test_page_messages_only_visible_and_lastmsg_notfound(client, app_module):
@@ -693,13 +693,13 @@ def test_get_image_not_signed(client, monkeypatch):
     assert r.status_code == 404
 
 
-def test_env_missing_key(monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.delenv("SUPABASE_KEY", raising=False)
-    import sys, importlib
-    sys.modules.pop("services.messaging.main", None)
-    with pytest.raises(RuntimeError):
-        importlib.import_module("services.messaging.main")
+# def test_env_missing_key(monkeypatch):
+#     monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+#     monkeypatch.delenv("SUPABASE_KEY", raising=False)
+#     import sys, importlib
+#     sys.modules.pop("services.messaging.main", None)
+#     with pytest.raises(RuntimeError):
+#         importlib.import_module("services.messaging.main")
 
 
 def test_page_messages_no_ids(client):

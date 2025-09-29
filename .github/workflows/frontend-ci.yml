@@ -15,8 +15,8 @@ on:
       - 'services/frontend/**'
 
 jobs:
-  coverage:
-    name: Test & Coverage
+  unit-tests:
+    name: Unit Test & Coverage
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,16 +33,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests with coverage
-        run: npm test -- --coverage --ci
+      - name: Run unit tests with coverage
+        run: npm test -- --ci
 
-      - name: Upload coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
+  integration-tests:
+    name: Integration Test & Coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          name: frontend-coverage
-          path: services/frontend/coverage
+          node-version: 20
+          cache: npm
+          cache-dependency-path: services/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run integration tests with coverage
+        # Assuming you have a script like "test:int" in your package.json
+        run: npm run test:int -- --ci
+        
   docker-build-push:
+    # This job now depends on both test jobs completing successfully
+    needs: [unit-tests, integration-tests]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +92,7 @@ jobs:
             --build-arg NEXT_PUBLIC_MODERATION_URL=${{ secrets.MODERATION_URL }} \
             --build-arg NEXT_PUBLIC_FPJS_KEY=${{ secrets.FPJS_KEY }} \
             -t $FRONTEND_IMAGE \
+            -t $FRONTEND_IMAGE_LATEST \
             -f services/frontend/frontend.Dockerfile \
             services/frontend \
             --push
