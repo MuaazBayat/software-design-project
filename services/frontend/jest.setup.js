@@ -3,9 +3,15 @@
 // Optional: configure or set up a testing framework before each test
 // If you are using the fetch API in your components, you might want to mock it
 import '@testing-library/jest-dom';
-// const origError = console.error;
+const origError = console.error;
 console.error = (...args) => {
-  if (/not wrapped in act/.test(String(args[0]))) return;
+  const msg = String(args[0] ?? '');
+  // ignore act() warnings and your provider’s expected error logs
+  if (
+    /not wrapped in act|Warning: An update to/i.test(msg) ||
+    /Failed to load presets from localStorage/i.test(msg) ||
+    /Failed to save presets to localStorage/i.test(msg)
+  ) return;
   return origError(...args);
 };
 
