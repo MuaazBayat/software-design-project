@@ -1,0 +1,18 @@
+@layer components {
+  .map-image {
+    background-image: url("./letter.jpeg");
+    background-size: 100% 300%;
+  }
+
+  .map-image:nth-child(1) {
+    background-position: 0 0;
+  }
+
+  .map-image:nth-child(2) {
+    background-position: 0 -33.33%;
+  }
+
+  .map-image:nth-child(3) {
+    background-position: 0 -66.67%;
+  }
+}

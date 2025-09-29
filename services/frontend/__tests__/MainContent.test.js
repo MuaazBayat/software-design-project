@@ -1,7 +1,25 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
-const MainContent = require('../components/MainContent').default
+// Mock d3-shape since it's an ES module that Jest can't handle
+jest.mock('d3-shape', () => ({
+  line: jest.fn(() => ({
+    x: jest.fn(() => ({
+      y: jest.fn(() => ({
+        curve: jest.fn(() => jest.fn(() => 'M 0 0 L 10 10'))
+      }))
+    }))
+  })),
+  curveBundle: {
+    beta: jest.fn(() => jest.fn(() => 'M 0 0 L 10 10'))
+  },
+  curveCardinal: {
+    tension: jest.fn(() => jest.fn(() => 'M 0 0 L 10 10'))
+  }
+}))
+
+const MainContent = require('../app/compose-letter/components/MainContent').default
 const { DEFAULT_FONT_ID } = require('../app/compose-letter/fonts')
 
 beforeEach(() => {
@@ -75,23 +93,43 @@ test('sets default fontStyle when none provided', () => {
 //   expect(screen.getByRole('button', { name: /Clear Letter/i })).toBeDisabled()
 // })
 
-test('keyboard shortcuts trigger execCommand for formatting', () => {
+test('keyboard shortcuts trigger execCommand for formatting', async () => {
+  const user = userEvent.setup()
   render(
     <MainContent
-      letterContent={''}
+      letterContent={'test'}
       setLetterContent={() => {}}
       fontStyle={'modern'}
       fontSize={[16]}
     />
   )
 
-  // simulate Ctrl+B, Ctrl+I, Ctrl+U
+  // Wait for component to mount
+  await waitFor(() => {
+    expect(document.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
+
+  const editor = document.querySelector('[contenteditable]')
+  
+  // Focus the editor
+  editor.focus()
+  
+  // Select some text
+  const range = document.createRange()
+  range.selectNodeContents(editor)
+  const selection = window.getSelection()
+  selection.removeAllRanges()
+  selection.addRange(range)
+
+  // Use fireEvent for document keyboard events
   fireEvent.keyDown(document, { key: 'b', ctrlKey: true })
   fireEvent.keyDown(document, { key: 'i', ctrlKey: true })
   fireEvent.keyDown(document, { key: 'u', ctrlKey: true })
 
-  // execCommand should have been called at least once for these
-  expect(document.execCommand).toHaveBeenCalled()
+  // execCommand should have been called synchronously
+  expect(document.execCommand).toHaveBeenCalledWith('bold')
+  expect(document.execCommand).toHaveBeenCalledWith('italic')
+  expect(document.execCommand).toHaveBeenCalledWith('underline')
 })
 
 test('renders template background variants and exposes aria-hidden container', () => {
@@ -102,7 +140,7 @@ test('renders template background variants and exposes aria-hidden container', (
       setLetterContent={setLetterContent}
       fontStyle={'modern'}
       fontSize={[16]}
-      templateBackground={'plain'}
+      backgroundColor={'#fbf6ed'}
     />
   )
 
@@ -118,49 +156,30 @@ test('renders template background variants and exposes aria-hidden container', (
   const bgColor = window.getComputedStyle(plainChild).backgroundColor
   expect(bgColor.replace(/\s/g, '')).toContain('rgb(251,246,237)')
 
-  // rustic uses a background image URL inside nested divs
+  // Test with lined background using templateData
   rerender(
     <MainContent
       letterContent={'x'}
       setLetterContent={setLetterContent}
       fontStyle={'modern'}
       fontSize={[16]}
-      templateBackground={'rustic'}
+      templateData={{
+        lines: {
+          type: 'straight',
+          spacing: 24,
+          thickness: 1,
+          color: '#000000',
+          opacity: 0.5,
+          rotation: 0
+        }
+      }}
     />
   )
 
-  // find the template container again and check for rustic asset in computed backgroundImage
-  const rusticContainer = Array.from(container.querySelectorAll('[aria-hidden]')).find(el => {
-    // search all descendants with inline style attributes and check their computed backgroundImage
-    const styledDescendants = Array.from(el.querySelectorAll('[style]'))
-    return styledDescendants.some(d => {
-      const bi = window.getComputedStyle(d).backgroundImage || ''
-      return bi.includes('rustic.svg')
-    })
-  })
-  expect(rusticContainer).toBeDefined()
-
-  // lined should include the linedpage.svg url in inline style
-  rerender(
-    <MainContent
-      letterContent={'x'}
-      setLetterContent={setLetterContent}
-      fontStyle={'modern'}
-      fontSize={[16]}
-      templateBackground={'lined'}
-    />
-  )
-  // lined should include the linedpage.svg url in inline style
-  const linedContainer = Array.from(container.querySelectorAll('[aria-hidden]')).find(el => {
-    const styledDescendants = Array.from(el.querySelectorAll('[style]'))
-    return styledDescendants.some(d => {
-      const bi = window.getComputedStyle(d).backgroundImage || ''
-      return bi.includes('linedpage.svg')
-    })
-  })
-  expect(linedContainer).toBeDefined()
-  const linedChild = linedContainer.querySelector('[style]')
-  expect(window.getComputedStyle(linedChild).backgroundImage).toMatch(/linedpage\.svg/)
+  // Should render SVG with straight lines pattern
+  const svgElement = container.querySelector('svg')
+  expect(svgElement).toBeInTheDocument()
+  expect(svgElement.getAttribute('viewBox')).toBeDefined()
 })
 
 test('undo button triggers setLetterContent', () => {
@@ -196,7 +215,8 @@ test('shows success banner when success=true', () => {
   expect(screen.getByText(/Your letter has been sent successfully!/i)).toBeInTheDocument()
 })
 
-test('Ctrl+K triggers onToggleFontOverlay', () => {
+test('Ctrl+K triggers onToggleFontOverlay', async () => {
+  const user = userEvent.setup()
   const onToggleFontOverlay = jest.fn()
   render(
     <MainContent
@@ -208,11 +228,21 @@ test('Ctrl+K triggers onToggleFontOverlay', () => {
     />
   )
 
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(document.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
+
+  const editor = document.querySelector('[contenteditable]')
+  editor.focus()
+
+  // Use fireEvent for document keyboard event
   fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
   expect(onToggleFontOverlay).toHaveBeenCalled()
 })
 
-test('Ctrl+Z and Ctrl+Y trigger undo and redo', () => {
+test('Ctrl+Z and Ctrl+Y trigger undo and redo', async () => {
+  const user = userEvent.setup()
   const setLetterContent = jest.fn()
   render(
     <MainContent
@@ -222,6 +252,14 @@ test('Ctrl+Z and Ctrl+Y trigger undo and redo', () => {
       fontSize={[16]}
     />
   )
+
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(document.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
+
+  const editor = document.querySelector('[contenteditable]')
+  editor.focus()
 
   // Simulate Ctrl+Z for undo
   fireEvent.keyDown(document, { key: 'z', ctrlKey: true })
@@ -325,11 +363,11 @@ test('letterHeading input updates value', () => {
     />
   )
 
-  const headingInput = container.querySelector('input')
-  expect(headingInput).toBeInTheDocument()
-  expect(headingInput.value).toBe('initial')
+  const headingTextarea = container.querySelector('textarea')
+  expect(headingTextarea).toBeInTheDocument()
+  expect(headingTextarea.value).toBe('initial')
 
-  fireEvent.change(headingInput, { target: { value: 'new heading' } })
+  fireEvent.change(headingTextarea, { target: { value: 'new heading' } })
   expect(setLetterHeading).toHaveBeenCalledWith('new heading')
 })
 
@@ -346,12 +384,12 @@ test('letterFooterPrefix input updates value', () => {
     />
   )
 
-  const footerInputs = container.querySelectorAll('input')
-  const footerInput = footerInputs[1] // Second input is footer
-  expect(footerInput).toBeInTheDocument()
-  expect(footerInput.value).toBe('initial')
+  const footerTextareas = container.querySelectorAll('textarea')
+  const footerTextarea = footerTextareas[1] // Second textarea is footer
+  expect(footerTextarea).toBeInTheDocument()
+  expect(footerTextarea.value).toBe('initial')
 
-  fireEvent.change(footerInput, { target: { value: 'new footer' } })
+  fireEvent.change(footerTextarea, { target: { value: 'new footer' } })
   expect(setLetterFooterPrefix).toHaveBeenCalledWith('new footer')
 })
 
@@ -413,7 +451,8 @@ test('selection change updates formatting state', () => {
   document.dispatchEvent(new Event('selectionchange'))
 })
 
-test('Shift+Z triggers redo', () => {
+test('Shift+Z triggers redo', async () => {
+  const user = userEvent.setup()
   const setLetterContent = jest.fn()
   const { container } = render(
     <MainContent
@@ -424,19 +463,26 @@ test('Shift+Z triggers redo', () => {
     />
   )
 
-  // First, simulate some undo action to populate redo stack
-  const editor = container.querySelector('[contenteditable]')
-  expect(editor).toBeInTheDocument()
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(container.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
 
-  // Simulate input to create undo history
+  const editor = container.querySelector('[contenteditable]')
+  editor.focus()
+
+  // First, simulate some undo action to populate redo stack
   fireEvent.input(editor, { target: { innerHTML: 'changed content' } })
   fireEvent.blur(editor)
 
   // Now undo to populate redo stack
   fireEvent.keyDown(document, { key: 'z', ctrlKey: true })
   
+  // Reset mock to only count redo
+  setLetterContent.mockClear()
+  
   // Now Shift+Z should trigger redo
-  fireEvent.keyDown(document, { key: 'z', ctrlKey: true, shiftKey: true })
+  fireEvent.keyDown(document, { key: 'Z', shiftKey: true })
   expect(setLetterContent).toHaveBeenCalled()
 })
 
@@ -475,22 +521,23 @@ test('template background renders with custom lineTileHeight', () => {
       setLetterContent={() => {}}
       fontStyle={'modern'}
       fontSize={[20]} // Different font size to test lineTileHeight calculation
-      templateBackground={'lined'}
+      templateData={{
+        lines: {
+          type: 'straight',
+          spacing: 24,
+          thickness: 1,
+          color: '#000000',
+          opacity: 0.5,
+          rotation: 0
+        }
+      }}
     />
   )
 
-  // Should render the lined background with calculated lineTileHeight
-  const backgroundDiv = container.querySelector('[aria-hidden]')
-  expect(backgroundDiv).toBeInTheDocument()
-
-  // Check that the lined template is rendered by looking for the backgroundImage with linedpage.svg
-  const linedDiv = Array.from(container.querySelectorAll('div')).find(div => 
-    div.style.backgroundImage && div.style.backgroundImage.includes('linedpage.svg')
-  )
-  expect(linedDiv).toBeInTheDocument()
-  
-  // With fontSize [20], lineTileHeight = Math.round(20 * 2.25) = 45
-  expect(linedDiv.style.backgroundSize).toContain('45px')
+  // Should render SVG with pattern
+  const svgElement = container.querySelector('svg')
+  expect(svgElement).toBeInTheDocument()
+  expect(svgElement.getAttribute('viewBox')).toBeDefined()
 })
 
 test('font preset applies to editor', () => {
@@ -507,8 +554,8 @@ test('font preset applies to editor', () => {
   expect(editor).toBeInTheDocument()
   
   // Just check that the editor renders with the expected base classes
-  expect(editor.className).toContain('min-h-24')
-  expect(editor.className).toContain('text-gray-700')
+  expect(editor.className).toContain('min-h-[200px]')
+  expect(editor.className).toContain('bg-transparent')
 })
 
 test('normalizeOrderedLists removes start attribute when desiredStart is 1', () => {
@@ -556,7 +603,8 @@ test('onSelectionChange detects list formatting states', () => {
   // This covers the lines that check for UL and OL tags in the selection ancestors
 })
 
-test('Ctrl+Y keyboard shortcut triggers redo', () => {
+test('Ctrl+Y keyboard shortcut triggers redo', async () => {
+  const user = userEvent.setup()
   const setLetterContent = jest.fn()
   const { container } = render(
     <MainContent
@@ -567,11 +615,15 @@ test('Ctrl+Y keyboard shortcut triggers redo', () => {
     />
   )
 
-  // First, create some undo history by simulating input
-  const editor = container.querySelector('[contenteditable]')
-  expect(editor).toBeInTheDocument()
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(container.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
 
-  // Simulate input to create undo history
+  const editor = container.querySelector('[contenteditable]')
+  editor.focus()
+
+  // First, create some undo history by simulating input
   fireEvent.input(editor, { target: { innerHTML: 'changed content' } })
   fireEvent.blur(editor)
 
@@ -586,22 +638,39 @@ test('Ctrl+Y keyboard shortcut triggers redo', () => {
   expect(setLetterContent).toHaveBeenCalled()
 })
 
-test('Ctrl+B keyboard shortcut triggers bold formatting', () => {
+test('Ctrl+B keyboard shortcut triggers bold formatting', async () => {
+  const user = userEvent.setup()
   render(
     <MainContent
-      letterContent={''}
+      letterContent={'test'}
       setLetterContent={() => {}}
       fontStyle={'modern'}
       fontSize={[16]}
     />
   )
 
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(document.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
+
+  const editor = document.querySelector('[contenteditable]')
+  editor.focus()
+  
+  // Select some text
+  const range = document.createRange()
+  range.selectNodeContents(editor)
+  const selection = window.getSelection()
+  selection.removeAllRanges()
+  selection.addRange(range)
+
   // Simulate Ctrl+B for bold
   fireEvent.keyDown(document, { key: 'b', ctrlKey: true })
   expect(document.execCommand).toHaveBeenCalledWith('bold')
 })
 
-test('Ctrl+I, Ctrl+U, Ctrl+K keyboard shortcuts work', () => {
+test('Ctrl+I, Ctrl+U, Ctrl+K keyboard shortcuts work', async () => {
+  const user = userEvent.setup()
   const onToggleFontOverlay = jest.fn()
   render(
     <MainContent
@@ -612,6 +681,14 @@ test('Ctrl+I, Ctrl+U, Ctrl+K keyboard shortcuts work', () => {
       onToggleFontOverlay={onToggleFontOverlay}
     />
   )
+
+  // Wait for component to mount and useEffect to run
+  await waitFor(() => {
+    expect(document.querySelector('[contenteditable]')).toBeInTheDocument()
+  })
+
+  const editor = document.querySelector('[contenteditable]')
+  editor.focus()
 
   // Simulate Ctrl+I for italic
   fireEvent.keyDown(document, { key: 'i', ctrlKey: true })

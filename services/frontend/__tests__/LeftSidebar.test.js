@@ -1,7 +1,78 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+// Mock Clerk FIRST before any other imports
+jest.mock('@clerk/nextjs', () => ({
+  useUser: () => ({
+    isSignedIn: true,
+    user: {
+      id: 'clerk-user-123',
+      primaryEmailAddress: {
+        emailAddress: 'test@example.com'
+      }
+    },
+  }),
+  ClerkProvider: ({ children }) => React.createElement('div', null, children),
+}))
+
+// Mock Next.js navigation
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+    pathname: '/',
+    query: {},
+    asPath: '/',
+  }),
+  useParams: () => ({ user_id: 'test-user-123' }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
+// Mock the SyncProfile context
+const mockUseSyncProfile = jest.fn(() => ({
+  profile: { user_id: 'test-user-123', anonymous_handle: 'TestUser' },
+  synced: true,
+}))
+jest.mock('../lib/context/ProfileContext', () => ({
+  useSyncProfile: () => mockUseSyncProfile(),
+}))
+
+// Mock sonner toast
+jest.doMock('sonner', () => ({
+  Toaster: () => null,
+  toast: jest.fn(),
+}))
+
+// Mock d3-shape
+jest.mock('d3-shape', () => ({
+  line: jest.fn(),
+  curveBundle: jest.fn(),
+  curveCardinal: jest.fn(),
+}))
+
+// Mock the MessagingApiClient
+const mockMessagingApiClient = {
+  searchUsers: jest.fn(),
+  sendLetter: jest.fn(),
+}
+jest.mock('../lib/MessagingApiClient', () => {
+  const MockMessagingApiClient = jest.fn().mockImplementation(() => mockMessagingApiClient)
+  return {
+    __esModule: true,
+    default: MockMessagingApiClient,
+    SearchUsersRequest: jest.fn(),
+    SendLetterRequest: jest.fn(),
+    ApiError: jest.fn(),
+  }
+})
+
 // Mock FontSidePanel to avoid rendering complexity; ensure it is present when showFontOverlay is true
-jest.mock('../components/FontSidePanel', () => ({
+jest.mock('../app/compose-letter/components/FontSidePanel', () => ({
   FontSidePanel: ({ open, onSelect, onPreview, onClose }) => {
     if (!open) return null
     // simulate user actions in the side panel which should call the handlers
@@ -28,7 +99,8 @@ jest.mock('@/components/ui/select', () => ({
   SelectItem: ({ value, children }) => React.createElement('div', { role: 'option', onClick: () => { if (global.__selectOnChange) global.__selectOnChange(value) } }, children)
 }))
 
-import LeftSidebar from '../components/LeftSidebar'
+import LeftSidebar from '../app/compose-letter/components/LeftSidebar'
+import { ComposeLetterProvider } from '../app/compose-letter/components/ComposeLetterContext'
 
 const sampleMatch = {
   id: 'm1',
@@ -43,11 +115,13 @@ test('renders selected match and opens templates dialog; Apply calls handler', a
   const onApplyTemplate = jest.fn()
 
   render(
-    <LeftSidebar
-      selectedMatch={sampleMatch}
-      matches={[sampleMatch]}
-      onApplyTemplate={onApplyTemplate}
-    />
+    <ComposeLetterProvider>
+      <LeftSidebar
+        selectedMatch={sampleMatch}
+        matches={[sampleMatch]}
+        onApplyTemplate={onApplyTemplate}
+      />
+    </ComposeLetterProvider>
   )
 
   // Selected match name should be visible (may appear in multiple places)
@@ -58,19 +132,17 @@ test('renders selected match and opens templates dialog; Apply calls handler', a
   fireEvent.click(promptsHeading)
 
   // The dialog should reveal a template title (one of DEFAULT_TEMPLATES)
-  const templateTitle = await screen.findByText(/Intro — a friendly hello/i)
+  const templateTitle = await screen.findByText(/A Friendly Hello/i)
   expect(templateTitle).toBeInTheDocument()
 
-  // Click the first Apply button
-  const applyButtons = screen.getAllByText('Apply')
-  expect(applyButtons.length).toBeGreaterThan(0)
-  fireEvent.click(applyButtons[0])
+  // Click the template card
+  fireEvent.click(templateTitle)
 
   // onApplyTemplate should be called with the first template id 't1'
   await waitFor(() => expect(onApplyTemplate).toHaveBeenCalledWith('t1'))
 
   // After applying, the dialog should close (template title no longer present)
-  await waitFor(() => expect(screen.queryByText(/Intro — a friendly hello/i)).not.toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText(/A Friendly Hello/i)).not.toBeInTheDocument())
 })
 
 test('recipient dropdown search and select changes recipient', async () => {
@@ -79,11 +151,13 @@ test('recipient dropdown search and select changes recipient', async () => {
   const onChangeRecipient = jest.fn()
 
   render(
-    <LeftSidebar
-      selectedMatch={matchA}
-      matches={[matchA, matchB]}
-      onChangeRecipient={onChangeRecipient}
-    />
+    <ComposeLetterProvider>
+      <LeftSidebar
+        selectedMatch={matchA}
+        matches={[matchA, matchB]}
+        onChangeRecipient={onChangeRecipient}
+      />
+    </ComposeLetterProvider>
   )
 
   // Open the select trigger to show options
@@ -111,7 +185,7 @@ test('recipient dropdown search and select changes recipient', async () => {
 
 test('formatSince handles today, days, months, years', () => {
   // Import formatSince by requiring the component module and reading the helper via a render
-  const { default: Left } = require('../components/LeftSidebar')
+  const { default: Left } = require('../app/compose-letter/components/LeftSidebar')
   // create a container to mount the component and call internal function via instance is not possible
   // Instead, verify UI rendering for different since values by rendering component and checking the 'Since' label
 
@@ -157,7 +231,7 @@ test('filters templates by search term inside templates dialog', async () => {
   fireEvent.click(screen.getByText(/Writing Prompts/i))
 
   // Wait for dialog content
-  await screen.findByText(/Intro — a friendly hello/i)
+  await screen.findByText(/A Friendly Hello/i)
 
   // get the templates search input and type a match
   const searchInput = screen.getByPlaceholderText('Search templates...')
@@ -165,7 +239,7 @@ test('filters templates by search term inside templates dialog', async () => {
 
   // Only the Travel story template should be visible
   expect(await screen.findByText(/Travel story/i)).toBeInTheDocument()
-  expect(screen.queryByText(/Intro — a friendly hello/i)).not.toBeInTheDocument()
+  expect(screen.queryByText(/A Friendly Hello/i)).not.toBeInTheDocument()
 
   // Type a non-matching term
   fireEvent.change(searchInput, { target: { value: 'zzzz-no-match' } })
