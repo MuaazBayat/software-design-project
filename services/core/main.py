@@ -38,11 +38,37 @@ def get_supabase() -> Client:
     This ensures a single, reusable client across all requests.
     """
     if supabase is None:
-        raise HTTPException(status_code=500, detail="Supabase client not initialized.")
+        print("ERROR: Supabase client is None - check environment variables and database.py initialization")
+        raise HTTPException(status_code=500, detail="Supabase client not initialized. Check server configuration.")
     return supabase
 
 
 # --- API Endpoints ---
+
+@app.get("/health")
+async def health_check():
+    """
+    Simple health check endpoint to verify the service is running.
+    """
+    try:
+        # Check if Supabase client is initialized
+        if supabase is None:
+            return {"status": "unhealthy", "error": "Supabase client not initialized"}
+
+        # Try a simple database operation to verify connection
+        test_response = supabase.table("user_profiles").select("count", count="exact").limit(0).execute()
+
+        return {
+            "status": "healthy",
+            "supabase_connected": True,
+            "profiles_table_accessible": True
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "supabase_connected": supabase is not None
+        }
 
 @app.post("/profiles", response_model=Profile, status_code=status.HTTP_201_CREATED)
 async def create_profile(
@@ -116,13 +142,21 @@ async def get_profile(
         HTTPException:
             404 Not Found: If no profile is found for the given user_id.
     """
-    # Select all columns from the 'user_profiles' table where the clerk_id matches.
-    response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+    try:
+        # Select all columns from the 'user_profiles' table where the clerk_id matches.
+        response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
 
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Profile not found.")
-        
-    return response.data[0]
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Profile not found.")
+
+        return response.data[0]
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        # Log the actual error and return a 500 with proper CORS headers
+        print(f"Database error in get_profile for clerk_id '{clerk_id}': {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.put("/profiles/{clerk_id}", response_model=Profile)

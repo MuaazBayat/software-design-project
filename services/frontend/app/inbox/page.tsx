@@ -22,6 +22,13 @@ const LetterInbox = () => {
   const router = useRouter();
   const { setCurrentConversationUser, clearCurrentConversationUser } = useConversationUser();
 
+  // Debug logging
+  console.log('Inbox - profile:', profile);
+  console.log('Inbox - synced:', synced);
+  console.log('Inbox - profile?.user_id:', profile?.user_id);
+  console.log('Inbox - profile?.clerk_id:', profile?.clerk_id);
+  console.log('Inbox - profile keys:', profile ? Object.keys(profile) : 'null');
+
   const apiClient = new MessagingApiClient();
 
   const deriveFlags = (item: SearchUsersResponseItem) => {
@@ -91,6 +98,8 @@ const LetterInbox = () => {
     const fetchConversations = async () => {
       try {
         setIsLoading(true);
+        console.log('Fetching conversations for user_id:', profile.user_id);
+        console.log('MessagingApiClient baseUrl:', process.env.NEXT_PUBLIC_MESSAGING_URL);
         const response: SearchUsersResponse = await apiClient.searchUsers({
           anonymous_handle: "",
           my_user_id: profile.user_id,

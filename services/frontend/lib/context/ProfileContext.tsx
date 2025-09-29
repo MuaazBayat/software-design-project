@@ -15,19 +15,10 @@ export interface Profile {
   user_id: string;
   clerk_id: string;
   anonymous_handle: string;
-  fingerprint?: string[] | string;
+  fingerprint?: string;
   created_at?: string;
   updated_at?: string;
-  moderator?: boolean;
-  // Additional profile fields from backend
-  age_range?: string;
-  primary_language?: string;
-  secondary_languages?: string[];
-  time_zone?: string;
-  country_code?: string;
-  bio?: string;
-  interests?: string[];
-  last_active?: string;
+  moderator: boolean;
 }
 
 interface ProfileContextType {
@@ -91,8 +82,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // First, try to create/update the basic profile
-      const createResponse = await fetch(`${coreUrl}/profiles`, {
+      const response = await fetch(`${coreUrl}/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -102,29 +92,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }),
       });
 
-      if (!createResponse.ok) {
-        throw new Error(`HTTP error! status: ${createResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      if (createResponse.status === 201) {
-        console.log("New profile created");
-      } else if (createResponse.status === 200) {
-        console.log("Existing profile updated");
-      }
-
-      // Then fetch the complete profile data
-      const getResponse = await fetch(`${coreUrl}/profiles/${user.id}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!getResponse.ok) {
-        throw new Error(`HTTP error getting profile! status: ${getResponse.status}`);
-      }
-
-      const profileData: Profile = await getResponse.json();
+      const profileData: Profile = await response.json();
       setProfile(profileData);
-      console.log("Complete profile retrieved:", profileData);
+
+      if (response.status === 201) {
+        console.log("New profile created:", profileData);
+      } else if (response.status === 200) {
+        console.log("Existing profile retrieved:", profileData);
+      }
 
       setSynced(true);
     } catch (err) {
