@@ -83,10 +83,6 @@ const ModerationDashboard = () => {
           }
         },
       },
-      cancel: {
-        label: 'Cancel',
-        onClick: () => toast.dismiss(),
-      },
     });
   };
 

@@ -297,8 +297,18 @@ export default function LetterApp() {
 
   const resetLetter = () => {
     if (letterContent.trim().length > 0 && !success) {
-      const confirmed = window.confirm("Are you sure you want to start a new letter? Your current draft will be lost.");
-      if (!confirmed) return;
+      toast("Start a new letter?", {
+        description: "Your current draft will be lost. This action cannot be undone.",
+        action: {
+          label: "Start New",
+          onClick: () => {
+            setLetterContent("");
+            setSuccess(false);
+            setError(null);
+          },
+        },
+      });
+      return;
     }
     setLetterContent("");
     setSuccess(false);
