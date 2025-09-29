@@ -359,7 +359,7 @@ export default function ConversationPage({}: ConversationPageProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Block User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to block this user? You will no longer receive messages from them and they won&apos;t be able to see your profile.
+              {"Are you sure you want to block this user? You will no longer receive messages from them and they won't be able to see your profile."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {moderationError && (

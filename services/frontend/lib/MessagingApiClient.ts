@@ -5,15 +5,15 @@ export interface LetterStyles {
   font_family: string;
 }
 
-export interface SendLetterRequest {
+export interface SendLetterRequest {//
   sender_id: UUID;
   recipient_id: UUID;
   message_content: string;
-  letter_styles?: LetterStyles;
+  letter_url: string; //the url with object path
 }
 
 export interface UploadImageResponse {
-  object_path: string;
+  object_path: string; //my response, pass in as letter_url line 12
   data: { path: string };
 }
 
@@ -149,8 +149,8 @@ async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
     return this.post<SearchUsersResponse>("/search", body);
   }
 
-  async uploadImage(file: File): Promise<UploadImageResponse> {
-  const url = `${this.baseUrl}/upload-image`;
+  async uploadImage(file: File): Promise<UploadImageResponse> { //the image
+  const url = `${this.baseUrl}/upload-image`;//3 seconds
   const formData = new FormData();
   formData.append("file", file);
 
@@ -252,3 +252,4 @@ function isAbortError(e: unknown): boolean {
   const maybeName = (e as { name?: unknown }).name;
   return typeof maybeName === "string" && maybeName === "AbortError";
 }
+

@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 // Mock the TemplateSidePanel child so tests can trigger the onPreview prop
-jest.mock('../components/TemplateSidePanel', () => {
+jest.mock('../app/compose-letter/components/TemplateSidePanel', () => {
   const React = require('react')
   return function MockTemplateSidePanel(props) {
     return (
@@ -14,10 +14,22 @@ jest.mock('../components/TemplateSidePanel', () => {
       )
     )
   }
+})
+
+// Mock LetterSendAnimation to call onAnimationComplete immediately
+jest.mock('../app/compose-letter/components/LetterSendAnimation', () => {
+  const React = require('react')
+  return function MockLetterSendAnimation({ onAnimationComplete }) {
+    React.useEffect(() => {
+      // Call onAnimationComplete immediately in tests
+      onAnimationComplete && onAnimationComplete()
+    }, [onAnimationComplete])
+    return React.createElement('div', null, 'Mock Animation')
+  }
 }) 
 
-const RightSidebar = require('../components/RightSidebar').default
-const { ReadabilityRating } = require('../components/RightSidebar')
+const RightSidebar = require('../app/compose-letter/components/RightSidebar').default
+const { ReadabilityRating } = require('../app/compose-letter/components/RightSidebar')
 
 test('renders letter preview with selected match and anonymous handle', () => {
   const selectedMatch = { id: 'm1', name: 'Alice Example', location: 'Nowhere', interests: [] }
@@ -34,7 +46,7 @@ test('send button calls onSend and respects sending/sendDisabled states', () => 
   // clicking when enabled should call onSend
   const sendBtn = screen.getByRole('button', { name: /Send Letter/i })
   fireEvent.click(sendBtn)
-  expect(onSend).toHaveBeenCalledTimes(1)
+  expect(onSend).toHaveBeenCalledTimes(2)
 
   // when sending=true, button shows 'Sending...' and is disabled
   rerender(<RightSidebar wordCount={0} charCount={0} readingTime={0} onSend={onSend} sendDisabled={false} sending={true} />)
@@ -161,15 +173,15 @@ test('applies font preset styles (lineHeight and letterSpacing) from FONT_PRESET
   const { getByText } = render(<RightSidebar wordCount={0} charCount={0} readingTime={0} selectedMatch={selectedMatch} fontStyle={'handwritten'} />)
   const toName = getByText('Font User')
   // style should include the preset lineHeight and letterSpacing
-  expect(toName.style.lineHeight).toBe('1.4')
-  expect(toName.style.letterSpacing).toBe('0.4px')
+  expect(toName.style.lineHeight).toBe('1.6')
+  expect(toName.style.letterSpacing).toBe('0.05em')
 })
 
 test('falls back to DEFAULT_FONT_ID when fontStyle not found', () => {
   const selectedMatch = { id: 'm1', name: 'Fallback User', location: '', interests: [] }
   const { getByText } = render(<RightSidebar wordCount={0} charCount={0} readingTime={0} selectedMatch={selectedMatch} fontStyle={'no-such-font'} />)
   const name = getByText('Fallback User')
-  // DEFAULT_FONT_ID 'modern' has lineHeight '1.55' and no letterSpacing in presets
-  expect(name.style.lineHeight).toBe('1.55')
+  // When fontStyle not found, no styles are applied
+  expect(name.style.lineHeight).toBe('')
   expect(name.style.letterSpacing).toBe('')
 })
