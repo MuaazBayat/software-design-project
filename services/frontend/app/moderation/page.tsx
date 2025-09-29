@@ -265,96 +265,103 @@ const ModerationDashboard = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-4">
-            <Filter className="h-5 w-5 text-gray-400" />
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Status:</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-              >
-                <option value="all">All</option>
-                <option value="open">Open</option>
-                <option value="in_review">In Review</option>
-                <option value="resolved">Resolved</option>
-                <option value="dismissed">Dismissed</option>
-              </select>
+              <Filter className="h-5 w-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 hidden sm:inline">Filters:</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Type:</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-              >
-                <option value="all">All</option>
-                <option value="user">User Reports</option>
-                <option value="message">Message Reports</option>
-              </select>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 flex-1">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700 min-w-0">Status:</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none"
+                >
+                  <option value="all">All</option>
+                  <option value="open">Open</option>
+                  <option value="in_review">In Review</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="dismissed">Dismissed</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700 min-w-0">Type:</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none"
+                >
+                  <option value="all">All</option>
+                  <option value="user">User Reports</option>
+                  <option value="message">Message Reports</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Tabbed Interface */}
-        <div className="flex bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-sm overflow-hidden">
           {/* Side Navigation */}
-          <div className="w-64 bg-gray-50 border-r border-gray-200">
-            <nav className="p-4 space-y-2">
-              <button
-                onClick={() => setActiveTab('cases')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'cases'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <AlertTriangle className="h-5 w-5" />
-                  <div>
-                    <div className="font-medium">Moderation Cases</div>
-                    <div className="text-xs opacity-75">
-                      {moderationLogs.length} total cases
+          <div className="w-full lg:w-64 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-200">
+            <nav className="p-4">
+              <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2">
+                <button
+                  onClick={() => setActiveTab('cases')}
+                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === 'cases'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-center lg:justify-start space-x-3">
+                    <AlertTriangle className="h-5 w-5" />
+                    <div className="hidden sm:block">
+                      <div className="font-medium">Moderation Cases</div>
+                      <div className="text-xs opacity-75">
+                        {moderationLogs.length} total cases
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('banned')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'banned'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Ban className="h-5 w-5" />
-                  <div>
-                    <div className="font-medium">Banned Users</div>
-                    <div className="text-xs opacity-75">
-                      {bannedUsers.length} banned users
+                </button>
+                <button
+                  onClick={() => setActiveTab('banned')}
+                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === 'banned'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-center lg:justify-start space-x-3">
+                    <Ban className="h-5 w-5" />
+                    <div className="hidden sm:block">
+                      <div className="font-medium">Banned Users</div>
+                      <div className="text-xs opacity-75">
+                        {bannedUsers.length} banned users
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              </div>
             </nav>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {activeTab === 'cases' && (
               <div>
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                   <h2 className="text-lg font-semibold text-gray-900">Moderation Cases</h2>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={fetchModerationLogs}
                       disabled={loading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
                     >
                       <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                      <span>Refresh</span>
+                      <span className="hidden sm:inline">Refresh</span>
                     </button>
                   </div>
                 </div>
@@ -371,39 +378,59 @@ const ModerationDashboard = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[600px]">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Case</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80">Case</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell w-20">Type</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Severity</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell w-24">Status</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell w-28">Created</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredLogs.map((log) => (
                           <tr key={log.log_id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-3 md:px-6 py-4 w-80">
                               <div className="flex items-center">
                                 {log.target_type === 'user' ? (
-                                  <User className="h-5 w-5 text-gray-400 mr-3" />
+                                  <User className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" />
                                 ) : (
-                                  <MessageSquare className="h-5 w-5 text-gray-400 mr-3" />
+                                  <MessageSquare className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" />
                                 )}
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{log.violation_type.replace('_', ' ')}</div>
-                                  <div className="text-sm text-gray-500 truncate max-w-xs">{log.violation_description}</div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium text-gray-900 truncate">{log.violation_type.replace('_', ' ')}</div>
+                                  <div className="text-sm text-gray-500 truncate max-w-xs" title={log.violation_description}>
+                                    {log.violation_description.length > 100 
+                                      ? `${log.violation_description.substring(0, 100)}...` 
+                                      : log.violation_description
+                                    }
+                                  </div>
+                                  {/* Show type and status on mobile */}
+                                  <div className="sm:hidden mt-1 space-y-1">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                                      {log.target_type}
+                                    </span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(log.status)}`}>
+                                      {log.status.replace('_', ' ')}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap"><span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{log.target_type}</span></td>
-                            <td className="px-6 py-4 whitespace-nowrap"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(log.severity_level)}`}>{log.severity_level}</span></td>
-                            <td className="px-6 py-4 whitespace-nowrap"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(log.status)}`}>{log.status.replace('_', ' ')}</span></td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(log.created_at).toLocaleDateString()}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <button onClick={() => setSelectedCase(log)} className="text-blue-600 hover:text-blue-900">View</button>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell w-20">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{log.target_type}</span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap w-24">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(log.severity_level)}`}>{log.severity_level}</span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap hidden md:table-cell w-24">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(log.status)}`}>{log.status.replace('_', ' ')}</span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell w-28">{new Date(log.created_at).toLocaleDateString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium w-20">
+                              <button onClick={() => setSelectedCase(log)} className="text-blue-600 hover:text-blue-900 px-2 py-1">View</button>
                             </td>
                           </tr>
                         ))}
@@ -416,16 +443,16 @@ const ModerationDashboard = () => {
 
             {activeTab === 'banned' && (
               <div>
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                   <h2 className="text-lg font-semibold text-gray-900">Banned Users</h2>
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={fetchBannedUsers} 
                       disabled={bannedLoading} 
-                      className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
                     >
                       <RefreshCw className={`h-4 w-4 ${bannedLoading ? 'animate-spin' : ''}`} />
-                      <span>Refresh</span>
+                      <span className="hidden sm:inline">Refresh</span>
                     </button>
                   </div>
                 </div>
@@ -442,13 +469,13 @@ const ModerationDashboard = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[500px]">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clerk ID</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Clerk ID</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Status</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -456,12 +483,19 @@ const ModerationDashboard = () => {
                           const id = u.user_id || u.clerk_id || u.id;
                           return (
                             <tr key={id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">{u.anonymous_handle || u.user_id || '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">{u.clerk_id || '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{u.account_status || 'banned'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onClick={() => handleUnbanUser(u)} disabled={actionLoading === id} className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2">
-                                  <Check className="h-4 w-4" />
+                              <td className="px-3 md:px-6 py-4">
+                                <div className="text-sm text-gray-900 font-mono truncate">{u.anonymous_handle || u.user_id || '-'}</div>
+                                {/* Show clerk ID and status on mobile */}
+                                <div className="sm:hidden mt-1 space-y-1">
+                                  <div className="text-xs text-gray-500 font-mono">{u.clerk_id || '-'}</div>
+                                  <div className="text-xs text-gray-600">{u.account_status || 'banned'}</div>
+                                </div>
+                              </td>
+                              <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono hidden sm:table-cell">{u.clerk_id || '-'}</td>
+                              <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell">{u.account_status || 'banned'}</td>
+                              <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onClick={() => handleUnbanUser(u)} disabled={actionLoading === id} className="px-2 md:px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
+                                  <Check className="h-3 w-3 md:h-4 md:w-4" />
                                   <span>Unban</span>
                                 </button>
                               </td>
@@ -480,24 +514,24 @@ const ModerationDashboard = () => {
         {/* Case Detail Modal */}
         {selectedCase && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
+              <div className="p-4 md:p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">Case Details</h3>
                   <button
                     onClick={() => setSelectedCase(null)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 p-1"
                   >
                     <X className="h-6 w-6" />
                   </button>
                 </div>
               </div>
               
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 md:p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Case ID</label>
-                    <p className="text-sm text-gray-900">{selectedCase.log_id}</p>
+                    <p className="text-sm text-gray-900 font-mono break-all">{selectedCase.log_id}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Created</label>
@@ -531,13 +565,13 @@ const ModerationDashboard = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Reported User ID</label>
-                    <p className="text-sm text-gray-900 font-mono">{selectedCase.reported_user_id}</p>
+                    <p className="text-sm text-gray-900 font-mono break-all">{selectedCase.reported_user_id}</p>
                   </div>
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium text-gray-700">Description</label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md break-words">
                     {selectedCase.violation_description}
                   </p>
                 </div>
@@ -545,7 +579,7 @@ const ModerationDashboard = () => {
                 {selectedCase.system_context && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">System Context</label>
-                    <pre className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md overflow-x-auto">
+                    <pre className="text-xs md:text-sm text-gray-900 bg-gray-50 p-3 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
                       {JSON.stringify(selectedCase.system_context, null, 2)}
                     </pre>
                   </div>
@@ -558,14 +592,14 @@ const ModerationDashboard = () => {
                       <button
                         onClick={() => handleResolveCase(selectedCase.log_id, 'warning', 'Warning issued to user')}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
+                        className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 text-sm"
                       >
                         Issue Warning
                       </button>
                       <button
                         onClick={() => handleBanUser(selectedCase.log_id)}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                        className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2 text-sm"
                       >
                         <Ban className="h-4 w-4" />
                         <span>Ban User</span>
@@ -573,7 +607,7 @@ const ModerationDashboard = () => {
                       <button
                         onClick={() => handleResolveCase(selectedCase.log_id, 'no_action', 'Case dismissed - no violation found')}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
+                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 text-sm"
                       >
                         Dismiss Case
                       </button>
