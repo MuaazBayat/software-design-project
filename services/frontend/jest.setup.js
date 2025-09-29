@@ -5,16 +5,9 @@
 import '@testing-library/jest-dom';
 const origError = console.error;
 console.error = (...args) => {
-  const msg = String(args[0] ?? '');
-  // ignore act() warnings and your provider’s expected error logs
-  if (
-    /not wrapped in act|Warning: An update to/i.test(msg) ||
-    /Failed to load presets from localStorage/i.test(msg) ||
-    /Failed to save presets to localStorage/i.test(msg)
-  ) return;
+  if (/not wrapped in act/.test(String(args[0]))) return;
   return origError(...args);
 };
-
 // beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 // afterEach(() => server.resetHandlers());
 // afterAll(() => server.close());

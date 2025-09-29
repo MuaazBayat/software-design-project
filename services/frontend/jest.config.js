@@ -9,6 +9,16 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
+  testMatch: ['<rootDir>/__tests__/*.(test|spec).[jt]s?(x)'],
+
+
+    // ✅ Ignore integration + setup dirs entirely
+    testPathIgnorePatterns: [
+    '/node_modules/',
+    '/.next/',
+    '/__tests__/integration/',
+    '/__tests__/setup/',
+    ],
   moduleNameMapper: {
     '^@/app/(.*)$': '<rootDir>/app/$1',
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',

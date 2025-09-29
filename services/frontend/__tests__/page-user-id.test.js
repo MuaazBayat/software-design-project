@@ -1131,5 +1131,543 @@ test('back navigation: clicking "Back to inbox" triggers router.back()', async (
   nav.useRouter.mockRestore();
   
 });
+// New tests — add below your existing tests
+
+describe('LetterApp — line config validation & mapping', () => {
+  test('onLineConfigChange clamps too-small spacing and thickness', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    const capturedRS = [];
+    RS.default = (props) => { capturedRS.push(props); return origRS(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('right-sidebar')).toBeInTheDocument();
+      expect(capturedRS.length).toBeGreaterThan(0);
+    });
+
+    const { onLineConfigChange } = capturedRS[capturedRS.length - 1];
+    act(() => onLineConfigChange({
+      type: 'wavy',
+      spacing: 2,        // too small → should clamp to ≥ 8
+      thickness: 0.1,    // too small → should clamp to ≥ 0.5
+      color: '#000',
+      opacity: 1,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      const last = capturedRS[capturedRS.length - 1];
+      expect(last.lineConfig.type).toBe('wavy');
+      expect(last.lineConfig.spacing).toBeGreaterThanOrEqual(8);
+      expect(last.lineConfig.thickness).toBeGreaterThanOrEqual(0.5);
+    });
+
+    RS.default = origRS;
+  });
+
+  test('mapLineConfigToParams: none → null; straight → computed count/size', async () => {
+    // Force a predictable viewport for mapping math
+    Object.defineProperty(window, 'innerWidth', { value: 1000, writable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const RS = require('../app/compose-letter/components/RightSidebar');
+
+    const origMC = MC.default;
+    const origRS = RS.default;
+
+    const capturedMC = [];
+    MC.default = (props) => { capturedMC.push(props); return origMC(props); };
+
+    let latestRSProps;
+    RS.default = (props) => { latestRSProps = props; return origRS(props); };
+
+    render(<LetterApp />);
+
+    // Initial render uses default lineConfig.type === 'none' → mapping should be null
+    await waitFor(() => {
+      expect(screen.getByTestId('main-content')).toBeInTheDocument();
+      expect(capturedMC.length).toBeGreaterThan(0);
+    });
+    expect(capturedMC[capturedMC.length - 1].templateData.lines).toBeNull();
+
+    // Switch to straight with known spacing → verify count, width, height, etc.
+    act(() => latestRSProps.onLineConfigChange({
+      type: 'straight',
+      spacing: 20,
+      thickness: 1,
+      color: '#123456',
+      opacity: 0.5,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      const lines = capturedMC[capturedMC.length - 1].templateData.lines;
+      expect(lines).toEqual(expect.objectContaining({
+        type: 'straight',
+        width: 1000,
+        height: 800,
+        spacing: 20,
+        thickness: 1,
+        color: '#123456',
+        opacity: 0.5,
+        rotation: 0,
+        slope: 0,
+        intercept: 0,
+        count: Math.ceil(800 / 20) + 1, // 41
+      }));
+    });
+
+    // cleanup
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+});
+
+describe('LetterApp — readability (estimateCEFR) advanced branch', () => {
+  test('readability upgrades to C2 when editor HTML has bullets + bold + italic + underline and sufficient words', async () => {
+    // Prepare a faux editor DOM so estimateCEFR() can read it
+    const host = document.createElement('div');
+    host.className = 'letter-content';
+    const editor = document.createElement('div');
+    editor.setAttribute('contenteditable', 'true');
+    const manyWords = Array.from({ length: 60 }, (_, i) => `word${i + 1}`).join(' ');
+    editor.innerHTML = `<ul><li><b><i><u>${manyWords}</u></i></b></li></ul>`;
+    host.appendChild(editor);
+    document.body.appendChild(host);
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    const capturedRS = [];
+    RS.default = (props) => { capturedRS.push(props); return origRS(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      expect(capturedRS.length).toBeGreaterThan(0);
+      expect(capturedRS[capturedRS.length - 1].readability).toBe('C2');
+    });
+
+    // cleanup
+    RS.default = origRS;
+    document.body.removeChild(host);
+  });
+});
+
+describe('LetterApp — templates bottom sheet (mobile)', () => {
+  test('toggling templates opens the bottom TemplateSidePanel on mobile widths', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMCProps;
+    MC.default = (props) => { latestMCProps = props; return origMC(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => expect(latestMCProps).toBeTruthy());
+
+    // Trigger the page's handler via the MainContent prop
+    act(() => latestMCProps.onToggleTemplates());
+
+    // The mobile bottom sheet renders our TemplateSidePanel mock
+    expect(await screen.findByTestId('template-side-panel')).toBeInTheDocument();
+
+    MC.default = origMC;
+  });
+});
+
+describe('LetterApp — export JPG error path', () => {
+  test('onExportJPG shows toast error when no .letter-content exists', async () => {
+    const { toast } = require('sonner');
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRSProps;
+    RS.default = (props) => { latestRSProps = props; return origRS(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => expect(latestRSProps).toBeTruthy());
+
+    // Ensure there is no .letter-content in DOM for this test
+    const stray = document.querySelector('.letter-content');
+    if (stray) stray.parentElement?.removeChild(stray);
+
+    await act(async () => {
+      await latestRSProps.onExportJPG();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Could not find letter content to export.');
+
+    RS.default = origRS;
+  });
+});
+// More targeted tests — append these to your existing test file
+
+describe('Export JPG — options & callbacks', () => {
+test('desktop: uses targetWidth=768, isMobile=false and forwards dataUrl to callback', async () => {
+  // Desktop width
+  Object.defineProperty(window, 'innerWidth', { value: 1400, writable: true });
+
+  // Intercept RightSidebar props
+  const RS = require('../app/compose-letter/components/RightSidebar');
+  const origRS = RS.default;
+  let latestRS;
+  RS.default = (props) => { latestRS = props; return origRS(props); };
+
+  // Provide a `.letter-content` with a contenteditable child (what estimateCEFR/exporters expect)
+  const host = document.createElement('div');
+  host.className = 'letter-content';
+  host.innerHTML = `<div contenteditable="true">Hello world</div>`;
+  document.body.appendChild(host);
+
+  // Mock generator to INVOKE the callback arg (3rd param)
+  const { generateJPEG } = require('../app/compose-letter/lib/jpegGenerator');
+  generateJPEG.mockImplementation(async (_el, _name, cb, _opts) => {
+    if (typeof cb === 'function') cb('data:image/jpeg;base64,abc');
+  });
+
+  const { toast } = require('sonner');
+  render(<LetterApp />);
+
+  await waitFor(() => expect(latestRS).toBeTruthy());
+
+  let received;
+  await act(async () => {
+    await latestRS.onExportJPG((data) => { received = data; });
+  });
+
+  expect(generateJPEG).toHaveBeenCalledTimes(1);
+  const [elementArg, filenameArg, cbArg, optsArg] = generateJPEG.mock.calls[0];
+  expect(elementArg).toBe(host);
+  expect(filenameArg).toMatch(/letter-to-.*\.jpeg$/);
+  expect(typeof cbArg).toBe('function');
+  expect(optsArg).toEqual({ targetWidth: 768, isMobile: false });
+
+  // Callback receives dataUrl
+  expect(received).toBe('data:image/jpeg;base64,abc');
+  // When a callback is provided, success toast shouldn't auto-fire
+  expect(toast.success).not.toHaveBeenCalled();
+
+  RS.default = origRS;
+  document.body.removeChild(host);
+});
+
+  test('mobile: uses targetWidth=1024, isMobile=true', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true });
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    const host = document.createElement('div');
+    host.className = 'letter-content';
+    host.innerHTML = `<div contenteditable="true">Mobile letter</div>`;
+    document.body.appendChild(host);
+
+    const { generateJPEG } = require('../app/compose-letter/lib/jpegGenerator');
+    generateJPEG.mockResolvedValue('data:image/jpeg;base64,xyz');
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS).toBeTruthy());
+
+    await act(async () => {
+      await latestRS.onExportJPG(() => {});
+    });
+
+    const [, , , optsArg] = require('../app/compose-letter/lib/jpegGenerator').generateJPEG.mock.calls[0];
+    expect(optsArg).toEqual({ targetWidth: 1024, isMobile: true });
+
+    RS.default = origRS;
+    document.body.removeChild(host);
+  });
+
+  test('error path: shows toast and calls callback(null) when .letter-content is missing', async () => {
+    // Ensure no .letter-content in DOM
+    document.querySelectorAll('.letter-content').forEach((n) => n.remove());
+
+    const { toast } = require('sonner');
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS).toBeTruthy());
+
+    let received = 'not-called';
+    await act(async () => {
+      await latestRS.onExportJPG((data) => { received = data; });
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Could not find letter content to export.');
+    expect(received).toBeNull();
+
+    RS.default = origRS;
+  });
+});
+
+describe('Export PDF — error path', () => {
+test('shows toast and skips generation when .letter-content is missing', async () => {
+  // Ensure no .letter-content in DOM
+  document.querySelectorAll('.letter-content').forEach(n => n.remove());
+
+  const { toast } = require('sonner');
+  const { PDFGenerator } = require('../app/compose-letter/lib/pdfGenerator');
+  // These are already jest.fn() from your top-level jest.mock, but we can be explicit:
+  const genSpy = jest.spyOn(PDFGenerator, 'generateLetterPDF');
+  const dlSpy = jest.spyOn(PDFGenerator, 'downloadPDF');
+
+  const RS = require('../app/compose-letter/components/RightSidebar');
+  const origRS = RS.default;
+  let latestRS;
+  RS.default = (props) => { latestRS = props; return origRS(props); };
+
+  render(<LetterApp />);
+  await waitFor(() => expect(latestRS).toBeTruthy());
+
+  await act(async () => {
+    await latestRS.onExportPDF();
+  });
+
+  expect(toast.error).toHaveBeenCalledWith('Could not find letter content to export.');
+  expect(genSpy).not.toHaveBeenCalled();
+  expect(dlSpy).not.toHaveBeenCalled();
+
+  RS.default = origRS;
+});
+
+});
+
+describe('Readability — additional tiers', () => {
+  test('A1 when editor is missing', async () => {
+    // Ensure no editor exists
+    document.querySelectorAll('.letter-content').forEach((n) => n.remove());
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastProps;
+    RS.default = (props) => { lastProps = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(lastProps).toBeTruthy());
+    expect(lastProps.readability).toBe('A1');
+
+    RS.default = origRS;
+  });
+
+test('B2 when >100 words with bullet list but no emphasis', async () => {
+  const container = document.createElement('div');
+  container.className = 'letter-content';
+  const words = Array.from({ length: 110 }, (_, i) => `w${i}`).join(' ');
+  // NOTE: estimator looks for `.letter-content [contenteditable="true"]`
+  container.innerHTML = `<div contenteditable="true"><ul><li>${words}</li></ul></div>`;
+  document.body.appendChild(container);
+
+  const RS = require('../app/compose-letter/components/RightSidebar');
+  const origRS = RS.default;
+  let lastProps;
+  RS.default = (props) => { lastProps = props; return origRS(props); };
+
+  render(<LetterApp />);
+  await waitFor(() => expect(lastProps?.readability).toBe('B2'));
+
+  RS.default = origRS;
+  document.body.removeChild(container);
+});
+
+test('C1 when >150 words with bullets and some emphasis', async () => {
+  const host = document.createElement('div');
+  host.className = 'letter-content';
+  const words = Array.from({ length: 160 }, (_, i) => `w${i}`).join(' ');
+  host.innerHTML = `<div contenteditable="true"><ul><li><strong>${words}</strong></li></ul></div>`;
+  document.body.appendChild(host);
+
+  const RS = require('../app/compose-letter/components/RightSidebar');
+  const origRS = RS.default;
+  let lastProps;
+  RS.default = (props) => { lastProps = props; return origRS(props); };
+
+  render(<LetterApp />);
+  await waitFor(() => expect(lastProps?.readability).toBe('C1'));
+
+  RS.default = origRS;
+  document.body.removeChild(host);
+});
+});
+
+describe('Letter stats — rounding & counts', () => {
+  test('wordCount updates and readingTime rounds to nearest 5 seconds', async () => {
+    // Intercept MainContent to grab setLetterContent
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    // Capture RS to observe propagated stats
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    // 201 words → 201/200*60 = 60.3s → rounds to 60s → "1:00"
+    const big = '<p>' + Array.from({ length: 201 }, (_, i) => `w${i}`).join(' ') + '</p>';
+    act(() => latestMC.setLetterContent(big));
+
+    await waitFor(() => {
+      expect(lastRS.wordCount).toBe(201);
+      expect(lastRS.readingTime).toBe('1:00');
+    });
+
+    // cleanup
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+});
+
+describe('Line patterns — additional types mapped to viewport', () => {
+  test('wavy and dotted patterns include viewport width/height and correct type', async () => {
+    // Force a known viewport
+    Object.defineProperty(window, 'innerWidth', { value: 900, writable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 700, writable: true });
+
+    // Wrap MainContent to capture templateData
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    const snapshots = [];
+    MC.default = (props) => { snapshots.push(props); return origMC(props); };
+
+    // Wrap RightSidebar to access onLineConfigChange
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+    act(() => latestRS.onLineConfigChange({
+      type: 'wavy',
+      spacing: 20,
+      thickness: 1,
+      color: '#111111',
+      opacity: 0.8,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      const lines = snapshots.at(-1).templateData.lines;
+      expect(lines).toEqual(expect.objectContaining({ type: 'wavy', width: 900, height: 700 }));
+    });
+
+    act(() => latestRS.onLineConfigChange({
+      type: 'dotted',
+      spacing: 16,
+      thickness: 1,
+      color: '#222222',
+      opacity: 0.6,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      const lines = snapshots.at(-1).templateData.lines;
+      expect(lines).toEqual(expect.objectContaining({ type: 'dotted', width: 900, height: 700 }));
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+
+test('clamps tiny spacing/thickness via onLineConfigChange and passes to RightSidebar props', async () => {
+  const RS = require('../app/compose-letter/components/RightSidebar');
+  const origRS = RS.default;
+  let latestRS;
+  RS.default = (props) => { latestRS = props; return origRS(props); };
+
+  render(<LetterApp />);
+  await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+  act(() => latestRS.onLineConfigChange({
+    type: 'wavy',
+    spacing: 1,          // too small, must clamp to ≥ 8
+    thickness: 0.01,     // too small, must clamp to ≥ 0.5
+    color: '#000',
+    opacity: 1,
+    rotation: 0,
+  }));
+
+  await waitFor(() => {
+    // After state update, RightSidebar receives the validated lineConfig
+    expect(latestRS.lineConfig.spacing).toBeGreaterThanOrEqual(8);
+    expect(latestRS.lineConfig.thickness).toBeGreaterThanOrEqual(0.5);
+  });
+
+  RS.default = origRS;
+});
+});
+
+describe('Font overlay toggling', () => {
+  test('desktop: onToggleFontOverlay toggles overlayFontOpen and clears previewFontId', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1400, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    const snapshots = [];
+    MC.default = (props) => { snapshots.push(props); return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(snapshots.length).toBeGreaterThan(0));
+
+    // Initially closed
+    expect(snapshots.at(-1).overlayFontOpen).toBeFalsy();
+
+    act(() => snapshots.at(-1).onToggleFontOverlay());
+
+    await waitFor(() => {
+      expect(snapshots.at(-1).overlayFontOpen).toBeTruthy();
+      expect(snapshots.at(-1).previewFontIdExternal).toBeNull();
+    });
+
+    act(() => snapshots.at(-1).onToggleFontOverlay());
+
+    await waitFor(() => {
+      expect(snapshots.at(-1).overlayFontOpen).toBeFalsy();
+      expect(snapshots.at(-1).previewFontIdExternal).toBeNull();
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Send disabled logic — whitespace-only content', () => {
+  test('sendDisabled=true when letterContent is whitespace only', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    // Set whitespace-only content
+    act(() => latestMC.setLetterContent('   \n  '));
+
+    // RightSidebar mock mirrors sendDisabled to an attribute
+    const right = screen.getAllByTestId('right-sidebar')[0];
+    await waitFor(() => {
+      expect(right).toHaveAttribute('senddisabled', 'true');
+    });
+
+    MC.default = origMC;
+  });
+});
 
 });

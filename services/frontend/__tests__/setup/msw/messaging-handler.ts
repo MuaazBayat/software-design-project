@@ -305,6 +305,60 @@ const paths: string[] = Array.isArray(body?.paths) ? (body.paths as string[]) : 
     await delay(10);
     return HttpResponse.json({ items: out });
   }),
+  // Add to messaging handlers
+http.post('*/api/v1/users/search', async ({ request }) => {
+  const userId = request.headers.get('X-User-Id') || '';
+  if (!userId) return HttpResponse.json({ detail: 'missing X-User-Id' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({})) as {
+    my_user_id?: string; anonymous_handle?: string; limit?: number; offset?: number;
+  };
+  const me = body.my_user_id || userId;
+  const limit = Math.max(1, Math.min(50, Number(body.limit ?? 10)));
+  const offset = Math.max(0, Number(body.offset ?? 0));
+
+  // Build a list of other users from the in-memory db
+  const allUsers = Array.from(db.users.values()).filter(u => u.user_id !== me);
+
+  // Map to the shape expected by the page
+  const items = allUsers.slice(offset, offset + limit).map(u => {
+    // Find latest message (either direction) between me and u
+    const convo = db.messages.filter(m =>
+      (m.sender_id === me && m.recipient_id === u.user_id) ||
+      (m.sender_id === u.user_id && m.recipient_id === me)
+    ).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const latest = convo[0];
+    const conversation_thread_id =
+      latest ? `thread_${[me, u.user_id].sort().join('_')}` : undefined;
+
+    return {
+      user_profile: {
+        user_id: u.user_id,
+        anonymous_handle: u.anonymous_handle ?? `u_${u.user_id.slice(-6)}`,
+        country_code: 'ZA', // or omit if you don’t care
+      },
+      latest_message: latest ? {
+        conversation_thread_id,
+        match_id: `match_${[me, u.user_id].sort().join('_')}`,
+      } : undefined,
+    };
+  });
+
+  await delay(25);
+  return HttpResponse.json({ items });
+}),
+// Add to messaging handlers
+http.post('*/api/v1/uploads', async ({ request }) => {
+  const userId = request.headers.get('X-User-Id') || 'anon';
+  const form = (request as any).formData ? await (request as any).formData() : null;
+  // Optional: validate form.get('file')
+  const path = `letters/${userId}/${Date.now()}.jpg`;
+
+  // Keep the response shape the client expects
+  return HttpResponse.json({ data: { path } }, { status: 200 });
+}),
+
 ];
 
 export default messagingHandlers;
