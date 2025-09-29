@@ -16,6 +16,7 @@ const LetterInbox = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'read' | 'unread'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const { profile, synced } = useSyncProfile();
   const router = useRouter();
@@ -130,6 +131,8 @@ const LetterInbox = () => {
     }
 
     setFilteredConversations(filtered);
+    // Reset pagination when filter changes
+    setVisibleCount(6);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversations, searchTerm, filterStatus, profile?.user_id]);
 
@@ -258,18 +261,32 @@ const LetterInbox = () => {
         )}
 
         {!isLoading && filteredConversations.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredConversations.map((conversation) => (
-              <ConversationCard
-                key={conversation.user_profile.user_id}
-                conversation={conversation}
-                formatMessagePreview={(t, n) => formatMessagePreview(t, n)}
-                formatTimeAgo={formatTimeAgo}
-                getDeliveryStatusBadge={getDeliveryStatusBadge}
-                onClick={() => handleConversationClick(conversation)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredConversations.slice(0, visibleCount).map((conversation) => (
+                <ConversationCard
+                  key={conversation.user_profile.user_id}
+                  conversation={conversation}
+                  formatMessagePreview={(t, n) => formatMessagePreview(t, n)}
+                  formatTimeAgo={formatTimeAgo}
+                  getDeliveryStatusBadge={getDeliveryStatusBadge}
+                  onClick={() => handleConversationClick(conversation)}
+                />
+              ))}
+            </div>
+
+            {/* See More Button */}
+            {filteredConversations.length > visibleCount && (
+              <div className="text-center mt-8">
+                <button
+                  onClick={() => setVisibleCount(prev => prev + 6)}
+                  className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors shadow-md hover:shadow-lg"
+                >
+                  See More Letters
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,1 +1,0 @@
-pagination to hide messages more than 6
