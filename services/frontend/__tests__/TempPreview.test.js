@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { TempPreviewProvider, useTempPreview } from '../app/compose-letter/components/TempPreview'
 
 const TestComponent = () => {
@@ -31,7 +32,8 @@ describe('TempPreview Context', () => {
     expect(screen.getByTestId('saved-state')).toHaveTextContent('no-saved')
   })
 
-  test('allows setting preview state', () => {
+  test('allows setting preview state', async () => {
+    const user = userEvent.setup()
     render(
       <TempPreviewProvider>
         <TestComponent />
@@ -43,13 +45,14 @@ describe('TempPreview Context', () => {
 
     // Click to set preview
     const setPreviewBtn = screen.getByText('Set Preview')
-    setPreviewBtn.click()
+    await user.click(setPreviewBtn)
 
     // Now has preview
     expect(screen.getByTestId('preview-state')).toHaveTextContent('has-preview')
   })
 
-  test('allows setting saved state', () => {
+  test('allows setting saved state', async () => {
+    const user = userEvent.setup()
     render(
       <TempPreviewProvider>
         <TestComponent />
@@ -61,7 +64,7 @@ describe('TempPreview Context', () => {
 
     // Click to set saved
     const setSavedBtn = screen.getByText('Set Saved')
-    setSavedBtn.click()
+    await user.click(setSavedBtn)
 
     // Now has saved
     expect(screen.getByTestId('saved-state')).toHaveTextContent('has-saved')
