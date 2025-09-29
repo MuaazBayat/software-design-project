@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { Heart, X, UserSearch, Globe, MapPin, Camera, Book, Mountain, Star, Clock, MessageCircle } from 'lucide-react';
 import Loader from '@/components/ui/loader';
+import { toast } from 'sonner';
 interface UserProfile {
   user_id: string;
   anonymous_handle: string;
@@ -336,7 +337,7 @@ const MatchScreen: React.FC = () => {
   const handleLike = async () => {
     if (!user || !currentProfile || !suggestedProfile) return;
     if (dailyStats && dailyStats.matches_remaining <= 0) {
-      alert('Daily match limit exceeded. Try again tomorrow!');
+      toast.error('Daily match limit exceeded. Try again tomorrow!');
       return;
     }
 
@@ -364,21 +365,21 @@ const MatchScreen: React.FC = () => {
           errorMessage = `Server error: ${response.status}`;
         }
         console.error('Match creation failed:', errorMessage);
-        alert(errorMessage);
+        toast.error(errorMessage);
         return;
       }
 
       const matchData: MatchData = await response.json();
       console.log('Match created:', matchData);
-      alert(`Match created with ${matchData.penpal_profile.anonymous_handle}! 🎉`);
+      toast.success(`Match created with ${matchData.penpal_profile.anonymous_handle}! 🎉`);
       await fetchDailyStats();
       await fetchSuggestions();
     } catch (error) {
       console.error('Error creating match:', error);
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        alert('Connection error. Please check if the server is running and try again.');
+        toast.error('Connection error. Please check if the server is running and try again.');
       } else {
-        alert('Error creating match. Please try again.');
+        toast.error('Error creating match. Please try again.');
       }
     }
     setActionLoading(false);

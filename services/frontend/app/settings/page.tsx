@@ -2,6 +2,7 @@
 import Link from "next/link";
 import * as React from "react";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Card,
@@ -237,11 +238,11 @@ export default function Page() {
 
   async function onSave() {
     if (!isLoaded || !isSignedIn || !clerkId) {
-      alert("Sign in first.");
+      toast.error("Please sign in first.");
       return;
     }
     if (handle && !HANDLE_RE.test(handle)) {
-      alert("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
+      toast.error("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
       return;
     }
 
@@ -262,7 +263,7 @@ export default function Page() {
         bio: updated.bio ?? "",
         interests: updated.interests ?? [],
       };
-      alert("Saved changes.");
+      toast.success("Settings saved successfully!");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);

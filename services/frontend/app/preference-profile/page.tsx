@@ -3,6 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+import { toast } from 'sonner';
 
 
 
@@ -262,13 +263,13 @@ const PreferenceProfileSelector = () => { // Remove the props
     if (selectedProfile) {
       const success = await savePreferenceSelection(selectedProfile);
       if (success) {
-        alert('Preference saved, proceeding with signup');
+        toast.success('Preference saved, proceeding with signup');
         router.push('/'); // Navigate to home or another page
       } else {
-        alert('Failed to save your preference. Please try again.');
+        toast.error('Failed to save your preference. Please try again.');
       }
     } else {
-      alert('Please select a profile that matches your interests');
+      toast.warning('Please select a profile that matches your interests');
     }
   };
 

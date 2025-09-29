@@ -15,7 +15,7 @@ import LeftSidebar from "../../../components/LeftSidebar"
 import MainContent from "../../../components/MainContent"
 import RightSidebar from "../../../components/RightSidebar"
 import { useRouter } from "next/navigation"
-import { Toaster, toast } from "sonner"
+import { toast } from "sonner"
 import { se } from "date-fns/locale";
 
 // Define types and interfaces at the top (these are fine as they're not exports)
@@ -307,7 +307,6 @@ export default function LetterApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-      <Toaster richColors position="top-center" />
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
