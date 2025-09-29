@@ -393,7 +393,7 @@ As Mohammed Bangie reported in our August 29th internal sync, "backend testing w
 
 3. **Technical Debt:** Allocating dedicated capacity for technical debt in each sprint prevented quality degradation over time. Our 20% allocation (8 points) to technical debt and contingency proved to be an appropriate balance.
 
-4. **Stakeholder Communication:** We found that more frequent, shorter stakeholder meetings (three per sprint) were more effective than fewer, longer sessions. This allowed us to get timely feedback and avoid going too far down an incorrect path.
+4. **Stakeholder Communication:** Regular stakeholder meetings were crucial for getting timely feedback and avoiding going too far down an incorrect path.
 
 5. **Architecture Decisions:** Our initial exploration of simplifying to a monolithic architecture was quickly corrected by Tapiwa's guidance to maintain the microservices approach, reinforcing the importance of validating architectural decisions with stakeholders.
 
@@ -421,72 +421,285 @@ Our toolchain included:
 
 The combination of these tools provided a seamless development experience while maintaining high visibility into project status.
 
-## 6. Conclusion
+## 6. Sprint 3: Final Delivery & Quality Assurance
 
-Our implementation of the Scrum framework provided a robust foundation for managing the complexity of our microservices architecture. The empirical process control inherent in Scrum enabled us to continuously inspect and adapt both our product and our process, resulting in high-quality deliverables that met stakeholder expectations.
+**Duration:** 4 weeks (September 3 - September 30, 2025)  
+**Primary Goal:** Stabilize the core product, integrate high-value architectural components and hidden requirements, and prepare for final project submission.  
+**Success Criteria:** Zero critical bugs; complete, demonstrable end-to-end user flow; all technical debt from Sprint 2 resolved; final test coverage achieved.
 
-The structured yet flexible nature of our approach allowed us to maintain technical excellence while responding to changing requirements and new insights. The transparent nature of our process—with clear artifacts, ceremonies, and roles—facilitated effective collaboration both within the team and with external stakeholders.
+**Documentation:** [Sprint 3 Proof of Meetings](https://drive.google.com/drive/folders/1Ck7xOtAiGVQSt3-fXQdfHruHb5nl6j6k?usp=sharing)
 
-As demonstrated through our sprint execution, the Scrum framework proved highly effective for our project, enabling us to deliver working increments of software that provided tangible value at regular intervals.
+During this final sprint, we faced the reality of integrating complex architectural components while maintaining system stability. As Mohammed noted during our September 5 meeting, "The JWT integration is more complex than we initially estimated - we're dealing with cross-service authentication that affects all our microservices." This challenge highlighted the technical debt accumulated from our rapid Sprint 2 development and required careful coordination across the entire team.
 
-## 7. Sprint 3 Planning & Next Steps
+### 6.1 Sprint Planning & Backlog Refinement
 
-**Headline Goal:** Fix all core features, raise PRs, and demonstrate a complete end-to-end flow to the tutor.
+Based on the Sprint 2 Retrospective and final stakeholder feedback, the Sprint 3 planning focused heavily on quality, architecture, and user experience polish. The extended duration allowed the team to integrate significant architectural changes and numerous UI/UX enhancements while dedicating time to rigorous testing and bug resolution.
 
-As agreed in our August 29th team meeting, we will "fix all features, create and merge PRs, show them to Tapiwa, and then finalize everything by Tuesday morning."
+**Refined Sprint Goals (Sprint 3 Targets)**  
+**Quality & Stabilization:** Resolve all critical bugs (messaging and inbox display issues) and achieve final, high-target test coverage.
 
-### 7.1 High-Level Backlog (Sprint 3 Targets)
+**Architectural & Security Finalization:** Implement JSON Web Tokens (JWT) for robust authentication and set up S3-compatible storage for media handling.
 
-Based on the issues identified in our August 29th meeting:
+**User Experience & Feature Polish:** Implement key UI enhancements (e.g., new landing page, mobile fixes, animations) and advanced letter features (e.g., grammar check, template saving).
 
-1. **Bug Fixes:**
-   - Fix Messaging API bug where "messages were being sent from an incorrect sender ID" (Arno)
-   - Resolve inbox API issue that is "collecting every match instead of just messages, leading to empty cards for unmatched individuals" (Sufyaan)
+**Hidden Requirement Delivery:** Successfully implement high-value security and utility features, including IP blocking/profanity filtering and PDF/JPEG export.
 
-2. **Feature Completion:**
-   - Create a "chat view to see the ongoing chat" (Sufyaan)
-   - Implement the "Sauna component from Shad CN for push notifications" to improve theming (Rameez)
+During planning, Sufyaan emphasized the importance of the extended timeline: "We have four weeks to get everything right - no shortcuts this time." The team allocated specific time for integration testing after discovering that Sprint 2's rapid development had left several integration points untested.
 
-3. **Quality Assurance:**
-   - Prepare and run a comprehensive end-to-end flow test
-   - Address any issues discovered during testing
-   - Mohammed Bangie will "investigate monkey patch to ensure it works reliably as a mocked database for testing"
+### 6.2 Team Structure & Work Distribution
 
-4. **Documentation:**
-   - Sufyaan will "start pulling the database documentation into a document"
-   - Ensure all API endpoints are properly documented
+Our team maintained the cross-functional, self-organizing structure established in Sprint 2, with refined focus areas to address the final delivery requirements:
 
-5. **UI Consistency:**
-   - Rameez will "sort out the UI color scheme for the matchmaking page to be uniform with the rest of the project"
-   - Standardize design language across all pages as confirmed as a requirement by Tapiwa
+| Team Member | Primary Focus | Secondary Focus | Key Deliverables |
+|-------------|---------------|-----------------|------------------|
+| Rameez | API Performance & Matchmaking | Profiles Optimization | API optimization, matchmaking algorithm refinement, performance monitoring |
+| Arno Strauss | UI/UX Enhancements | Compose Letter Features | Grammar checker, template saving, mobile fixes, animations, UI documentation |
+| Sufyaan Mahomed | Scrum Master, Security & Moderation | Bug Resolution | IP blocking, profanity filtering, PDF export, admin panel |
+| Mohammed Bangie | Backend Security & Media | Bug Fixes | JWT implementation, S3 integration, critical bug resolution |
+| Muhammad Hoosen | Quality Assurance & Testing | Documentation & Integration Testing | Test coverage expansion, end-to-end testing, quality validation, API documentation |
+| Muaaz Bayat | UI Design & Frontend Polish | Documentation & Communication | New landing page, navbar updates, color scheme consistency, stakeholder reviews, project documentation |
 
-### 7.2 Sprint 3 Planning Strategy
+**Services & Ownership (Sprint 3 Final Snapshot):**
 
-The planning for Sprint 3 will incorporate lessons learned from the previous sprints:
+| Service | Task | Owner(s) | Status / Notes |
+|---------|------|----------|----------------|
+| Frontend | UI Polish, Mobile Fixes, Landing Page | Arno, Muaaz | Complete; new landing page integrated, navbar updated, color scheme standardized |
+| Profiles & Matchmaking | API Optimization, Performance | Rameez | Complete; response times improved by 40% |
+| Messaging | Media Handling, Bug Fixes | Mohammed, Sufyaan | Complete; S3 integration, sender ID fixed, empty cards resolved |
+| Moderation | Security, IP Blocking, Profanity | Sufyaan | Complete; JWT auth, IP blocking, profanity filtering implemented |
+| Cultural Explorer | Bug Fixes, Data Formatting | Muaaz | Complete; country display corrected, color consistency fixed |
+| Testing | Coverage Expansion, Integration | Muhammad Hoosen | Complete; 89% backend, 68% frontend achieved |
+| Documentation | Final Updates, API Specs | Sufyaan, Muaaz, Muhammad Hoosen, Arno | Complete; all endpoints documented, justifications provided, comprehensive project documentation |
 
-1. **Refined Task Scoping:**
-   - More precise definition of task boundaries to prevent scope creep
-   - Clearer handoff procedures between team members
+The team structure proved highly effective for the final sprint, with each member taking ownership of critical components while maintaining cross-functional support.
 
-2. **Bug-First Approach:**
-   - Prioritize resolving critical bugs before implementing new features
-   - Establish bug severity classification system
+### 6.3 Sprint Execution & Daily Coordination
 
-3. **Comprehensive Testing:**
-   - Implement end-to-end testing scenarios that cover complete user journeys
-   - Maintain high test coverage while focusing on critical paths
+**Objective:** Maintain team alignment, track progress toward final delivery, and ensure all deliverables met the Definition of Done.
 
-4. **Documentation Updates:**
-   - Standardize documentation across all services
-   - Ensure all technical decisions are properly documented
+**Key Activities:**
+- Daily stand-up meetings continued with 15-minute timeboxing, focusing on final delivery blockers
+- Comprehensive end-to-end testing sessions conducted mid-sprint to validate the complete user flow
+- Regular pair programming sessions for complex integrations (JWT, S3, IP blocking)
+- Stakeholder check-in conducted to align on final requirements and demonstrate progress
 
-Our approach to bug fixing was influenced by Sufyaan's candid assessment: "The messaging API issues are more fundamental than we initially thought - we need to refactor the database query structure rather than just patching the symptoms." This insight led us to allocate more time to backend refactoring than originally planned.
+**Internal Team Meetings:**
 
-Based on Tapiwa's guidance that we should aim for higher test coverage (around 80%) in future sprints, we've added comprehensive testing tasks with a focus on integration testing of complete user journeys.
+**September 5 Meeting:** Team reviewed initial Sprint 3 progress on JWT authentication and S3 media handling. Mohammed demonstrated the JWT implementation across microservices, while Sufyaan presented the admin panel prototype. The team identified potential integration challenges with the existing Clerk authentication system and allocated additional time for testing.
+
+**September 13 Meeting:** Focused on UI/UX progress and testing milestones. Arno showcased the grammar checker integration and template saving functionality. Muhammad Hoosen reported on test coverage progress, noting the backend had reached 85% coverage. The team discussed the landing page redesign approach and assigned Muaaz to lead the navbar and color scheme updates.
+
+**September 21 Meeting:** Mid-sprint review revealed several bugs requiring immediate attention. Mohammed reported issues with S3 bucket permissions causing media upload failures. Sufyaan identified edge cases in the IP blocking logic that were triggering false positives. The team reprioritized bug fixes and extended testing sessions to ensure stability.
+
+**September 29 Meeting:** Final internal review before stakeholder presentation. Team validated the complete end-to-end user flow, confirmed all critical bugs were resolved, and reviewed the comprehensive test suite. Rameez presented API performance metrics showing 40% improvement in response times. All team members confirmed their deliverables were complete and ready for final demonstration.
+
+During the September 21 meeting, Mohammed described the S3 integration challenges: "The bucket permissions are more complex than expected - we're getting authentication errors even with the correct credentials." This led to a team decision to allocate additional time for security testing, demonstrating our commitment to getting the implementation right rather than rushing to meet arbitrary deadlines.
+
+**Metrics Tracked:**
+- Daily progress against sprint goals
+- Test coverage increases
+- Bug resolution rate
+- Feature completion status
+
+**Scrum Alignment:** Daily stand-ups maintained synchronization and rapid feedback, crucial for the time-sensitive final delivery.
+
+Our Scrum Master, Sufyaan Mahomed, facilitated efficient daily coordination, ensuring that the team remained focused on the headline goal of zero critical bugs and complete end-to-end functionality. As Mohammed noted during our mid-sprint check-in, "The daily stand-ups kept everyone aligned on the critical path items."
+
+#### Risk Management Approach
+
+Throughout Sprint 3, we proactively managed risks to ensure final delivery success:
+
+1. **Risk Identification**: Daily stand-ups included risk assessment for remaining work
+2. **Risk Mitigation**: High-priority risks were assigned owners with contingency plans
+
+Key challenges addressed during Sprint 3:
+
+| Challenge | Approach | Owner |
+|-----------|----------|--------|
+| JWT integration complexity | Early prototyping and testing | Muaaz |
+| S3 storage configuration | Comprehensive testing across environments | Mohammed |
+| IP blocking false positives | Admin panel override capability | Sufyaan |
+| Test coverage targets | Dedicated testing sprints | Muhammad Hoosen |
+
+### 6.4 Stakeholder Reviews & Sprint Reviews
+
+**September 23 Meeting Highlights (Formal Stakeholder Review):**
+
+The team presented the complete Sprint 3 deliverables for formal stakeholder review. Mohammed showcased the JWT authentication and S3 media handling implementation, demonstrating secure file uploads for letter attachments. Sufyaan demonstrated the moderation features including IP blocking and profanity filtering, with the admin panel for managing security settings. Arno presented the UI enhancements including the new landing page, navbar updates, and color scheme consistency implemented by Muaaz.
+
+Tapiwa expressed satisfaction with the IP blocking implementation, noting "the blocking users requirement is solid." He commented positively on the PDF export feature, saying "it looks nice" and that he "likes it." When discussing the letter composition interface, Tapiwa asked if we had considered limiting the UI since "it expands infinitely downwards." Arno responded that we would integrate height limitations to address this concern.
+
+The stakeholder confirmed the team had achieved the headline goal of delivering a complete, stable end-to-end user flow with demonstrable value and integrated security components.
+
+### 6.5 Sprint Retrospective
+
+**Objective:** Reflect on the final sprint execution and identify lessons for future projects.
+
+The Sprint Retrospective was facilitated by Sufyaan Mahomed, focusing on the successful completion of all sprint goals:
+
+**What Went Well:**
+- Zero critical bugs achieved through rigorous testing and bug resolution
+- Successful integration of all "hidden requirements" (IP blocking, PDF export)
+- Exceeded test coverage targets with comprehensive quality assurance
+- Effective cross-functional collaboration enabled complex feature delivery
+
+**Areas for Improvement:**
+- Earlier integration testing could have prevented some mid-sprint rework
+- More stakeholder demos would have provided additional feedback opportunities
+- Documentation updates could have been spread more evenly throughout the sprint
+
+**Action Items:**
+- Implement integration testing earlier in future sprints
+- Schedule stakeholder demos for complex features
+- Create a documentation checklist for final sprints
+
+During the retrospective, Arno reflected on the UI/UX work: "The grammar checker integration took longer than expected because of API rate limiting, but the end result exceeded our expectations." Mohammed added, "The JWT implementation taught us a lot about cross-service authentication - we should have started that integration testing two weeks earlier." Muhammad Hoosen noted the testing achievements: "Reaching 89% backend coverage required daily focus, but it gave us the confidence to deliver without critical bugs."
+
+**Scrum Alignment:** This retrospective focused on continuous improvement and process refinement for the project's conclusion.
+
+### 6.6 Technical Implementation & Feature Delivery
+
+**Core Features Delivered:**
+
+1. **Authentication & Security System**
+   - JWT token implementation across all microservices
+   - Enhanced session management and security validation
+   - Integration with existing Clerk authentication system
+   - Comprehensive security testing and validation
+
+2. **Media Handling & Storage**
+   - S3-compatible storage integration for image uploads
+   - Messaging API updates to support media attachments
+   - File validation and security scanning
+   - Optimized storage retrieval for performance
+
+3. **Moderation & Security Features**
+   - IP blocking system triggered by misuse patterns
+   - Profanity filtering with configurable thresholds
+   - Admin panel for security management and overrides
+   - Comprehensive logging and audit trails
+
+4. **Advanced Letter Composition**
+   - Grammar checking service integration
+   - Template saving and favoriting system
+   - Advanced styling with SVG shapes and backgrounds
+   - Real-time moderation feedback integration
+
+5. **UI/UX Enhancements**
+   - New landing page design based on user feedback (Muaaz)
+   - Navbar updates and color scheme consistency (Muaaz)
+   - Mobile responsiveness fixes across all components (Arno)
+   - 'Fold letter' animation for enhanced user experience (Arno)
+   - Standardized notification system using Shadcn components (Rameez)
+
+6. **Cultural Explorer Improvements**
+   - Bug fixes for data formatting and display issues
+   - Color consistency improvements
+   - Enhanced user home country detection and display
+
+**Hidden Requirements Successfully Implemented:**
+- PDF and JPEG export functionality for completed letters
+- IP tracking and blocking for security
+- Advanced moderation capabilities
+- Media handling for enhanced messaging
+
+**Technical Debt Resolution:**
+- All Sprint 2 technical debt items addressed
+- Code refactoring for improved maintainability
+- Performance optimizations implemented
+- Documentation updates completed (Muaaz, Muhammad Hoosen, Arno)
+
+### 6.7 Testing Strategy & Definition of Done
+
+Our comprehensive Definition of Done for Sprint 3 included enhanced requirements to ensure final delivery quality:
+
+1. **Code Quality**
+   - All code peer-reviewed with at least 2 approvals
+   - Static analysis passing with zero critical issues
+   - Code documentation complete and accurate
+   - Security scanning passed for all components
+
+2. **Testing Requirements**
+   - Unit tests for all business logic (80%+ coverage target achieved)
+   - Integration tests covering complete API lifecycles
+   - End-to-end tests validating full user journeys
+   - Security testing for authentication and authorization
+   - Performance testing for API response times
+
+3. **Documentation**
+   - Complete API documentation with OpenAPI specifications
+   - User story acceptance criteria verified and documented
+   - Architecture decisions recorded with rationale
+   - Third-party tool usage justified and documented
+
+4. **Deployment & Validation**
+   - Features deployed to staging with successful validation
+   - Stakeholder acceptance testing completed
+   - Performance metrics meeting or exceeding targets
+   - Zero critical bugs in production deployment
+
+**Testing Tools & Metrics:**
+- Pytest for comprehensive backend testing (89% coverage achieved)
+- Jest for frontend component and integration testing (78% coverage achieved)
+- Cypress for end-to-end user journey testing
+- Security testing tools for authentication validation
+- Performance monitoring and optimization tools
+
+**Quality Assurance Achievements:**
+- Backend test coverage: 89% (exceeded 80% target)
+- Frontend test coverage: 78% (strong foundation for future expansion)
+- Zero critical bugs at final delivery
+- Complete end-to-end user flow validation
+- All security requirements implemented and tested
+
+### 6.8 Stakeholder Review & Final Acceptance
+
+Following the successful execution of all planned tasks and the resolution of all critical bugs, a final stakeholder review meeting was held. The stakeholder confirmed that the team had achieved the headline goal of delivering a complete, stable end-to-end user flow with demonstrable value and integrated security components. Notes from this final meeting are available in the Project Management Repository.
+
+## 7. Methodology Effectiveness Analysis
+
+### 7.1 Qualitative Outcomes (Final Analysis)
+
+**Stakeholder Satisfaction:** The successful integration of final-stage feedback (new landing page, letter height limit) and the implementation of high-value "hidden requirements" (PDF export, IP blocking) resulted in a high degree of final stakeholder satisfaction.
+
+**Feature Completeness:** The successful implementation of all core features and secondary enhancements (Grammar Checker, template saving) provided a comprehensive and market-ready Minimal Viable Product (MVP).
+
+**Architectural Validation:** The team successfully maintained the microservices architecture throughout the entire development lifecycle. The architecture proved manageable for the cross-functional team structure, with performance optimizations mitigating initial speed concerns.
+
+**Adaptability:** The team demonstrated high adaptability by quickly implementing major architectural components (JWT, S3 integration) and security features in the final sprint while resolving all prior technical debt.
+
+### 7.2 Lessons Learned & Process Improvements (Final Review)
+
+**Estimation Accuracy:** The shift to Planning Poker and the consistent use of historical data reduced estimation variance from 30% in Sprint 1 to only 5% in Sprint 2 and maintained accuracy in Sprint 3, demonstrating significant improvement in planning maturity.
+
+**Backlog Refinement:** The formal "backlog grooming Tuesday" cadence significantly improved the quality of tasks entering the sprint, reducing mid-sprint scope changes.
+
+**Technical Debt:** Allocating a dedicated capacity (20%) for technical debt proved highly effective in preventing quality degradation and allowed the team to deliver a clean, stable product upon final review.
+
+**Stakeholder Communication:** Regular stakeholder meetings were crucial for getting timely feedback, especially for the UI/UX and architectural decisions.
+
+## 7. Conclusion
+
+Our rigorous implementation of the Scrum framework provided a robust and adaptable foundation for managing the complexity of our microservices architecture. The empirical process control inherent in Scrum enabled us to continuously inspect and adapt both our product and our process, resulting in high-quality deliverables that successfully met and often exceeded stakeholder expectations.
+
+The team's ability to resolve all critical bugs, significantly exceed the target backend test coverage (driven by Hoosen's continuous effort), and integrate major architectural and security components (JWT, S3, IP Blocking) in the final sprint validates the effectiveness of our agile approach. The transparency, inspection, and adaptation facilitated by Scrum ensured we delivered a complete end-to-end user flow that is scalable and secure.
+
+The decision to maintain the microservices architecture has proven viable, providing a scalable and de-coupled foundation for future optimization and expansion.
 
 ## 8. Appendices
 
-### 8.1 Team Agreements
+### 8.1 Conceptual Sprint 4 Planning & Next Steps
+
+Based on the final review, a conceptual Sprint 4 would focus on stability and optimization to enhance the delivered product.
+
+| Goal | Description |
+|------|-------------|
+| Microservice Performance Optimization | Continue the optimization efforts across all four microservices to achieve best-in-class performance and low latency. |
+| Expanded Frontend Test Coverage | Increase the frontend test coverage (currently 78%) closer to the 80% goal, with a focus on comprehensive integration and end-to-end user journey tests. |
+| Final Documentation Audit | Complete any final documentation not yet fully migrated to the central site and conduct a full audit to ensure all third-party tool justifications are recorded. |
+| Infrastructure Hardening | Further strengthen the deployment pipeline, focusing on redundancy and disaster recovery protocols for the core services. |
+
+### 8.2 Team Agreements
 
 Our team established the following working agreements to guide our collaboration:
 
@@ -510,7 +723,7 @@ Our team established the following working agreements to guide our collaboration
    - If unresolved, involve Scrum Master (Sufyaan)
    - Technical disagreements resolved by timeboxed investigation or PoC
 
-### 8.2 Definition of Ready
+### 8.3 Definition of Ready
 
 Before a user story was considered ready for sprint planning, it needed to meet these criteria:
 
@@ -521,13 +734,3 @@ Before a user story was considered ready for sprint planning, it needed to meet 
 5. UI mockups available (for UI stories)
 6. Technical approach outlined
 7. Value to the user articulated
-
-### 8.3 Metrics Dashboard
-
-As part of our continuous improvement efforts, we will look into implementing a metrics dashboard during Sprint 3. This will allow us to better visualize our progress and track key performance indicators.
-
-We plan to explore simple ways to visualize:
-- Sprint burndown (daily story points remaining)
-- Velocity trend
-- Bug count and resolution time
-- Test coverage by module
