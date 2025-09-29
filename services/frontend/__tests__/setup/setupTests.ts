@@ -47,8 +47,9 @@ if (!(global as any).IntersectionObserver) (global as any).IntersectionObserver 
 const { server } = require('./msw/server');
 const { resetDb } = require('./msw/handlers');
 const { resetModerationDb } = require('./msw/moderation-handler');
+const { resetMatchmakingDb } = require('./msw/matchmaking-handler'); 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => { server.resetHandlers(); resetDb();resetModerationDb();  });
+afterEach(() => { server.resetHandlers(); resetDb();resetModerationDb();resetMatchmakingDb();  });
 afterAll(() => server.close());
 
 // (Optional) Next.js App Router stubs
