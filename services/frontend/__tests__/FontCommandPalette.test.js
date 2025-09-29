@@ -10,7 +10,7 @@ jest.mock('../app/compose-letter/fonts', () => ({
   ]
 }))
 
-const { FontCommandPalette } = require('../components/FontCommandPalette')
+const { FontCommandPalette } = require('../app/compose-letter/components/FontCommandPalette')
 
 beforeEach(() => {
   localStorage.clear()

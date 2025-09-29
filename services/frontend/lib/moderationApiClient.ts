@@ -5,7 +5,7 @@ export interface CheckProfanityRequest {
 
 export interface CheckProfanityResponse {
   contains_profanity: boolean;
-  censored_text: string;
+  censored_text: string | null;
 }
 
 export interface ReportUserRequest {
