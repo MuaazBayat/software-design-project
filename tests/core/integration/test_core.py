@@ -167,7 +167,7 @@ def profile_row(**overrides: Any) -> Dict[str, Any]:
         "created_at": "2025-08-31T12:00:00+00:00",
         "updated_at": "2025-08-31T12:00:00+00:00",
         "last_active": None,
-        "fingerprint": "fp_123",
+        "fingerprint": ["fp_123"],
     }
     base.update(overrides)
     return base

@@ -75,7 +75,7 @@ def test_get_profile_200():
         "created_at": "2025-08-31T12:00:00+00:00",
         "updated_at": "2025-08-31T12:00:00+00:00",
         "last_active": None,
-        "fingerprint": "fp_123"
+        "fingerprint": ["fp_123"]
     }
 
     fake = FakeSupabaseClient(results=[[row]])  # SELECT -> one row
