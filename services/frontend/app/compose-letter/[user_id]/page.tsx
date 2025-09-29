@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { ComposeLetterProvider, useComposeLetter } from "../components/ComposeLetterContext"
 import { useParams } from "next/navigation"
 import LetterSendAnimation from "../components/LetterSendAnimation";
@@ -201,6 +201,17 @@ function LetterPageContent() {
   const [readability, setReadability] = useState("A1");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Add request deduplication using refs to avoid dependency issues
+  const isFetchingMatchesRef = useRef(false);
+  const lastFetchKeyRef = useRef<string>('');
+
+  // Manual retry function for failed match loading
+  const retryFetchMatches = useCallback(() => {
+    if (isFetchingMatchesRef.current) return;
+    lastFetchKeyRef.current = ''; // Reset to allow refetch
+    setError(null);
+  }, []);
+
 
   // Map lineConfig to generator parameters
   const mapLineConfigToParams = useCallback((config: LineConfig) => {
@@ -381,7 +392,17 @@ function LetterPageContent() {
       return;
     }
 
+    // Create a unique key for this fetch request to prevent duplicates
+    const fetchKey = `${userId}-${urlUserId || 'default'}`;
+
+    if (isFetchingMatchesRef.current || fetchKey === lastFetchKeyRef.current) {
+      return;
+    }
+
     const fetchMatches = async () => {
+      isFetchingMatchesRef.current = true;
+      lastFetchKeyRef.current = fetchKey;
+
       try {
         setLoading(true);
         setError(null);
@@ -391,18 +412,39 @@ function LetterPageContent() {
           limit: 10,
           offset: 0,
         };
+
         let res;
-        try {
-          res = await api.searchUsers(searchBody);
-        } catch (err: unknown) {
-          const error = err as Error;
-          if (error instanceof ApiError && error.status === 408) {
-            await new Promise(r => setTimeout(r, 800));
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        while (retryCount <= maxRetries) {
+          try {
             res = await api.searchUsers(searchBody);
-          } else {
-            throw err;
+            break; // Success, exit retry loop
+          } catch (err: unknown) {
+            const error = err as Error;
+            if (error instanceof ApiError && error.status === 408 && retryCount < maxRetries) {
+              // Timeout error, retry after delay
+              await new Promise(r => setTimeout(r, 800 * (retryCount + 1)));
+              retryCount++;
+              continue;
+            } else if (error instanceof ApiError && error.status === 500 && retryCount < maxRetries) {
+              // Server error, retry after delay
+              await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+              retryCount++;
+              continue;
+            } else {
+              // Non-retryable error or max retries reached
+              throw err;
+            }
           }
         }
+
+        // Check if we got a successful response
+        if (!res) {
+          throw new Error('Failed to fetch matches after retries');
+        }
+
         const mappedMatches: Match[] = res.items.map((item: unknown) => {
           const userItem = item as { latest_message?: { conversation_thread_id?: string; match_id?: string }; user_profile: { user_id: string; anonymous_handle: string; country_code?: string } };
           const threadId = userItem.latest_message?.conversation_thread_id;
@@ -432,16 +474,35 @@ function LetterPageContent() {
         } else if (mappedMatches.length > 0) {
           setSelectedMatchId(mappedMatches[0].id);
         }
-      } catch {
-        toast.error('Failed to load matches');
-        setError('Failed to load matches. Please check your connection or try again later.');
+      } catch (err: unknown) {
+        console.error('Failed to fetch matches:', err);
+        const error = err as Error;
+        let errorMessage = 'Failed to load matches. Please check your connection or try again later.';
+
+        if (error instanceof ApiError) {
+          if (error.status === 500) {
+            errorMessage = 'Server temporarily unavailable. Matches will load when the service is back online.';
+          } else if (error.status === 408) {
+            errorMessage = 'Request timed out. Please try refreshing the page.';
+          }
+        }
+
+        // Don't clear existing matches on error - preserve them for better UX
+        // Only show error if we have no matches at all
+        if (matches.length === 0) {
+          setError(errorMessage);
+        }
+
+        // The UI will still work with existing matches or empty state
+        console.warn('Match loading failed:', errorMessage);
       } finally {
         setLoading(false);
+        isFetchingMatchesRef.current = false;
       }
     };
 
     fetchMatches();
-  }, [synced, userId, urlUserId, api]);
+  }, [synced, userId, urlUserId, api]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || null;
 
