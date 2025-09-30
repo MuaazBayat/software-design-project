@@ -4,9 +4,6 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the shared module first
-COPY shared /app/shared
-
 # Copy the requirements file to the container
 COPY messaging/requirements.txt .
 
@@ -15,6 +12,9 @@ RUN pip install -r requirements.txt
 
 # Copy the current directory contents into the container at /app
 COPY messaging .
+
+# Copy the shared module (after copying messaging to avoid overwriting)
+COPY shared /app/shared
 
 # Expose port 80 to allow access to the API
 EXPOSE 8000
