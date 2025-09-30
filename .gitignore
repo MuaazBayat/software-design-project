@@ -221,3 +221,8 @@ repo.secrets
 # macOS
 .DS_Store
 **/.DS_Store
+
+#any ve
+ve/
+**ve/
+scripts/ve/
