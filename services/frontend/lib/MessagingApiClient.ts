@@ -115,8 +115,9 @@ export class ApiError extends Error {
 export default class MessagingApiClient {
   private baseUrl: string;
   private timeoutMs: number;
+  private getToken: (() => Promise<string | null>) | null;
 
-  constructor(opts?: { timeoutMs?: number }) {
+  constructor(opts?: { timeoutMs?: number; getToken?: () => Promise<string | null> }) {
     const fromEnv = process.env.NEXT_PUBLIC_MESSAGING_URL;
     if (!fromEnv) {
       throw new Error(
@@ -130,6 +131,7 @@ export default class MessagingApiClient {
       throw new Error(`Invalid NEXT_PUBLIC_MESSAGING_URL: ${fromEnv}`);
     }
     this.timeoutMs = opts?.timeoutMs ?? 15000;
+    this.getToken = opts?.getToken ?? null;
   }
 
   // --- public methods ---
@@ -154,12 +156,19 @@ async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
+  // Get auth token if available and auth is enabled
+  const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+  const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
   try {
     const res = await fetch(url, {
       method: "POST",
+      headers: {
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      },
       body: formData,
       signal: controller.signal,
     });
@@ -196,12 +205,17 @@ async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
+    // Get auth token if available and auth is enabled
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+    const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
+
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` }),
         },
         body: JSON.stringify(body),
         cache: "no-store",

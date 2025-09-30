@@ -1,5 +1,5 @@
 "use client";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
@@ -101,6 +101,7 @@ const fakeUsers: UserProfile[] = [
 
 const PreferenceProfileSelector = () => { // Remove the props
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,16 +110,23 @@ const PreferenceProfileSelector = () => { // Remove the props
 
   const fetchPreferenceProfiles = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/preferences/profiles/${user.id}`);
+      const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+      const token = authDisabled ? null : await getToken();
+      const response = await fetch(`${API_BASE_URL}/preferences/profiles/${user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
       if (response.ok) {
         const data: ApiUserProfile[] = await response.json();
-        setProfiles(data.map((profile) => ({ 
-          ...profile, 
+        setProfiles(data.map((profile) => ({
+          ...profile,
           user_id: profile.profile_id || profile.user_id,
-          selected: false 
+          selected: false
         })));
         setShowRealUsers(true);
       } else {
@@ -130,7 +138,7 @@ const PreferenceProfileSelector = () => { // Remove the props
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, getToken]);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -222,13 +230,16 @@ const PreferenceProfileSelector = () => { // Remove the props
         selected_profile_id: selectedProfile.user_id,
         preference_type: selectedProfile.is_real ? 'real' : 'fake'
       };
-      
+
       console.log('Sending payload:', payload);
 
+      const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+      const token = authDisabled ? null : await getToken();
       const response = await fetch(`${API_BASE_URL}/preferences/select`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(payload),
       });

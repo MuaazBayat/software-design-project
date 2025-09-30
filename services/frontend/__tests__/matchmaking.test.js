@@ -5,11 +5,19 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MatchScreen from '../app/matchmaking/page';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
-// Mock the useUser hook
-jest.mock('@clerk/nextjs', () => ({
-  useUser: jest.fn(),
+// Clerk is mocked globally in jest.setup.js
+
+// Mock sonner toast
+jest.mock('sonner', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+  },
+  Toaster: () => null,
 }));
 
 // Mock the ldrs library to avoid ES module issues
@@ -248,9 +256,6 @@ describe('MatchScreen - Additional Tests', () => {
   test('handles API errors gracefully during match creation', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
 
-    // Mock window.alert
-    window.alert = jest.fn();
-
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ profile: { anonymous_handle: 'TestUser', country_code: 'US' } }) });
@@ -279,15 +284,12 @@ describe('MatchScreen - Additional Tests', () => {
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Match creation failed');
+      expect(toast.error).toHaveBeenCalledWith('Match creation failed');
     });
   });
 
   test('handles network errors during API calls', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
-
-    // Mock window.alert
-    window.alert = jest.fn();
 
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
@@ -317,7 +319,7 @@ describe('MatchScreen - Additional Tests', () => {
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Connection error. Please check if the server is running and try again.');
+      expect(toast.error).toHaveBeenCalledWith('Connection error. Please check if the server is running and try again.');
     });
   });
 
@@ -409,9 +411,6 @@ describe('MatchScreen - Additional Tests', () => {
   test('handles successful match creation and shows success message', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
 
-    // Mock window.alert
-    window.alert = jest.fn();
-
     fetch.mockImplementation((url) => {
       if (url.includes('/user/profile/')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ profile: { anonymous_handle: 'TestUser', country_code: 'US' } }) });
@@ -440,7 +439,7 @@ describe('MatchScreen - Additional Tests', () => {
     fireEvent.click(likeButton);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Match created with MatchUser! 🎉');
+      expect(toast.success).toHaveBeenCalledWith('Match created with MatchUser! 🎉');
     });
   });
 

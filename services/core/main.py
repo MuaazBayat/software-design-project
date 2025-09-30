@@ -17,6 +17,10 @@ from supabase import Client
 from models import ProfileCreate, ProfileUpdate, Profile
 from database import supabase
 
+# Import shared authentication
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.auth import verify_token
+
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
 
@@ -72,8 +76,9 @@ async def health_check():
 
 @app.post("/profiles", response_model=Profile, status_code=status.HTTP_201_CREATED)
 async def create_profile(
-    profile_data: ProfileCreate, 
-    db: Client = Depends(get_supabase)
+    profile_data: ProfileCreate,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Creates a new user profile in the database.
@@ -124,8 +129,9 @@ async def create_profile(
 
 @app.get("/profiles/{clerk_id}", response_model=Profile)
 async def get_profile(
-    clerk_id: str, 
-    db: Client = Depends(get_supabase)
+    clerk_id: str,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Retrieves a user's profile information by their unique user_id.
@@ -161,9 +167,10 @@ async def get_profile(
 
 @app.put("/profiles/{clerk_id}", response_model=Profile)
 async def update_profile(
-    clerk_id: str, 
-    profile_data: ProfileUpdate, 
-    db: Client = Depends(get_supabase)
+    clerk_id: str,
+    profile_data: ProfileUpdate,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Updates an existing user's profile.

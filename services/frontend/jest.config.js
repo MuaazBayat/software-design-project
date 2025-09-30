@@ -14,6 +14,9 @@ const customJestConfig = {
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
     '^@/components/(.*)$': '<rootDir>/components/$1',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(d3-shape|d3-path)/)',
+  ],
   collectCoverage: true,
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {

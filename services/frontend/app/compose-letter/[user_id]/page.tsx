@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { ComposeLetterProvider, useComposeLetter } from "../components/ComposeLetterContext"
 import { useParams } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import LetterSendAnimation from "../components/LetterSendAnimation";
 import {
   Sheet, SheetTrigger, SheetContent,
@@ -18,7 +19,7 @@ import MainContent from "../components/MainContent"
 import RightSidebar from "../components/RightSidebar"
 import { FontSidePanel } from "../components/FontSidePanel"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { toast, Toaster } from "sonner"
 import { se } from "date-fns/locale";
 import { PDFGenerator, LetterPDFData } from "../lib/pdfGenerator";
 import { generateJPEG, generateJPEGDataUrl, captureLetterCloneAsPng } from "../lib/jpegGenerator";
@@ -255,9 +256,10 @@ function LetterPageContent() {
   }, []);
 
   const { profile, synced } = useSyncProfile();
+  const { getToken } = useAuth();
   const userId = profile?.user_id ?? '';
   const anonymousHandle = synced ? (profile?.anonymous_handle ?? '') : '';
-  const api = useMemo(() => new MessagingApiClient({ timeoutMs: 30000 }), []);
+  const api = useMemo(() => new MessagingApiClient({ timeoutMs: 30000, getToken }), [getToken]);
 
   const handleSendWithImage = async (jpgDataUrl: string | null) => {
     if (!selectedMatch || !userId) return;
