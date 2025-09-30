@@ -12,7 +12,8 @@ from uuid import uuid4
 from threading import RLock
 
 # Import shared authentication
-# shared/ is at /app/shared in the container
+# Add parent directory for local development (services/) and current dir for Docker (/app)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.dirname(__file__))
 from shared.auth import verify_token
 
