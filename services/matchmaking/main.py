@@ -12,11 +12,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os, sys
 
-# Import shared authentication
-# Add parent directory for local development (services/) and current dir for Docker (/app)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.dirname(__file__))
-from shared.auth import verify_token
+# Import authentication
+from auth import verify_token
 
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')

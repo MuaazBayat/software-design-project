@@ -13,9 +13,6 @@ RUN pip install -r requirements.txt
 # Copy the matchmaking service contents into the container at /app
 COPY services/matchmaking/ .
 
-# Copy the shared module
-COPY services/shared/ ./shared/
-
 # Expose port 80 to allow access to the API
 EXPOSE 8000
 
