@@ -24,12 +24,11 @@ jobs:
 
       - name: Build & push Moderation Docker images
         run: |
-          cp -r services/shared services/moderation/
           docker buildx build \
             --platform linux/amd64 \
             -t $MODERATION_IMAGE \
             -f services/moderation/moderation.Dockerfile \
-            services/moderation \
+            . \
             --push
 
       - name: Google Auth

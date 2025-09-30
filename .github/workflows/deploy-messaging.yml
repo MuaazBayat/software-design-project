@@ -24,12 +24,11 @@ jobs:
       
       - name: Build & push Messaging Docker images
         run: |
-          cp -r services/shared services/messaging/
           docker buildx build \
             --platform linux/amd64 \
             -t $MESSAGING_IMAGE \
             -f services/messaging/messaging.Dockerfile \
-            services/messaging \
+            . \
             --push
 
       - name: Google Auth

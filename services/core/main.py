@@ -18,7 +18,8 @@ from models import ProfileCreate, ProfileUpdate, Profile
 from database import supabase
 
 # Import shared authentication
-# shared/ is copied into the container at /app/shared during build
+# shared/ is at /app/shared in the container
+sys.path.insert(0, os.path.dirname(__file__))
 from shared.auth import verify_token
 
 # Create the FastAPI application instance.
