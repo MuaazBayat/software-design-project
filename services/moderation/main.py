@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, status
+from fastapi import FastAPI, HTTPException, Header, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -7,9 +7,13 @@ from supabase import create_client, Client
 from clerk_backend_api import Clerk
 from clerk_backend_api import models as clerk_models
 from dotenv import load_dotenv
-import os
+import os, sys
 from datetime import datetime
 import uuid
+
+# Import shared authentication
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.auth import verify_token
 
 # Environment variables for Supabase
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
@@ -72,6 +76,7 @@ class CheckRequest(BaseModel):
 @app.post("/api/v1/check")
 def check_profanity(
     body: CheckRequest,
+    token: str = Depends(verify_token),
     x_user_id: str | None = Header(None, alias="X-User-Id"),
     x_api_key: str | None = Header(None, alias="X-Api-Key")
 ):
@@ -163,7 +168,7 @@ class ReportUser(BaseModel):
     violationType: str
 
 @app.post("/api/v1/report-user")
-def reportUser(body: ReportUser):
+def reportUser(body: ReportUser, token: str = Depends(verify_token)):
     #get users
     reporterUserId: str = body.reporterId
     reportedUserId: str = body.reportedId
@@ -222,7 +227,7 @@ class ReportMessage(BaseModel):
     violationType: str
 
 @app.post("/api/v1/report-message")
-def reportMessage(body: ReportMessage):
+def reportMessage(body: ReportMessage, token: str = Depends(verify_token)):
     #get users
     reporterUserId: str = body.reporterId
     reportedUserId: str = body.reportedUserId
@@ -265,7 +270,7 @@ class BlockUser(BaseModel):
     reportedId: str
 
 @app.post("/api/v1/block-user")
-def blockUser(body: BlockUser):
+def blockUser(body: BlockUser, token: str = Depends(verify_token)):
     #get users
     reporterUserId: str = body.reporterId
     reportedUserId: str = body.reportedId
@@ -298,7 +303,7 @@ def blockUser(body: BlockUser):
     )
 
 @app.post("/api/v1/ban-user/{log_id}")
-def banUser(log_id: str):
+def banUser(log_id: str, token: str = Depends(verify_token)):
 
     #Fetch the moderation log entry
     log_res = supabase.table("moderation_logs").select("*").eq("log_id", log_id).execute()
@@ -354,7 +359,7 @@ def banUser(log_id: str):
     )
 
 @app.post("/api/v1/ban-clerk-user/{clerk_id}")
-def banClerkUser(clerk_id: str):
+def banClerkUser(clerk_id: str, token: str = Depends(verify_token)):
     #Check if user exists
     user_res = supabase.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
     if user_res.data:
@@ -372,7 +377,7 @@ def banClerkUser(clerk_id: str):
     )
 
 @app.post("/api/v1/unban-user/{user_id}")
-def unbanUser(user_id: str):
+def unbanUser(user_id: str, token: str = Depends(verify_token)):
     #Check if user exists
     user_res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
     if not user_res.data:
@@ -399,7 +404,7 @@ def unbanUser(user_id: str):
     )
 
 @app.post("/api/v1/unban-clerk-user/{clerk_id}")
-def unbanClerkUser(clerk_id: str):
+def unbanClerkUser(clerk_id: str, token: str = Depends(verify_token)):
     #Check if user exists
     user_res = supabase.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
     if user_res.data:
@@ -422,7 +427,7 @@ class ResolveCase(BaseModel):
     notes: str
 
 @app.post("/api/v1/resolve-case")
-def resolve_case(body: ResolveCase):
+def resolve_case(body: ResolveCase, token: str = Depends(verify_token)):
 
     # Validate action
     valid_actions = ["warning", "no_action", "content_removal", "temporary_ban", "permanent_ban"]
@@ -450,7 +455,7 @@ def resolve_case(body: ResolveCase):
     )
 
 @app.get("/api/v1/fingerprint/{fingerprint}")
-def check_fingerprint(fingerprint: str):
+def check_fingerprint(fingerprint: str, token: str = Depends(verify_token)):
     #Check if the fingerprint exists in the banned_fingerprints table
     res = supabase.table("banned_fingerprints").select("*").eq("fingerprint", fingerprint).execute()
     if res.data:
@@ -466,6 +471,7 @@ def check_fingerprint(fingerprint: str):
     
 @app.get("/api/v1/logs")
 def get_moderation_logs(
+    token: str = Depends(verify_token),
     x_user_id: str | None = Header(None, alias="X-User-Id")
 ):
     # Verify that the user is a moderator
@@ -488,7 +494,7 @@ def get_moderation_logs(
 
 #fetch all banned users
 @app.get("/api/v1/banned-users")
-def get_banned_users():
+def get_banned_users(token: str = Depends(verify_token)):
     # Fetch all banned users
     banned_res = supabase.table("user_profiles").select("*").eq("account_status", "banned").execute()
     return {"banned_users": banned_res.data}

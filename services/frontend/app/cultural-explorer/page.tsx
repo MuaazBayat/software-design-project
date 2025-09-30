@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy } from 'lucide-react';
+import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 import wc from 'world-countries';
+import { useSyncProfile } from '@/lib/context/ProfileContext';
 
 type DeckType = 'my-country' | 'random' | 'select-country';
 
@@ -186,6 +187,8 @@ const FlagFrame: React.FC<{
 
 
 const CulturalExplorer = () => {
+  const { profile, synced } = useSyncProfile();
+
   const [selectedDeck, setSelectedDeck] = useState<DeckType>('random');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
@@ -193,6 +196,25 @@ const CulturalExplorer = () => {
   const [factsData, setFactsData] = useState<FactsData>({});
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get user's home country based on their profile, default to South Africa
+  const getHomeCountry = useMemo(() => {
+    if (!synced) return 'South Africa';
+
+    const countryCode = profile?.country_code;
+    if (!countryCode) return 'South Africa';
+
+    // Convert country code to country name using world-countries data
+    const countryData = wc.find(c => c.cca2?.toLowerCase() === countryCode.toLowerCase());
+    const countryName = countryData?.name?.common;
+
+    // Check if we have facts for this country, otherwise fall back to South Africa
+    if (countryName && Object.keys(factsData).length > 0 && factsData[countryName]) {
+      return countryName;
+    }
+
+    return 'South Africa';
+  }, [profile?.country_code, synced, factsData]);
 
   const [cardKey, setCardKey] = useState(0);
   const [cardVisible, setCardVisible] = useState(true);
@@ -254,7 +276,7 @@ const CulturalExplorer = () => {
   const currentCountry = useMemo(() => {
     switch (selectedDeck) {
       case 'my-country':
-        return 'South Africa';
+        return getHomeCountry;
       case 'random':
         return selectedCountry || getRandomCountry();
       case 'select-country':
@@ -262,7 +284,7 @@ const CulturalExplorer = () => {
       default:
         return '';
     }
-  }, [selectedDeck, selectedCountry, availableCountries, getRandomCountry]);
+  }, [selectedDeck, selectedCountry, availableCountries, getRandomCountry, getHomeCountry]);
 
   const currentFacts = useMemo(() => {
     if (!currentCountry || !factsData[currentCountry]) return [];
@@ -507,36 +529,49 @@ const CulturalExplorer = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-8xl mb-4 animate-spin">🃏</div>
-          <p className="text-2xl text-white">Loading the deck...</p>
+          <p className="text-2xl text-black">Loading the deck...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Deck Selection */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-center text-white tracking-tighter mb-6">
+          <h2 className="text-3xl font-bold text-center text-black tracking-tighter mb-6">
             Explore your country of choice!
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button
               onClick={() => handleDeckChange('my-country')}
-              className={`p-6 transition-all duration-300 ${
+              className={`p-6 transition-all duration-300 relative group ${
                 selectedDeck === 'my-country'
                   ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
                   : 'border-gray-300 bg-white hover:border-purple-300 hover:shadow-lg'
               }`}
             >
               <div className="text-4xl mb-3">🏠</div>
-              <h3 className="text-xl font-bold text-gray-800">My Country</h3>
-              <p className="text-gray-600 mt-2">Facts about South Africa</p>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <h3 className="text-xl font-bold text-gray-800">
+                  {profile?.country_code && synced ? 'Your Country' : 'Our Home Country'}
+                </h3>
+                {!(profile?.country_code && synced) && <HelpCircle className="w-4 h-4 text-gray-400" />}
+              </div>
+              <p className="text-gray-600 mt-2">Facts about {getHomeCountry}</p>
+
+              {/* Tooltip - only show when we don't have user's country */}
+              {!(profile?.country_code && synced) && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  Default country (update your profile to change)
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                </div>
+              )}
             </button>
 
             <button

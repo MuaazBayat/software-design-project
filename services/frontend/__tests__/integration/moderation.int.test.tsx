@@ -1,6 +1,21 @@
 /** @jest-environment jsdom */
 // --- Place mocks BEFORE importing the component ---
 
+// Mock Clerk
+jest.mock('@clerk/nextjs', () => ({
+  useAuth: () => ({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'mock-user-id',
+  }),
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { id: 'mock-user-id' },
+  }),
+}));
+
 // Keep only the Profile context mocked so we can flip moderator/non‑moderator states.
 jest.mock('../../lib/context/ProfileContext', () => ({
   __esModule: true,
@@ -27,9 +42,17 @@ import userEvent from '@testing-library/user-event';
 import ModerationDashboard from '@/app/moderation/page';
 import { useProfile } from '../../lib/context/ProfileContext';
 
-// MSW helpers from our drop‑in module (path is relative to this test file)
-// NOTE: from __tests__/integration → ./setup/msw/...
-import { resetModerationDb, seedModerationDb, factories } from '../setup/msw/moderation-handler';
+// Mock fetch globally
+let fetchMock: jest.SpyInstance;
+
+// In-memory store for moderation data
+let moderationLogs: any[] = [];
+let bannedUsers: any[] = [];
+
+const resetModerationDb = () => {
+  moderationLogs = [];
+  bannedUsers = [];
+};
 
 const renderWithProfile = async (profile: any) => {
   (useProfile as jest.Mock).mockReturnValue({ profile, loading: false });
@@ -40,6 +63,10 @@ const renderWithProfile = async (profile: any) => {
 
 let consoleErrorSpy: jest.SpyInstance;
 
+beforeAll(() => {
+  fetchMock = jest.spyOn(global, 'fetch') as jest.SpyInstance;
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   resetModerationDb();
@@ -47,7 +74,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  fetchMock.mockReset();
   consoleErrorSpy?.mockRestore();
+});
+
+afterAll(() => {
+  fetchMock.mockRestore();
 });
 
 describe('ModerationDashboard (MSW-backed)', () => {
@@ -64,16 +96,25 @@ describe('ModerationDashboard (MSW-backed)', () => {
   });
 
   test('moderator loads logs & banned users on mount; both Refresh buttons re-fetch', async () => {
-    seedModerationDb({
-      users: [
-        factories.user({ user_id: 'mod_1', moderator: true, clerk_id: 'clrk_mod' }),
-        factories.user({ user_id: 'u_100', clerk_id: 'clrk_100' }),
-        factories.user({ user_id: 'u_200', clerk_id: 'clrk_200' }),
-      ],
-      logs: [
-        factories.log({ target_type: 'message', target_id: 'm_1', reported_user_id: 'u_100', reporting_user_id: 'mod_1', violation_type: 'profanity', violation_description: 'Message contains offensive language', severity_level: 'medium', automated_detection: true, status: 'open' }),
-        factories.log({ target_type: 'user', target_id: 'u_200', reported_user_id: 'u_200', reporting_user_id: 'mod_1', violation_type: 'harassment', violation_description: 'Repeated targeted insults', severity_level: 'high', automated_detection: false, status: 'resolved' }),
-      ],
+    moderationLogs = [
+      { log_id: 'log_1', target_type: 'message', target_id: 'm_1', reported_user_id: 'u_100', reporting_user_id: 'mod_1', violation_type: 'profanity', violation_description: 'Message contains offensive language', severity_level: 'medium', automated_detection: true, status: 'open', created_at: new Date().toISOString() },
+      { log_id: 'log_2', target_type: 'user', target_id: 'u_200', reported_user_id: 'u_200', reporting_user_id: 'mod_1', violation_type: 'harassment', violation_description: 'Repeated targeted insults', severity_level: 'high', automated_detection: false, status: 'resolved', created_at: new Date().toISOString() },
+    ];
+    bannedUsers = [];
+
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ logs: moderationLogs }),
+        } as Response);
+      } else if (url.includes('/api/v1/banned-users')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ banned_users: bannedUsers }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
     });
 
     const user = await renderWithProfile({ user_id: 'mod_1', moderator: true });
@@ -154,12 +195,25 @@ describe('ModerationDashboard (MSW-backed)', () => {
   });
 
   test('filters by status and type', async () => {
-    seedModerationDb({
-      users: [ factories.user({ user_id: 'mod_2', moderator: true, clerk_id: 'clrk_mod2' }) ],
-      logs: [
-        factories.log({ target_type: 'message', target_id: 'm_2', reported_user_id: 'u_x', reporting_user_id: 'mod_2', violation_type: 'spam', violation_description: 'spam msg', severity_level: 'low', automated_detection: false, status: 'open' }),
-        factories.log({ target_type: 'user', target_id: 'u_y', reported_user_id: 'u_y', reporting_user_id: 'mod_2', violation_type: 'harassment', violation_description: 'mean words', severity_level: 'high', automated_detection: false, status: 'resolved' }),
-      ],
+    moderationLogs = [
+      { log_id: 'log_3', target_type: 'message', target_id: 'm_2', reported_user_id: 'u_x', reporting_user_id: 'mod_2', violation_type: 'spam', violation_description: 'spam msg', severity_level: 'low', automated_detection: false, status: 'open', created_at: new Date().toISOString() },
+      { log_id: 'log_4', target_type: 'user', target_id: 'u_y', reported_user_id: 'u_y', reporting_user_id: 'mod_2', violation_type: 'harassment', violation_description: 'mean words', severity_level: 'high', automated_detection: false, status: 'resolved', created_at: new Date().toISOString() },
+    ];
+    bannedUsers = [];
+
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ logs: moderationLogs }),
+        } as Response);
+      } else if (url.includes('/api/v1/banned-users')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ banned_users: bannedUsers }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
     });
 
     await renderWithProfile({ user_id: 'mod_2', moderator: true });
@@ -183,18 +237,24 @@ describe('ModerationDashboard (MSW-backed)', () => {
   });
 
   test('shows toast error when banned users API fails', async () => {
-    // Be tolerant to path differences in CI vs local by trying two likely paths
-    let server: any;
-    try { ({ server } = require('./setup/msw/server')); }
-    catch { ({ server } = require('../setup/msw/server')); }
+    moderationLogs = [];
+    bannedUsers = [];
 
-    const { http, HttpResponse } = require('msw');
-
-    server.use(
-      http.get('*/api/v1/banned-users', () => HttpResponse.text('fail', { status: 500 }))
-    );
-
-    seedModerationDb({ users: [ factories.user({ user_id: 'mod_3', moderator: true }) ] });
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ logs: moderationLogs }),
+        } as Response);
+      } else if (url.includes('/api/v1/banned-users')) {
+        return Promise.resolve({
+          ok: false,
+          text: async () => 'fail',
+          status: 500,
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     await renderWithProfile({ user_id: 'mod_3', moderator: true });
 
@@ -220,11 +280,31 @@ describe('ModerationDashboard (MSW-backed)', () => {
   });
 
   test('unban flow calls API via toast action', async () => {
-    seedModerationDb({
-      users: [
-        factories.user({ user_id: 'mod_4', moderator: true, clerk_id: 'clrk_mod4' }),
-        factories.user({ user_id: 'banned_1', clerk_id: 'clrk_banned', account_status: 'banned' }),
-      ],
+    moderationLogs = [];
+    bannedUsers = [
+      { user_id: 'banned_1', clerk_id: 'clrk_banned', account_status: 'banned', anonymous_handle: 'BannedUser' },
+    ];
+
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/api/v1/logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ logs: moderationLogs }),
+        } as Response);
+      } else if (url.includes('/api/v1/banned-users')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ banned_users: bannedUsers }),
+        } as Response);
+      } else if (url.includes('/api/v1/unban-user/') && options?.method === 'POST') {
+        // Update bannedUsers array after unban
+        bannedUsers = bannedUsers.filter(u => !url.includes(u.user_id));
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ message: 'User has been unbanned.' }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
     });
 
     const user = await renderWithProfile({ user_id: 'mod_4', moderator: true });

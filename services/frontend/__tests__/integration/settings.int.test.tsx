@@ -10,8 +10,22 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Page from '@/app/settings/page';
-import { server } from '../setup/msw/server';
-import { http, HttpResponse, delay } from 'msw';
+
+// Mock sonner toast
+const toastSuccess = jest.fn();
+const toastError = jest.fn();
+jest.mock('sonner', () => ({
+  toast: Object.assign(jest.fn(), {
+    success: (...args: any[]) => toastSuccess(...args),
+    error: (...args: any[]) => toastError(...args),
+  }),
+  Toaster: () => null,
+}));
+
+// Mock fetch globally
+let fetchMock: jest.SpyInstance;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /** Finds the “Add a secondary language” button scoped to the Languages & Time section. */
 function getAddSecondaryLanguageControl(): HTMLElement {
@@ -61,11 +75,20 @@ function getAddSecondaryLanguageControl(): HTMLElement {
 
 jest.mock('@clerk/nextjs', () => ({
   useUser: () => ({ isLoaded: true, isSignedIn: true, user: { id: 'user_123' } }),
+  useAuth: () => ({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user_123',
+  }),
 }));
 
 const API = process.env.NEXT_PUBLIC_CORE_URL || '';
 
 beforeAll(() => {
+  // Initialize fetch mock
+  fetchMock = jest.spyOn(global, 'fetch') as jest.SpyInstance;
+
   // Polyfills missing in JSDOM that Radix Select & Floating UI rely on
   // Pointer capture APIs
   // @ts-ignore
@@ -79,14 +102,17 @@ beforeAll(() => {
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
 });
 
-let alertSpy: jest.SpyInstance;
-
-beforeEach(() => {
-  alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+afterEach(() => {
+  fetchMock.mockReset();
 });
 
-afterEach(() => {
-  alertSpy.mockRestore();
+afterAll(() => {
+  fetchMock.mockRestore();
+});
+
+beforeEach(() => {
+  toastSuccess.mockClear();
+  toastError.mockClear();
 });
 
 async function waitUntilNotLoading() {
@@ -125,13 +151,26 @@ async function findSelectTriggerByPlaceholderOrLabel(options: { placeholder?: Re
 
 describe('Settings Page – integration', () => {
   test('GET 404 → empty model; edit + PUT 200 success', async () => {
-    server.use(
-      http.get(`${API}/profiles/user_123`, () => new HttpResponse(null, { status: 404 })),
-      http.put(`${API}/profiles/user_123`, async ({ request }) => {
-        const body = await request.json();
-        return HttpResponse.json(body, { status: 200 });
-      })
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/user_123')) {
+        if (options?.method === 'PUT') {
+          const body = JSON.parse(options.body);
+          return Promise.resolve({
+            ok: true,
+            json: async () => body,
+            status: 200,
+            statusText: 'OK',
+          } as Response);
+        } else {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+          } as Response);
+        }
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
 
     render(<Page />);
     await waitUntilNotLoading();
@@ -143,18 +182,29 @@ describe('Settings Page – integration', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Saved changes.'));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Settings saved successfully!'));
   });
 
   test('invalid handle shows validation and blocks save', async () => {
     const putSpy = jest.fn();
-    server.use(
-      http.get(`${API}/profiles/user_123`, () => new HttpResponse(null, { status: 404 })),
-      http.put(`${API}/profiles/user_123`, async () => {
-        putSpy();
-        return HttpResponse.text('should not be hit', { status: 500 });
-      })
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/user_123')) {
+        if (options?.method === 'PUT') {
+          putSpy();
+          return Promise.resolve({
+            ok: false,
+            text: async () => 'should not be hit',
+            status: 500,
+          } as Response);
+        } else {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+          } as Response);
+        }
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     render(<Page />);
     await waitUntilNotLoading();
@@ -166,17 +216,22 @@ describe('Settings Page – integration', () => {
     expect(saveBtn).toBeDisabled();
 
     await userEvent.click(saveBtn);
-    await waitFor(() => expect(alertSpy).not.toHaveBeenCalled());
+    await waitFor(() => expect(toastSuccess).not.toHaveBeenCalled());
     expect(putSpy).not.toHaveBeenCalled();
   });
 
   test('GET 500 → error message; spinner visible during delay', async () => {
-    server.use(
-      http.get(`${API}/profiles/user_123`, async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/profiles/user_123')) {
         await delay(200);
-        return HttpResponse.text('boom', { status: 500 });
-      })
-    );
+        return Promise.resolve({
+          ok: false,
+          text: async () => 'boom',
+          status: 500,
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     render(<Page />);
     expect(await screen.findByText(/loading/i)).toBeInTheDocument();
@@ -184,12 +239,25 @@ describe('Settings Page – integration', () => {
   });
 
   test('PUT 409 (handle taken) → surface server validation', async () => {
-    server.use(
-      http.get(`${API}/profiles/user_123`, () => new HttpResponse(null, { status: 404 })),
-      http.put(`${API}/profiles/user_123`, async () =>
-        HttpResponse.json({ detail: 'Handle is already taken.' }, { status: 409 })
-      )
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/user_123')) {
+        if (options?.method === 'PUT') {
+          return Promise.resolve({
+            ok: false,
+            text: async () => 'Handle is already taken.',
+            status: 409,
+            statusText: 'Conflict',
+          } as Response);
+        } else {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+          } as Response);
+        }
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     render(<Page />);
     await waitUntilNotLoading();
@@ -197,20 +265,33 @@ describe('Settings Page – integration', () => {
     await setHandle('taken_handle');
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
-    const msg = (await screen.findByText(/already taken/i)) || (await screen.findByText(/put failed: 409/i));
-    expect(msg).toBeInTheDocument();
-    expect(alertSpy).not.toHaveBeenCalled();
+    // The component should show an error message in the UI
+    await waitFor(() => {
+      expect(screen.getByText(/PUT failed: 409/i)).toBeInTheDocument();
+    });
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 
-  test('Age “Prefer not to say” maps to null in request', async () => {
+  test('Age "Prefer not to say" maps to null in request', async () => {
     let lastBody: any = null;
-    server.use(
-      http.get(`${API}/profiles/user_123`, () => new HttpResponse(null, { status: 404 })),
-      http.put(`${API}/profiles/user_123`, async ({ request }) => {
-        lastBody = await request.json();
-        return HttpResponse.json(lastBody, { status: 200 });
-      })
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/user_123')) {
+        if (options?.method === 'PUT') {
+          lastBody = JSON.parse(options.body);
+          return Promise.resolve({
+            ok: true,
+            json: async () => lastBody,
+            status: 200,
+          } as Response);
+        } else {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+          } as Response);
+        }
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     render(<Page />);
     await waitUntilNotLoading();
@@ -224,7 +305,7 @@ describe('Settings Page – integration', () => {
     await setHandle('ok_');
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
     expect(lastBody?.age_range).toBeNull();
   });
 

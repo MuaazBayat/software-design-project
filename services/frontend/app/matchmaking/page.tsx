@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
+import React, { useState, useEffect, useCallback } from "react";
+import { useUser, useAuth } from "@clerk/nextjs";
 import {
   Heart,
   X,
@@ -384,6 +384,13 @@ const MatchScreen: React.FC = () => {
     });
 
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
+
+  // Helper to get token only if auth is enabled
+  const getAuthToken = useCallback(async () => {
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+    return authDisabled ? null : await getToken();
+  }, [getToken]);
 
   // Get current profile (always first in queue)
   const currentProfile = profileQueue[0] || null;
@@ -391,7 +398,13 @@ const MatchScreen: React.FC = () => {
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/user/profile/${user.id}`);
+      const token = await getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/user/profile/${user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         // We can store this if needed later
@@ -399,12 +412,18 @@ const MatchScreen: React.FC = () => {
     } catch (error) {
       console.error("Error fetching user profile:", error);
     }
-  }, [user]);
+  }, [user, getAuthToken]);
 
   const fetchDailyStats = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/user/stats/${user.id}`);
+      const token = await getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/user/stats/${user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
       if (response.ok) {
         const stats = await response.json();
         setDailyStats(stats);
@@ -412,12 +431,13 @@ const MatchScreen: React.FC = () => {
     } catch (error) {
       console.error("Error fetching daily stats:", error);
     }
-  }, [user]);
+  }, [user, getAuthToken]);
 
   const fetchNextProfile = useCallback(async () => {
     if (!user) return [];
 
     try {
+      const token = await getAuthToken();
       const params = new URLSearchParams();
       params.append("limit", "5"); // Fetch 5 at once for queue
 
@@ -435,7 +455,13 @@ const MatchScreen: React.FC = () => {
       }
 
       const response = await fetch(
-        `${API_BASE_URL}/profiles/suggestions/${user.id}?${params.toString()}`
+        `${API_BASE_URL}/profiles/suggestions/${user.id}?${params.toString()}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        }
       );
       if (response.ok) {
         const suggestions = await response.json();
@@ -445,7 +471,7 @@ const MatchScreen: React.FC = () => {
       console.error("Error fetching profiles:", error);
     }
     return [];
-  }, [user, matchingPreferences]);
+  }, [user, matchingPreferences, getAuthToken]);
 
   // Initialize profile queue
   const loadInitialProfiles = useCallback(async () => {
@@ -477,9 +503,13 @@ const MatchScreen: React.FC = () => {
     // Background: record pass and refill queue
     setTimeout(async () => {
       try {
+        const token = await getAuthToken();
         await fetch(`${API_BASE_URL}/profiles/pass`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
           body: JSON.stringify({
             clerk_id: user.id,
             passed_user_id: profileToPass.user_id,
@@ -492,7 +522,7 @@ const MatchScreen: React.FC = () => {
       // Refill queue if needed
       refillQueue();
     }, 0);
-  }, [user, currentProfile, actionLoading, refillQueue]);
+  }, [user, currentProfile, actionLoading, refillQueue, getAuthToken]);
 
   // Handle like - instant UI update, background API calls
   const handleLike = useCallback(async () => {
@@ -511,9 +541,13 @@ const MatchScreen: React.FC = () => {
     // Background: create match, update stats, and refill queue
     setTimeout(async () => {
       try {
+        const token = await getAuthToken();
         const response = await fetch(`${API_BASE_URL}/matches/find`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
           body: JSON.stringify({
             clerk_id: user.id,
             accept: true,
@@ -528,6 +562,8 @@ const MatchScreen: React.FC = () => {
             `Match created with ${matchData.penpal_profile.anonymous_handle}! 🎉`
           );
           fetchDailyStats(); // Update stats in background
+        } else {
+          toast.error("Error creating match. Please try again.");
         }
       } catch (error) {
         console.error("Error creating match:", error);
@@ -545,6 +581,7 @@ const MatchScreen: React.FC = () => {
     matchingPreferences,
     fetchDailyStats,
     refillQueue,
+    getAuthToken,
   ]);
 
   // Initialize on component mount

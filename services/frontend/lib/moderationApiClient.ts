@@ -68,12 +68,17 @@ export interface ApiError {
 export class ModerationApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
+  private getToken: (() => Promise<string | null>) | null;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_MODERATION_URL || '') {
+  constructor(
+    baseUrl: string = process.env.NEXT_PUBLIC_MODERATION_URL || '',
+    getToken?: () => Promise<string | null>
+  ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
+    this.getToken = getToken ?? null;
   }
 
   private async makeRequest<T>(
@@ -82,12 +87,17 @@ export class ModerationApiClient {
     headers: Record<string, string> = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    // Get auth token if available and auth is enabled
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+    const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
+
     const requestOptions: RequestInit = {
       ...options,
       headers: {
         ...this.defaultHeaders,
         ...headers,
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
     };
@@ -309,5 +319,6 @@ async banClerkUser(clerkId: string): Promise<BanUserResponse> {
 
 }
 
-// Create a default instance
+// Create a default instance (without auth - for backwards compatibility)
+// Note: Pages should create their own instance with getToken for authenticated requests
 export const moderationApi = new ModerationApiClient();

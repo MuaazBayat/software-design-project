@@ -1,5 +1,5 @@
 "use client";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Toaster, toast } from "sonner";
@@ -105,6 +105,7 @@ const fakeUsers: UserProfile[] = [
 const PreferenceProfileSelector = () => {
   // Remove the props
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,9 +117,14 @@ const PreferenceProfileSelector = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_BASE_URL}/preferences/profiles/${user.id}`
-      );
+      const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+      const token = authDisabled ? null : await getToken();
+      const response = await fetch(`${API_BASE_URL}/preferences/profiles/${user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
       if (response.ok) {
         const data: ApiUserProfile[] = await response.json();
 
@@ -141,7 +147,7 @@ const PreferenceProfileSelector = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, getToken]);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -180,8 +186,16 @@ const PreferenceProfileSelector = () => {
         throw new Error("No authenticated user found");
       }
 
+      const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+      const token = authDisabled ? null : await getToken();
       const response = await fetch(
-        `${API_BASE_URL}/preferences/profiles/${user.id}`
+        `${API_BASE_URL}/preferences/profiles/${user.id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        }
       );
 
       if (!response.ok) {
@@ -258,10 +272,13 @@ const PreferenceProfileSelector = () => {
 
       console.log("Sending payload:", payload);
 
+      const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+      const token = authDisabled ? null : await getToken();
       const response = await fetch(`${API_BASE_URL}/preferences/select`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(payload),
       });
@@ -299,9 +316,9 @@ const PreferenceProfileSelector = () => {
       const success = await savePreferenceSelection(selectedProfile);
       if (success) {
         toast.success("Preference saved, proceeding with signup");
-       setTimeout(() => {
-        router.push("/");
-      }, 700);
+        setTimeout(() => {
+          router.push("/");
+        }, 700);
       } else {
         toast.error("Failed to save your preference. Please try again.");
       }

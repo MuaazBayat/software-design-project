@@ -1,19 +1,20 @@
 // __tests__/integration/matchmaking.int.test.tsx
-// Robust integration tests for app/matchmaking/page.tsx using MSW.
-// External boundaries only: Clerk (useUser) + network (MSW).
+// Robust integration tests for app/matchmaking/page.tsx using fetch mocks.
+// External boundaries only: Clerk (useUser) + network (fetch mocks).
 // No internal component/hook mocks.
 
 import { screen, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
 
-// Ensure relative URLs so `${API_BASE_URL}` resolves to path-only in tests
+// Ensure relative URLs for fetch mocks
 process.env.NEXT_PUBLIC_MATCHMAKING_URL = "";
 
 // --- Mock Clerk (external boundary only) ---
 const mockUseUser = jest.fn();
+const mockUseAuth = jest.fn();
 jest.mock("@clerk/nextjs", () => ({
   useUser: () => mockUseUser(),
+  useAuth: () => mockUseAuth(),
 }));
 function signedIn(overrides: Partial<any> = {}) {
   return {
@@ -26,8 +27,20 @@ function signedOut() {
   return { isLoaded: true, isSignedIn: false, user: null };
 }
 
-// MSW server (path may differ in your repo)
-import { server } from "../setup/msw/server";
+// Mock fetch globally
+let fetchMock: jest.SpyInstance;
+
+beforeAll(() => {
+  fetchMock = jest.spyOn(global, 'fetch') as jest.SpyInstance;
+});
+
+afterEach(() => {
+  fetchMock.mockReset();
+});
+
+afterAll(() => {
+  fetchMock.mockRestore();
+});
 
 // Dynamic import so env/mocks are in place before module evaluation
 async function loadPage() {
@@ -39,32 +52,44 @@ async function loadPage() {
 describe("MatchScreen (integration)", () => {
   beforeEach(() => {
     mockUseUser.mockReturnValue(signedIn());
+    mockUseAuth.mockReturnValue({
+      getToken: jest.fn(() => Promise.resolve('mock-token')),
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'clerk_alice',
+    });
   });
 
   test("initial render: shows loading then a suggested profile with pass/like actions", async () => {
     // Suggestions + stats so buttons are enabled
-    server.use(
-      http.get("*/profiles/suggestions/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            user_id: "u_first",
-            anonymous_handle: "FirstProfile",
-            country_code: "IE",
-            primary_language: "en",
-            interests: ["Music"],
-            last_active: new Date().toISOString(),
-          },
-        ])
-      ),
-      http.get("*/user/stats/:clerk_id", () =>
-        HttpResponse.json({
-          matches_used: 0,
-          matches_remaining: 5,
-          total_daily_limit: 5,
-          reset_time: new Date(Date.now() + 864e5).toISOString(),
-        })
-      )
-    );
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/profiles/suggestions/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              user_id: "u_first",
+              anonymous_handle: "FirstProfile",
+              country_code: "IE",
+              primary_language: "en",
+              interests: ["Music"],
+              last_active: new Date().toISOString(),
+            },
+          ],
+        } as Response);
+      } else if (url.includes('/user/stats/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            matches_used: 0,
+            matches_remaining: 5,
+            total_daily_limit: 5,
+            reset_time: new Date(Date.now() + 864e5).toISOString(),
+          }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     const Page = await loadPage();
     render(<Page />);
@@ -89,30 +114,37 @@ describe("MatchScreen (integration)", () => {
 
   test("pass flow: removes current card from queue and presents the next suggestion", async () => {
     // Deterministic queue
-    server.use(
-      http.get("*/profiles/suggestions/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            user_id: "u_1",
-            anonymous_handle: "FirstProfile",
-            country_code: "IE",
-            primary_language: "en",
-            interests: ["Music"],
-            last_active: new Date().toISOString(),
-          },
-          {
-            user_id: "u_2",
-            anonymous_handle: "SecondProfile",
-            country_code: "JP",
-            primary_language: "ja",
-            interests: ["Art"],
-            last_active: new Date().toISOString(),
-          },
-        ])
-      ),
-      // Record pass (don’t care about body here)
-      http.post("*/profiles/pass", () => HttpResponse.json({ success: true }))
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/suggestions/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              user_id: "u_1",
+              anonymous_handle: "FirstProfile",
+              country_code: "IE",
+              primary_language: "en",
+              interests: ["Music"],
+              last_active: new Date().toISOString(),
+            },
+            {
+              user_id: "u_2",
+              anonymous_handle: "SecondProfile",
+              country_code: "JP",
+              primary_language: "ja",
+              interests: ["Art"],
+              last_active: new Date().toISOString(),
+            },
+          ],
+        } as Response);
+      } else if (url.includes('/profiles/pass') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     const Page = await loadPage();
     render(<Page />);
@@ -130,46 +162,52 @@ describe("MatchScreen (integration)", () => {
   });
 
   test("like flow: successful match shows success toast with handle and updates stats", async () => {
-    server.use(
-      http.get("*/profiles/suggestions/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            user_id: "u_sarah",
-            anonymous_handle: "Sarah",
-            country_code: "IE",
-            primary_language: "en",
-            interests: ["Reading", "Hiking"],
-            last_active: new Date().toISOString(),
-          },
-        ])
-      ),
-      http.get("*/user/stats/:clerk_id", () =>
-        HttpResponse.json({
-          matches_used: 0,
-          matches_remaining: 5,
-          total_daily_limit: 5,
-          reset_time: new Date(Date.now() + 864e5).toISOString(),
-        })
-      ),
-      http.post("*/matches/find", async ({ request }) => {
-        // Return the minimal success payload the page expects
-        const body = await request.json();
-        return HttpResponse.json({
-          match_id: "m_123",
-          thread_id: "t_123",
-          penpal_profile: {
-            user_id: "u_sarah",
-            anonymous_handle: "Sarah",
-            country_code: "IE",
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/profiles/suggestions/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              user_id: "u_sarah",
+              anonymous_handle: "Sarah",
+              country_code: "IE",
+              primary_language: "en",
+              interests: ["Reading", "Hiking"],
+              last_active: new Date().toISOString(),
+            },
+          ],
+        } as Response);
+      } else if (url.includes('/user/stats/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            matches_used: 0,
+            matches_remaining: 5,
+            total_daily_limit: 5,
+            reset_time: new Date(Date.now() + 864e5).toISOString(),
+          }),
+        } as Response);
+      } else if (url.includes('/matches/find') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            match_id: "m_123",
+            thread_id: "t_123",
+            penpal_profile: {
+              user_id: "u_sarah",
+              anonymous_handle: "Sarah",
+              country_code: "IE",
             primary_language: "en",
             interests: ["Reading", "Hiking"],
           },
           match_type: "either",
           compatibility_score: 0.92,
           created_at: new Date().toISOString(),
-        });
-      })
-    );
+        }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     const Page = await loadPage();
     render(<Page />);
@@ -198,28 +236,34 @@ describe("MatchScreen (integration)", () => {
   });
 
   test("daily limit reached: disables pass/like and shows limit message", async () => {
-    server.use(
-      http.get("*/profiles/suggestions/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            user_id: "u_any",
-            anonymous_handle: "AnyProfile",
-            country_code: "ZA",
-            primary_language: "en",
-            interests: ["Music"],
-            last_active: new Date().toISOString(),
-          },
-        ])
-      ),
-      http.get("*/user/stats/:clerk_id", () =>
-        HttpResponse.json({
-          matches_used: 5,
-          matches_remaining: 0,
-          total_daily_limit: 5,
-          reset_time: new Date(Date.now() + 864e5).toISOString(),
-        })
-      )
-    );
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/profiles/suggestions/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              user_id: "u_any",
+              anonymous_handle: "AnyProfile",
+              country_code: "ZA",
+              primary_language: "en",
+              interests: ["Music"],
+              last_active: new Date().toISOString(),
+            },
+          ],
+        } as Response);
+      } else if (url.includes('/user/stats/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            matches_used: 5,
+            matches_remaining: 0,
+            total_daily_limit: 5,
+            reset_time: new Date(Date.now() + 864e5).toISOString(),
+          }),
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     const Page = await loadPage();
     render(<Page />);

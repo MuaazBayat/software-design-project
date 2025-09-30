@@ -6,6 +6,17 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react-dom/test-utils';
 
+// Clerk mock
+jest.mock('@clerk/nextjs', () => ({
+  useUser: () => ({ isLoaded: true, isSignedIn: true, user: { id: 'user_123' } }),
+  useAuth: () => ({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user_123',
+  }),
+}));
+
 // Router stubs kept simple; closures are fine here
 const mockRouter = { push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};

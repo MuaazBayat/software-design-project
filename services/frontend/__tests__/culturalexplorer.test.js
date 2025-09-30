@@ -15,6 +15,35 @@ import React from 'react';
 import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CulturalExplorer from '../app/cultural-explorer/page';
+jest.mock('../lib/context/ProfileContext', () => ({
+  useProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123",
+      anonymous_handle: "test_user",
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+    syncProfile: async () => {},
+    clearProfile: () => {},
+  }),
+  useSyncProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123",
+      anonymous_handle: "test_user",
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+  }),
+}));
+
 
 // ---- Mocks ----
 
@@ -112,6 +141,8 @@ const expectMainLoaded = async () => {
 // Tests
 // ---------------------------------------------------------------------
 
+
+
 describe('CulturalExplorer — render & basics', () => {
   test('renders without errors and transitions from loading → content', async () => {
     mockFetchHandlers({ factsJson: FACTS_OK });
@@ -124,7 +155,7 @@ describe('CulturalExplorer — render & basics', () => {
     await expectMainLoaded();
 
     // Deck buttons visible
-    expect(screen.getByRole('button', { name: /my country/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /your country/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /random country/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose country/i })).toBeInTheDocument();
 
@@ -145,8 +176,8 @@ describe('CulturalExplorer — deck switching & facts', () => {
     // Default deck should be random → Shuffle button is visible
     expect(screen.getByRole('button', { name: /shuffle/i })).toBeInTheDocument();
 
-    // Switch to "My Country"
-    await user.click(screen.getByRole('button', { name: /my country/i }));
+    // Switch to "Your Country"
+    await user.click(screen.getByRole('button', { name: /your country/i }));
     await flushAll();
 
     expect(screen.queryByRole('button', { name: /shuffle/i })).not.toBeInTheDocument();
@@ -198,7 +229,7 @@ describe('CulturalExplorer — quiz flow (South Africa hardcoded quiz)', () => {
     await expectMainLoaded();
 
     // Force South Africa
-    await user.click(screen.getByRole('button', { name: /my country/i }));
+    await user.click(screen.getByRole('button', { name: /your country/i }));
     await flushAll();
     expect(screen.getByRole('heading', { name: /south africa/i })).toBeInTheDocument();
 

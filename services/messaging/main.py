@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI, HTTPException, File, UploadFile, Request
+from fastapi import FastAPI, HTTPException, File, UploadFile, Request, Depends
 from pydantic import BaseModel, Field, constr
 from typing import Optional, Dict, Any, List, Iterable, Tuple
 from datetime import datetime
@@ -7,9 +7,13 @@ from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-import os, time
+import os, time, sys
 from uuid import uuid4
 from threading import RLock
+
+# Import shared authentication
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.auth import verify_token
 
 # -----------------------------
 # Environment / Supabase client
@@ -236,7 +240,7 @@ def health():
     return {"ok": True, "time_sa": now_in_sa().isoformat()}
 
 @app.post("/messages")
-async def send_message(request: Request):
+async def send_message(request: Request, token: str = Depends(verify_token)):
     ctype = (request.headers.get("content-type") or "").lower()
     is_multipart = "multipart/form-data" in ctype
 
@@ -290,7 +294,7 @@ async def send_message(request: Request):
     return row
 
 @app.post("/messages/page")
-def page_messages_sa(body: MessagesPage):
+def page_messages_sa(body: MessagesPage, token: str = Depends(verify_token)):
     thread_id = body.conversation_thread_id
     if not thread_id:
         if not body.my_user_id or not body.other_user_id:
@@ -422,7 +426,7 @@ def _get_blocked_users(my_user_id: str) -> List[str]:
         return []
 
 @app.post("/search")
-def search(body: SearchUsers):
+def search(body: SearchUsers, token: str = Depends(verify_token)):
     conv_map = _get_conv_map_for_user(body.my_user_id)
     if not conv_map:
         return {"count": 0, "items": []}
@@ -531,7 +535,7 @@ def _latest_in_transit_from_me(convo_ids: List[str], now_sa_iso: str, my_user_id
     return out
 
 @app.post("/search")
-def search(body: SearchUsers):
+def search(body: SearchUsers, token: str = Depends(verify_token)):
     conv_map = _get_conv_map_for_user(body.my_user_id)
     if not conv_map:
         return {"count": 0, "items": []}
@@ -585,7 +589,7 @@ def search(body: SearchUsers):
     return {"count": len(items), "items": items}
 
 @app.post("/messages/mark-read")
-def mark_read(body: MarkRead):
+def mark_read(body: MarkRead, token: str = Depends(verify_token)):
     # If you’re on Pydantic v2, use body.model_dump() instead of body.dict()
     conv_id = body.conversation_thread_id
     me = body.my_user_id
@@ -608,12 +612,12 @@ def mark_read(body: MarkRead):
     return {"updated": updated}
 
 @app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), token: str = Depends(verify_token)):
     object_path = await _upload_from_uploadfile(file)
     return {"object_path": object_path, "data": {"path": object_path}}
 
 @app.get("/get-image")
-def get_image(object_path: str):
+def get_image(object_path: str, token: str = Depends(verify_token)):
     signed_map = _batch_signed_urls([object_path])
     if object_path not in signed_map:
         raise HTTPException(status_code=404, detail="Image not found or failed to sign URL")

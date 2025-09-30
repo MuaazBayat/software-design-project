@@ -3,19 +3,12 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor,act  } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import MatchScreen from '../app/matchmaking/page';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import userEvent from '@testing-library/user-event';
-// Mock the useUser hook
-jest.mock('@clerk/nextjs', () => ({
-  useUser: jest.fn(),
-}));
 
-const mockToast = {
-  success: jest.fn(),
-  error: jest.fn(),
-};
+// Clerk is mocked globally in jest.setup.js
 
 // Must be BEFORE the component import
 jest.mock('sonner', () => {
@@ -49,8 +42,6 @@ jest.mock('@/components/ui/loader', () => {
   };
 });
 
-
-
 function jsonResponse(body, init = {}) {
   const status = init.status ?? 200;
   const headers = { 'Content-Type': 'application/json', ...(init.headers || {}) };
@@ -65,6 +56,7 @@ function jsonResponse(body, init = {}) {
     text: async () => text,   // just in case something calls res.text()
   };
 }
+
 function setupHappyPathFetch() {
   const base = process.env.NEXT_PUBLIC_MATCHMAKING_URL || 'http://localhost:8001';
   const likeUrl = `${base}/matches/find`;
@@ -73,10 +65,9 @@ function setupHappyPathFetch() {
   const passUrl = `${base}/profiles/pass`;
   const profileUrl = `${base}/user/profile/u_test`;
 
-  // was: let finishLikeInternal: (() => void) | null = null;
   let finishLikeInternal = null;
 
-  // If your Jest env doesn’t have fetch, stub something so we can spy on it.
+  // If your Jest env doesn't have fetch, stub something so we can spy on it.
   if (!global.fetch) {
     global.fetch = () => Promise.reject(new Error('fetch not available in this env'));
   }
@@ -140,6 +131,7 @@ function setupHappyPathFetch() {
     },
   };
 }
+
 // Reset mocks before each test
 beforeEach(() => {
   global.fetch = jest.fn();
@@ -150,7 +142,8 @@ beforeEach(() => {
 afterEach(() => {
   jest.clearAllTimers();
   jest.useRealTimers();
-  jest.restoreAllMocks();});
+  jest.restoreAllMocks();
+});
 
 describe('MatchScreen - Additional Tests', () => {
 
@@ -220,11 +213,11 @@ describe('MatchScreen - Additional Tests', () => {
 
     // Find close button by looking for X icon
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(button => 
+    const closeButton = closeButtons.find(button =>
       button.querySelector('svg') &&
       button.querySelector('path[d="M18 6 6 18"]')
     );
-    
+
     expect(closeButton).toBeTruthy();
     fireEvent.click(closeButton);
   });
@@ -298,7 +291,7 @@ describe('MatchScreen - Additional Tests', () => {
     await waitFor(() => {
       const likeButton = screen.getByRole('button', { name: /like/i });
       const passButton = screen.getByRole('button', { name: /pass/i });
-      
+
       expect(likeButton).toBeDisabled();
       expect(passButton).toBeDisabled();
     });
@@ -341,7 +334,7 @@ describe('MatchScreen - Additional Tests', () => {
 
     // Check bio content is there (may be wrapped in quotes)
     await waitFor(() => {
-      expect(screen.getByText((content, element) => 
+      expect(screen.getByText((content, element) =>
         content.includes('Love traveling and meeting new people')
       )).toBeInTheDocument();
     });
@@ -355,60 +348,7 @@ describe('MatchScreen - Additional Tests', () => {
     expect(screen.getByText('85%')).toBeInTheDocument();
   });
 
-// test('handles API errors gracefully during match creation', async () => {
-//   const { fetchMock } = setupHappyPathFetch();
-//   jest.useFakeTimers();
-
-//   // Force ONLY the like call to fail for this test
-//   const base = process.env.NEXT_PUBLIC_MATCHMAKING_URL || 'http://localhost:8001';
-//   const likeUrl = `${base}/matches/find`;
-//   const originalImpl = fetchMock.getMockImplementation();
-
-//   fetchMock.mockImplementation((input, init = {}) => {
-//     const url = typeof input === 'string' ? input : String(input);
-//     const method = (init.method || 'GET').toUpperCase();
-//     if (url.startsWith(likeUrl) && method === 'POST') {
-//       return Promise.resolve(jsonResponse({ error: 'boom' }, { status: 500 }));
-//     }
-//     return originalImpl(input, init);
-//   });
-
-//   render(<MatchScreen />);
-
-//   // The component uses setTimeout(...,0) before suggestions land; flush it
-//   await act(async () => {
-//     jest.runOnlyPendingTimers();
-//   });
-
-//   // Now suggestions should be on screen
-//   await screen.findByText(/Japan/i);
-
-//   // Use the same selectors you use in the passing "success" test
-//   const likeBtn = screen.getByRole('button', { name: /like/i });
-//   const passBtn = screen.getByRole('button', { name: /pass/i });
-
-//   // Trigger the failing POST
-//   await userEvent.click(likeBtn);
-
-//   // Flush any follow-up timers
-//   await act(async () => {
-//     jest.runOnlyPendingTimers();
-//   });
-
-//   // Assert toast error was shown
-//   const { toast } = require('sonner');
-//   await waitFor(() => {
-//     expect(toast.error).toHaveBeenCalledWith('Error creating match. Please try again.');
-//   });
-
-//   // Buttons should be re-enabled after the failure
-//   await waitFor(() => {
-//     expect(likeBtn).not.toBeDisabled();
-//     expect(passBtn).not.toBeDisabled();
-//   });
-// });
-
-   test('handles network errors during API calls', async () => {
+  test('handles network errors during API calls', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1', firstName: 'TestUser' } });
 
     fetch.mockImplementation((url) => {
@@ -443,33 +383,6 @@ describe('MatchScreen - Additional Tests', () => {
     });
   });
 
-// test('shows loading state during action processing', async () => {
-//   const { finishLike } = setupHappyPathFetch(); // this returns one suggestion + a deferred POST /matches/find
-
-//   render(<MatchScreen />);
-
-//   // Wait for the Like/Pass buttons to actually appear in the DOM.
-//   // Using findByRole ensures we don’t proceed until the profile card is rendered.
-//   const likeBtn = await screen.findByRole('button', { name: /like/i });
-//   const passBtn = screen.getByRole('button', { name: /pass/i });
-
-//   // Kick off the async like action — the UI should disable both buttons while in-flight
-//   await userEvent.click(likeBtn);
-//   expect(likeBtn).toBeDisabled();
-//   expect(passBtn).toBeDisabled();
-
-//   // Resolve the deferred POST created by setupHappyPathFetch
-//   finishLike();
-
-//   // Wait for the UI to settle and re-enable controls
-//   await waitFor(() => {
-//     expect(likeBtn).not.toBeDisabled();
-//     expect(passBtn).not.toBeDisabled();
-//   });
-// });
-
-
-
   test('displays correct country flags and names', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
 
@@ -490,10 +403,10 @@ describe('MatchScreen - Additional Tests', () => {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({ matches_remaining: 5, total_daily_limit: 10 }) });
         }
         if (url.includes('/profiles/suggestions/')) {
-          return Promise.resolve({ ok: true, json: () => Promise.resolve([{ 
-            user_id: 'suggested1', 
-            anonymous_handle: 'MatchUser', 
-            country_code: testCase.code 
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([{
+            user_id: 'suggested1',
+            anonymous_handle: 'MatchUser',
+            country_code: testCase.code
           }]) });
         }
         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
@@ -545,7 +458,7 @@ describe('MatchScreen - Additional Tests', () => {
       expect(toast.success).toHaveBeenCalledWith('Match created with MatchUser! 🎉');
     });
   });
-  
+
   test('displays age range correctly', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user1' } });
 
@@ -565,9 +478,9 @@ describe('MatchScreen - Additional Tests', () => {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({ matches_remaining: 5, total_daily_limit: 10 }) });
         }
         if (url.includes('/profiles/suggestions/')) {
-          return Promise.resolve({ ok: true, json: () => Promise.resolve([{ 
-            user_id: 'suggested1', 
-            anonymous_handle: 'MatchUser', 
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([{
+            user_id: 'suggested1',
+            anonymous_handle: 'MatchUser',
             country_code: 'JP',
             age_range: test.range
           }]) });
@@ -649,25 +562,4 @@ describe('MatchScreen - Additional Tests', () => {
       expect(screen.getByText('Young Adult')).toBeInTheDocument();
     });
   });
-
-// test('displays loading spinner when processing actions', async () => {
-// const { fetchMock, finishLike } = setupHappyPathFetch();
-// jest.useFakeTimers();
-
-// render(<MatchScreen />);
-// await screen.findByText(/Japan/i);
-
-
-
-// finishLike();
-// await act(async () => {
-//   jest.runOnlyPendingTimers();
-// });
-
-// await waitFor(() => {
-//   expect(likeBtn).not.toBeDisabled();
-//   expect(passBtn).not.toBeDisabled();
-// });
-
-//   });
 });

@@ -22,6 +22,35 @@ jest.mock("next/navigation", () => {
   };
 });
 
+jest.mock("../../lib/context/ProfileContext", () => ({
+  useProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123",
+      anonymous_handle: "test_user",
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+    syncProfile: async () => {},
+    clearProfile: () => {},
+  }),
+  useSyncProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123",
+      anonymous_handle: "test_user",
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+  }),
+}));
+
 async function loadPage() {
   const mod = await import("../../app/cultural-explorer/page");
   return mod.default;

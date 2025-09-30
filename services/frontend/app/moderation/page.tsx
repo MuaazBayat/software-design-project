@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useProfile } from '../../lib/context/ProfileContext';
 import { moderationApi, ModerationLogEntry } from '@/lib/moderationApiClient';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { 
   Shield, 
   AlertTriangle, 
@@ -83,10 +83,6 @@ const ModerationDashboard = () => {
             setActionLoading(null);
           }
         },
-      },
-      cancel: {
-        label: 'Cancel',
-        onClick: () => toast.dismiss(),
       },
     });
   };
@@ -203,7 +199,6 @@ const ModerationDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <Toaster richColors position="top-center"/>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

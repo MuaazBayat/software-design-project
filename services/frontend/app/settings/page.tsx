@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import * as React from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Card,
@@ -69,10 +70,19 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
 // CHANGE 1: read the env var that your UI message mentions
 const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || ""; // set in .env.local
 
-async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
+async function apiGetProfile(
+  clerkId: string,
+  getToken: () => Promise<string | null>
+): Promise<ProfileModel | null> {
+  const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+  const token = authDisabled ? null : await getToken();
+
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    },
   });
   if (res.status === 404) return null; // no profile yet
   if (!res.ok) throw new Error(`GET failed: ${res.status}`);
@@ -81,11 +91,18 @@ async function apiGetProfile(clerkId: string): Promise<ProfileModel | null> {
 
 async function apiUpdateProfile(
   clerkId: string,
-  patch: Partial<ProfileModel> | ProfileModel
+  patch: Partial<ProfileModel> | ProfileModel,
+  getToken: () => Promise<string | null>
 ): Promise<ProfileModel> {
+  const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+  const token = authDisabled ? null : await getToken();
+
   const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    },
     body: JSON.stringify(patch),
   });
   if (!res.ok) {
@@ -118,6 +135,7 @@ const LANG = [
 // ===== Page Component (no props; use Clerk) =====
 export default function Page() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
   const clerkId = user?.id ?? "";
 
   // Model fields
@@ -145,7 +163,7 @@ export default function Page() {
     let alive = true;
     setLoading(true);
     setError(null);
-    apiGetProfile(clerkId)
+    apiGetProfile(clerkId, getToken)
       .then((data) => {
         if (!alive) return;
         if (!data) {
@@ -237,11 +255,11 @@ export default function Page() {
 
   async function onSave() {
     if (!isLoaded || !isSignedIn || !clerkId) {
-      alert("Sign in first.");
+      toast.error("Please sign in first.");
       return;
     }
     if (handle && !HANDLE_RE.test(handle)) {
-      alert("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
+      toast.error("Handle must be 3–20 chars: lowercase letters, numbers, underscores.");
       return;
     }
 
@@ -251,7 +269,7 @@ export default function Page() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiUpdateProfile(clerkId, body);
+      const updated = await apiUpdateProfile(clerkId, body, getToken);
       originalRef.current = {
         anonymous_handle: updated.anonymous_handle ?? null,
         age_range: updated.age_range ?? null,
@@ -262,7 +280,7 @@ export default function Page() {
         bio: updated.bio ?? "",
         interests: updated.interests ?? [],
       };
-      alert("Saved changes.");
+      toast.success("Settings saved successfully!");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
