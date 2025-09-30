@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy the shared module first (parent directory sibling)
-COPY ../shared /shared
+COPY ../shared /app/shared
 
 # Copy the requirements file to the container
 COPY requirements.txt .
