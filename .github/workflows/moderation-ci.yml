@@ -22,7 +22,7 @@ jobs:
       SUPABASE_URL: http://dummy
       SUPABASE_KEY: dummy
       PYTHONWARNINGS: default
-      ENABLE_AUTH: true
+      ENABLE_AUTH: false
 
     steps:
       - uses: actions/checkout@v4
