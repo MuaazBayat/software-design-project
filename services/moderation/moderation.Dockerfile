@@ -4,17 +4,17 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the shared module first (parent directory sibling)
-COPY ../shared /app/shared
+# Copy the shared module first
+COPY shared /app/shared
 
 # Copy the requirements file to the container
-COPY requirements.txt .
+COPY moderation/requirements.txt .
 
 # Install the dependencies
 RUN pip install -r requirements.txt
 
 # Copy the current directory contents into the container at /app
-COPY . .
+COPY moderation .
 
 # Expose port 80 to allow access to the API
 EXPOSE 8000

@@ -28,8 +28,8 @@ jobs:
             --platform linux/amd64 \
             -t $MESSAGING_IMAGE \
             -f services/messaging/messaging.Dockerfile \
-            services/messaging/.
-          docker push $MESSAGING_IMAGE
+            services \
+            --push
 
       - name: Google Auth
         id: auth

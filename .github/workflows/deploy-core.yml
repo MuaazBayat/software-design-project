@@ -28,7 +28,7 @@ jobs:
             --platform linux/amd64 \
             -t $CORE_IMAGE \
             -f services/core/core.Dockerfile \
-            services/core \
+            services \
             --push
 
       - name: Google Auth
