@@ -5,16 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy the requirements file to the container
-COPY core/requirements.txt .
+COPY requirements.txt .
 
 # Install the dependencies
 RUN pip install -r requirements.txt
 
 # Copy the current directory contents into the container at /app
-COPY core .
-
-# Copy the shared module (after copying core to avoid overwriting)
-COPY shared /app/shared
+COPY . .
 
 # Expose port 80 to allow access to the API
 EXPOSE 8000
