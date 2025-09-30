@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import PreferenceProfileSelector from '../app/preference-profile/page';
 
 // Mock sonner properly - provide a mock for Toaster component
@@ -37,6 +37,7 @@ beforeEach(() => {
   global.fetch = jest.fn();
   jest.clearAllMocks();
   process.env.NEXT_PUBLIC_CORE_URL = 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_AUTH_DISABLED = 'true'; // Disable auth for tests
 });
 
 // Fake users for testing (plain JS objects)

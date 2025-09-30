@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 // Mock Clerk so the page thinks a user is signed in
 jest.mock("@clerk/nextjs", () => ({
   useUser: () => ({ isLoaded: true, isSignedIn: true, user: { id: "user_123" } }),
+  useAuth: () => ({ getToken: jest.fn(() => Promise.resolve(null)) }),
 }));
 
 // Mock next/link so it renders a normal <a>
