@@ -4,9 +4,6 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the shared module first (parent directory sibling)
-COPY ../shared /app/shared
-
 # Copy the requirements file to the container
 COPY requirements.txt .
 

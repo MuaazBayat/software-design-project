@@ -11,9 +11,8 @@ import os, time, sys
 from uuid import uuid4
 from threading import RLock
 
-# Import shared authentication
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from shared.auth import verify_token
+# Import authentication
+from auth import verify_token
 
 # -----------------------------
 # Environment / Supabase client

@@ -11,9 +11,8 @@ import os, sys
 from datetime import datetime
 import uuid
 
-# Import shared authentication
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from shared.auth import verify_token
+# Import authentication
+from auth import verify_token
 
 # Environment variables for Supabase
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')

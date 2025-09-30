@@ -17,9 +17,8 @@ from supabase import Client
 from models import ProfileCreate, ProfileUpdate, Profile
 from database import supabase
 
-# Import shared authentication
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from shared.auth import verify_token
+# Import authentication
+from auth import verify_token
 
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
