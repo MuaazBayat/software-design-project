@@ -28,7 +28,7 @@ jobs:
             --platform linux/amd64 \
             -t $MODERATION_IMAGE \
             -f services/moderation/moderation.Dockerfile \
-            services \
+            ./services \
             --push
 
       - name: Google Auth
