@@ -13,3 +13,4 @@ core
 matchmaking
 messages
 moderation
+vulnerabilities

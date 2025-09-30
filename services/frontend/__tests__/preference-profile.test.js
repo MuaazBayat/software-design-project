@@ -23,7 +23,21 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Clerk is mocked globally in jest.setup.js
+// Mock useAuth hook
+jest.mock('@clerk/nextjs', () => ({
+  useAuth: jest.fn(() => ({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  })),
+  useUser: jest.fn(() => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { id: 'user-1' },
+  })),
+}));
+
 jest.mock('../lib/supabaseClient', () => ({
   supabase: {
     from: jest.fn().mockReturnThis(),
@@ -37,7 +51,22 @@ beforeEach(() => {
   global.fetch = jest.fn();
   jest.clearAllMocks();
   process.env.NEXT_PUBLIC_CORE_URL = 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_MATCHMAKING_URL = 'http://localhost:8001';
   process.env.NEXT_PUBLIC_AUTH_DISABLED = 'true'; // Disable auth for tests
+
+  // Reset mocks to default
+  useAuth.mockReturnValue({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  });
+
+  useUser.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { id: 'user-1' },
+  });
 });
 
 // Fake users for testing (plain JS objects)

@@ -1,19 +1,20 @@
 // __tests__/integration/pref-profile.int.test.tsx
 // Integration tests for app/preference-profile/page.tsx
-// External boundaries only: Clerk, Next router, network (MSW).
+// External boundaries only: Clerk, Next router, network (fetch mocks).
 // No internal component/hook mocks.
 
 import { render, screen, waitFor, waitForElementToBeRemoved, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
 
-// Ensure path-only URLs so MSW can intercept.
+// Ensure path-only URLs for fetch mocks
 process.env.NEXT_PUBLIC_MATCHMAKING_URL = "";
 
 // --- Mock Clerk (external boundary) ---
 const mockUseUser = jest.fn();
+const mockUseAuth = jest.fn();
 jest.mock("@clerk/nextjs", () => ({
   useUser: () => mockUseUser(),
+  useAuth: () => mockUseAuth(),
 }));
 const signedIn = (overrides: Partial<any> = {}) => ({
   isLoaded: true,
@@ -28,8 +29,20 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: jest.fn(), back: jest.fn() }),
 }));
 
-// --- MSW server (adjust path if your server export lives elsewhere) ---
-import { server } from "../setup/msw/server";
+// Mock fetch globally
+let fetchMock: jest.SpyInstance;
+
+beforeAll(() => {
+  fetchMock = jest.spyOn(global, 'fetch') as jest.SpyInstance;
+});
+
+afterEach(() => {
+  fetchMock.mockReset();
+});
+
+afterAll(() => {
+  fetchMock.mockRestore();
+});
 
 // --- Dynamic import so mocks are set before module evaluation ---
 async function loadPage() {
@@ -54,38 +67,43 @@ async function selectCardByHandle(handle: RegExp | string) {
 describe("PreferenceProfileSelector (integration)", () => {
   beforeEach(() => {
     mockUseUser.mockReturnValue(signedIn());
+    mockUseAuth.mockReturnValue({
+      getToken: jest.fn(() => Promise.resolve('mock-token')),
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'clerk_alice',
+    });
     pushMock.mockReset();
   });
 
   test("initial render → loads profiles from API and shows cards", async () => {
-    server.use(
-      http.get("*/preferences/profiles/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            profile_id: "u_1",
-            anonymous_handle: "Alice",
-            country_code: "IE",
-            bio: "Hello from Dublin",
-            interests: ["Music"],
-            age_range: "26-35",
-            primary_language: "en",
-            favorite_local_fact: "Giants Causeway",
-            is_real: true,
-          },
-          {
-            profile_id: "u_2",
-            anonymous_handle: "Bob",
-            country_code: "JP",
-            bio: "Kansai local",
-            interests: ["Art"],
-            age_range: "26-35",
-            primary_language: "ja",
-            favorite_local_fact: "Takoyaki!",
-            is_real: true,
-          },
-        ])
-      )
-    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          profile_id: "u_1",
+          anonymous_handle: "Alice",
+          country_code: "IE",
+          bio: "Hello from Dublin",
+          interests: ["Music"],
+          age_range: "26-35",
+          primary_language: "en",
+          favorite_local_fact: "Giants Causeway",
+          is_real: true,
+        },
+        {
+          profile_id: "u_2",
+          anonymous_handle: "Bob",
+          country_code: "JP",
+          bio: "Kansai local",
+          interests: ["Art"],
+          age_range: "26-35",
+          primary_language: "ja",
+          favorite_local_fact: "Takoyaki!",
+          is_real: true,
+        },
+      ],
+    } as Response);
 
     const Page = await loadPage();
     render(<Page />);
@@ -103,23 +121,22 @@ describe("PreferenceProfileSelector (integration)", () => {
   });
 
   test("toggle Example Profiles → shows fake user cards and 'Example Profile' tag", async () => {
-    server.use(
-      http.get("*/preferences/profiles/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            profile_id: "u_real",
-            anonymous_handle: "RealOne",
-            country_code: "US",
-            bio: "Bio",
-            interests: ["Music"],
-            age_range: "18-25",
-            primary_language: "en",
-            favorite_local_fact: "Fact",
-            is_real: true,
-          },
-        ])
-      )
-    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          profile_id: "u_real",
+          anonymous_handle: "RealOne",
+          country_code: "US",
+          bio: "Bio",
+          interests: ["Music"],
+          age_range: "18-25",
+          primary_language: "en",
+          favorite_local_fact: "Fact",
+          is_real: true,
+        },
+      ],
+    } as Response);
 
     const Page = await loadPage();
     render(<Page />);
@@ -140,38 +157,45 @@ describe("PreferenceProfileSelector (integration)", () => {
     async () => {
       let capturedBody: any = null;
 
-      server.use(
-        http.get("*/preferences/profiles/:clerk_id", () =>
-          HttpResponse.json([
-            {
-              profile_id: "u_sarah",
-              anonymous_handle: "Sarah",
-              country_code: "IE",
-              bio: "Reader",
-              interests: ["Reading", "Hiking"],
-              age_range: "26-35",
-              primary_language: "en",
-              favorite_local_fact: "Fact",
-              is_real: true,
-            },
-            {
-              profile_id: "u_mike",
-              anonymous_handle: "Mike",
-              country_code: "AR",
-              bio: "Foodie",
-              interests: ["Food"],
-              age_range: "26-35",
-              primary_language: "es",
-              favorite_local_fact: "Asado!",
-              is_real: true,
-            },
-          ])
-        ),
-        http.post("*/preferences/select", async ({ request }) => {
-          capturedBody = await request.json();
-          return HttpResponse.json({ success: true, message: "saved" }, { status: 200 });
-        })
-      );
+      fetchMock.mockImplementation((url: string, options?: any) => {
+        if (url.includes('/preferences/profiles/')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              {
+                profile_id: "u_sarah",
+                anonymous_handle: "Sarah",
+                country_code: "IE",
+                bio: "Reader",
+                interests: ["Reading", "Hiking"],
+                age_range: "26-35",
+                primary_language: "en",
+                favorite_local_fact: "Fact",
+                is_real: true,
+              },
+              {
+                profile_id: "u_mike",
+                anonymous_handle: "Mike",
+                country_code: "AR",
+                bio: "Foodie",
+                interests: ["Food"],
+                age_range: "26-35",
+                primary_language: "es",
+                favorite_local_fact: "Asado!",
+                is_real: true,
+              },
+            ],
+          } as Response);
+        } else if (url.includes('/preferences/select') && options?.method === 'POST') {
+          capturedBody = JSON.parse(options.body);
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true, message: "saved" }),
+            status: 200,
+          } as Response);
+        }
+        return Promise.reject(new Error('Unexpected URL'));
+      });
 
       const Page = await loadPage();
       render(<Page />);
@@ -205,27 +229,33 @@ describe("PreferenceProfileSelector (integration)", () => {
     async () => {
       let posted = false;
 
-      server.use(
-        http.get("*/preferences/profiles/:clerk_id", () =>
-          HttpResponse.json([
-            {
-              profile_id: "u1",
-              anonymous_handle: "One",
-              country_code: "IE",
-              bio: null,
-              interests: [],
-              age_range: "26-35",
-              primary_language: "en",
-              favorite_local_fact: null,
-              is_real: true,
-            },
-          ])
-        ),
-        http.post("*/preferences/select", async () => {
+      fetchMock.mockImplementation((url: string, options?: any) => {
+        if (url.includes('/preferences/profiles/')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              {
+                profile_id: "u1",
+                anonymous_handle: "One",
+                country_code: "IE",
+                bio: null,
+                interests: [],
+                age_range: "26-35",
+                primary_language: "en",
+                favorite_local_fact: null,
+                is_real: true,
+              },
+            ],
+          } as Response);
+        } else if (url.includes('/preferences/select') && options?.method === 'POST') {
           posted = true;
-          return HttpResponse.json({ success: true, message: "saved" });
-        })
-      );
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true, message: "saved" }),
+          } as Response);
+        }
+        return Promise.reject(new Error('Unexpected URL'));
+      });
 
       const Page = await loadPage();
       render(<Page />);
@@ -258,26 +288,33 @@ describe("PreferenceProfileSelector (integration)", () => {
   );
 
   test("save failure → shows error toast and stays on page", async () => {
-    server.use(
-      http.get("*/preferences/profiles/:clerk_id", () =>
-        HttpResponse.json([
-          {
-            profile_id: "u_err",
-            anonymous_handle: "ErrUser",
-            country_code: "IE",
-            bio: null,
-            interests: [],
-            age_range: "26-35",
-            primary_language: "en",
-            favorite_local_fact: null,
-            is_real: true,
-          },
-        ])
-      ),
-      http.post("*/preferences/select", () =>
-        HttpResponse.json({ detail: "oops" }, { status: 500 })
-      )
-    );
+    fetchMock.mockImplementation((url: string, options?: any) => {
+      if (url.includes('/preferences/profiles/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              profile_id: "u_err",
+              anonymous_handle: "ErrUser",
+              country_code: "IE",
+              bio: null,
+              interests: [],
+              age_range: "26-35",
+              primary_language: "en",
+              favorite_local_fact: null,
+              is_real: true,
+            },
+          ],
+        } as Response);
+      } else if (url.includes('/preferences/select') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: false,
+          json: async () => ({ detail: "oops" }),
+          status: 500,
+        } as Response);
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
 
     const Page = await loadPage();
     render(<Page />);

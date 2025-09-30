@@ -91,6 +91,7 @@ jobs:
             --build-arg NEXT_PUBLIC_MESSAGING_URL=${{ secrets.MESSAGING_URL }} \
             --build-arg NEXT_PUBLIC_MODERATION_URL=${{ secrets.MODERATION_URL }} \
             --build-arg NEXT_PUBLIC_FPJS_KEY=${{ secrets.FPJS_KEY }} \
+            --build-arg NEXT_PUBLIC_AUTH_DISABLED=false \
             -t $FRONTEND_IMAGE \
             -t $FRONTEND_IMAGE_LATEST \
             -f services/frontend/frontend.Dockerfile \
