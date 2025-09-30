@@ -399,23 +399,58 @@ def _latest_in_transit_from_me(convo_ids: List[str], now_sa_iso: str, my_user_id
             out[cid] = m
     return out
 
+def _get_blocked_users(my_user_id: str) -> List[str]:
+    """Get list of user IDs that this user has blocked"""
+    try:
+        res = _safe_execute(
+            supabase.table("user_profiles")
+            .select("blocked_users")
+            .eq("user_id", my_user_id)
+            .single()
+        )
+        if res.data and res.data.get("blocked_users"):
+            blocked = res.data["blocked_users"]
+            # Handle if it's a string that needs parsing
+            if isinstance(blocked, str):
+                import json
+                return json.loads(blocked)
+            # Handle if it's already a list
+            elif isinstance(blocked, list):
+                return blocked
+        return []
+    except Exception:
+        return []
+
 @app.post("/search")
 def search(body: SearchUsers):
     conv_map = _get_conv_map_for_user(body.my_user_id)
     if not conv_map:
         return {"count": 0, "items": []}
 
-    profiles = _search_active_profiles_fts(conv_map.keys(), qtext=body.anonymous_handle)
+    # Get blocked users
+    blocked_user_ids = _get_blocked_users(body.my_user_id)
+    
+    # Filter out blocked users from conv_map
+    filtered_conv_map = {
+        uid: cid for uid, cid in conv_map.items() 
+        if uid not in blocked_user_ids
+    }
+    
+    if not filtered_conv_map:
+        return {"count": 0, "items": []}
+
+    profiles = _search_active_profiles_fts(filtered_conv_map.keys(), qtext=body.anonymous_handle)
     if not profiles:
         return {"count": 0, "items": []}
 
+    # Rest of the function remains the same, but use filtered_conv_map instead of conv_map
     start, end = max(body.offset, 0), max(body.offset, 0) + max(body.limit, 1)
     paged_profiles = profiles[start:end]
     if not paged_profiles:
         return {"count": 0, "items": []}
 
     now_sa_iso = now_in_sa().isoformat()
-    convo_ids = [conv_map[p["user_id"]] for p in paged_profiles]
+    convo_ids = [filtered_conv_map[p["user_id"]] for p in paged_profiles]
 
     latest_delivered = _latest_delivered_by_convo(convo_ids, now_sa_iso)
     latest_outgoing_future = _latest_in_transit_from_me(convo_ids, now_sa_iso, body.my_user_id)
@@ -425,7 +460,7 @@ def search(body: SearchUsers):
     items: List[Dict[str, Any]] = []
 
     for p in paged_profiles:
-        cid = conv_map[p["user_id"]]
+        cid = filtered_conv_map[p["user_id"]]
         delivered = latest_delivered.get(cid)
         future_mine = latest_outgoing_future.get(cid)
 
@@ -440,7 +475,7 @@ def search(body: SearchUsers):
         elif future_mine:
             pick = future_mine
         else:
-            pick = delivered  # could be None
+            pick = delivered
 
         # collect letter_url to sign (only if present)
         if pick and pick.get("letter_url"):
@@ -448,8 +483,8 @@ def search(body: SearchUsers):
 
         items.append({
             "user_profile": p,
-            "latest_message": pick,                             # <- THIS is now the true latest (delivered or your future)
-            "in_transit_from_me": bool(future_mine),           # you have something scheduled
+            "latest_message": pick,
+            "in_transit_from_me": bool(future_mine),
             "next_outgoing_at": (future_mine or {}).get("scheduled_delivery_at"),
         })
 

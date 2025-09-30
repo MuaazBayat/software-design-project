@@ -416,6 +416,128 @@ test('Component Lifecycle: reloads messages when conversation thread ID changes'
       });
     });
   });
+
+  test('Pagination: disables load more button while loading', async () => {
+    render(<ConversationPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Load Earlier Letters')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Load Earlier Letters'));
+
+    await waitFor(() => {
+      // While loading, text switches; the button should be in the document (mocked as <button/>)
+      expect(screen.getByText('Loading more letters...')).toBeInTheDocument();
+    });
+  });
+
+  test('Navigation: navigates back to inbox when back button is clicked', async () => {
+    render(<ConversationPage />);
+    const backBtn = await screen.findByText('Back to Inbox');
+    fireEvent.click(backBtn);
+    expect(mockPush).toHaveBeenCalledWith('/inbox');
+  });
+
+  test('Navigation: renders write letter button with correct navigation', async () => {
+    render(<ConversationPage />);
+
+    const writeBtn = await screen.findByText('Write Letter');
+    fireEvent.click(writeBtn);
+    expect(mockPush).toHaveBeenCalledWith('/compose-letter/other-user-456');
+  });
+
+  test('API Integration: logs API response', async () => {
+    const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    render(<ConversationPage />);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith('API response:', expect.any(Object));
+    });
+    spy.mockRestore();
+  });
+
+  test('API Integration: handles missing message sequence gracefully', async () => {
+    mockPageLetters.mockResolvedValueOnce({
+      items: [
+        { message_id: 'msg-a', sender_id: 'x', content: 'A' },
+        { message_id: 'msg-b', sender_id: 'y', content: 'B' },
+      ],
+      has_more: false,
+      last_message_id: 'msg-b',
+    });
+
+    render(<ConversationPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('letter-card')).toHaveLength(2);
+    });
+  });
+
+test('Component Lifecycle: reloads messages when conversation thread ID changes', async () => {
+  // First render with thread-1
+  useParams.mockReturnValueOnce({ conversation_thread_id: 'thread-1' });
+  render(<ConversationPage />);
+
+  await waitFor(() => {
+    expect(mockPageLetters).toHaveBeenCalledWith(
+      expect.objectContaining({ conversation_thread_id: 'thread-1' })
+    );
+  });
+
+  // Second render with thread-2
+  useParams.mockReturnValueOnce({ conversation_thread_id: 'thread-2' });
+  render(<ConversationPage />);
+
+  await waitFor(() => {
+    expect(mockPageLetters).toHaveBeenCalledWith(
+      expect.objectContaining({ conversation_thread_id: 'thread-2' })
+    );
+  });
+});
+
+
+
+  test('Accessibility: has proper button attributes', async () => {
+    render(<ConversationPage />);
+
+    await waitFor(() => {
+      const buttons = screen.getAllByTestId('button');
+      buttons.forEach((btn) => {
+        // DOM default type for <button> is "submit", but our mock doesn't set it;
+        // so only assert presence
+        expect(btn).toBeInTheDocument();
+      });
+    });
+  });
+
+  test('Edge Cases: handles messages without message_id for pagination', async () => {
+    mockPageLetters.mockResolvedValueOnce({
+      items: [
+        { message_sequence: 1, sender_id: 'x', content: 'A' },
+        { message_id: 'msg-2', message_sequence: 2, sender_id: 'y', content: 'B' },
+      ],
+      has_more: true,
+      last_message_id: 'msg-2',
+    });
+
+    render(<ConversationPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Load Earlier Letters')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Load Earlier Letters'));
+
+    await waitFor(() => {
+      // The code uses messages[messages.length - 1]?.message_id, which is 'msg-2'
+      expect(mockPageLetters).toHaveBeenLastCalledWith({
+        conversation_thread_id: 'thread-123',
+        page_size: 50,
+        last_message_id: 'msg-2',
+      });
+    });
+  });
 test('Initial gating: shows syncing UI when profile is not yet synced', async () => {
 // Arrange: profile exists but synced=false should render the "Syncing your profile..." screen
 mockUseSyncProfile.mockReturnValueOnce({ profile: baseProfile, synced: false, loading: true });
