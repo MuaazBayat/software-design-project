@@ -39,6 +39,35 @@ interface LanguageToolMatch {
     };
   };
 }
+// Add near the top of MainContent.tsx (outside the component)
+export const __test__ = {
+  normalizeOrderedListsHtml(html: string) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    let changed = false;
+    let cumulative = 0;
+
+    const children = Array.from(doc.body.childNodes);
+    for (const node of children) {
+      if (node instanceof HTMLElement && node.tagName === 'OL') {
+        const items = Array.from(node.children).filter(
+          c => (c as HTMLElement).tagName === 'LI'
+        );
+        const desiredStart = cumulative + 1;
+        const currentStartAttr = node.getAttribute('start');
+
+        if (desiredStart === 1) {
+          if (currentStartAttr) { node.removeAttribute('start'); changed = true; }
+        } else {
+          if (currentStartAttr !== String(desiredStart)) {
+            node.setAttribute('start', String(desiredStart)); changed = true;
+          }
+        }
+        cumulative += items.length;
+      }
+    }
+    return changed ? doc.body.innerHTML : html;
+  }
+};
 
 interface LanguageToolResult {
   matches: LanguageToolMatch[];

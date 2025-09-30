@@ -1,6 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, act } from '@testing-library/react'
 import { TempPreviewProvider, useTempPreview } from '../app/compose-letter/components/TempPreview'
 
 const TestComponent = () => {
@@ -32,43 +31,77 @@ describe('TempPreview Context', () => {
     expect(screen.getByTestId('saved-state')).toHaveTextContent('no-saved')
   })
 
-  test('allows setting preview state', async () => {
-    const user = userEvent.setup()
+  test('allows setting preview state', () => {
+    let api;
+
+    function Probe() {
+      const ctx = useTempPreview();
+      api = ctx;
+      return (
+        <div data-testid="preview-state">
+          {ctx.previewState ? 'has-preview' : 'no-preview'}
+        </div>
+      );
+    }
+
     render(
       <TempPreviewProvider>
-        <TestComponent />
+        <Probe />
       </TempPreviewProvider>
-    )
+    );
 
-    // Initially no preview
-    expect(screen.getByTestId('preview-state')).toHaveTextContent('no-preview')
+    // Initially none
+    expect(screen.getByTestId('preview-state')).toHaveTextContent('no-preview');
 
-    // Click to set preview
-    const setPreviewBtn = screen.getByText('Set Preview')
-    await user.click(setPreviewBtn)
+    // Wrap direct state update in act so React flushes it
+    act(() => {
+      api.setPreviewState({
+        backgroundColor: '#000',
+        fontColor: '#fff',
+        lineConfig: {},
+        fontOpacity: 1,
+        backgroundOpacity: 1,
+      });
+    });
 
-    // Now has preview
-    expect(screen.getByTestId('preview-state')).toHaveTextContent('has-preview')
-  })
+    expect(screen.getByTestId('preview-state')).toHaveTextContent('has-preview');
+  });
 
-  test('allows setting saved state', async () => {
-    const user = userEvent.setup()
+  test('allows setting saved state', () => {
+    let api;
+
+    function Probe() {
+      const ctx = useTempPreview();
+      api = ctx;
+      return (
+        <div data-testid="saved-state">
+          {ctx.savedState ? 'has-saved' : 'no-saved'}
+        </div>
+      );
+    }
+
     render(
       <TempPreviewProvider>
-        <TestComponent />
+        <Probe />
       </TempPreviewProvider>
-    )
+    );
 
-    // Initially no saved
-    expect(screen.getByTestId('saved-state')).toHaveTextContent('no-saved')
+    // Initially none
+    expect(screen.getByTestId('saved-state')).toHaveTextContent('no-saved');
 
-    // Click to set saved
-    const setSavedBtn = screen.getByText('Set Saved')
-    await user.click(setSavedBtn)
+    // Wrap direct state update in act so React flushes it
+    act(() => {
+      api.setSavedState({
+        backgroundColor: '#111',
+        fontColor: '#eee',
+        lineConfig: {},
+        fontOpacity: 0.9,
+        backgroundOpacity: 0.8,
+      });
+    });
 
-    // Now has saved
-    expect(screen.getByTestId('saved-state')).toHaveTextContent('has-saved')
-  })
+    expect(screen.getByTestId('saved-state')).toHaveTextContent('has-saved');
+  });
 
   test('throws error when used outside provider', () => {
     // Mock console.error to avoid noise

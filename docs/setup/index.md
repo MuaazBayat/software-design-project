@@ -7,6 +7,7 @@
 :caption: Contents
 
 env
+authentication
 frontend
 core
 matchmaking
