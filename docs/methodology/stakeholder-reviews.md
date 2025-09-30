@@ -128,3 +128,42 @@ The team presented Cultural Explorer, preference profile, matchmaking API, and m
 - Team: Use Google Form for external feedback.  
 - Tapiwa: Investigate project management mark, confirm Sprint 1 rubric details.  
 
+# Stakeholder Reviews Sprint 3
+
+
+### Summary
+
+Stakeholders requested that Cultural Explorer support users’ **home country**, move any **browser alerts** to in‑UI alerts, make the **feedback form longer**, ensure **cohesive colours** in Cultural Explorer, achieve **~50% integration test coverage**, and improve a **plain landing page**.
+**Implemented this sprint:** extended feedback form, integration tests to ~50% coverage, and an updated landing page.
+
+### Details
+
+* **Cultural Explorer & Home Country**
+  Feature should detect or accept the user’s home country and tailor the experience accordingly (content availability, quiz sources, and defaults). Include fallbacks if content is missing.
+
+* **Browser Alerts → UI Alerts**
+  Replace `window.alert` with accessible in‑app UI (toasts/dialogs) with ARIA roles, keyboard focus management, and non‑blocking UX.
+
+* **Feedback Form Length**
+  Stakeholders want more detailed qualitative input (long‑text, optional contact, feature satisfaction, NPS).
+  **Implemented:** form extended with additional fields and prompts.
+
+* **Cohesive Colour System in Cultural Explorer**
+  Align palette with brand tokens and landing page; avoid "old website" feel. Ensure contrast ratios meet WCAG.
+
+* **Integration Tests at ~50% Coverage**
+  Use MSW to simulate backend; include success/error paths for Cultural Explorer, matching, and messaging.
+  **Implemented:** integration suite expanded to ~50%.
+
+* **Landing Page is Plain**
+  Improve hero (copy, imagery), clarify value prop, and ensure consistent CTA routing (About/What‑it‑does before sign‑up).
+  **Implemented:** landing page updated for cohesion and clarity.
+
+### Suggested Next Steps
+
+* Wire **home‑country support** in Cultural Explorer (detection + manual override) with a robust fallback state.
+* Audit codebase to remove any remaining `window.alert`; standardize on toast/dialog components.
+* Validate **colour cohesion** across Cultural Explorer cards/graphs and retest contrast.
+* Keep integration coverage trending upward (target 60–80% in Sprint 4) and gate PRs with thresholds.
+* Run a quick **usability pass** on the new landing page and extended feedback form; iterate on copy if needed.
+
