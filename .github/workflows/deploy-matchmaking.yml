@@ -28,7 +28,7 @@ jobs:
             --platform linux/amd64 \
             -t $MATCHMAKING_IMAGE \
             -f services/matchmaking/matchmaking.Dockerfile \
-            . \
+            services/matchmaking \
             --push
 
       - name: Google Auth

@@ -5,13 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy the requirements file to the container
-COPY services/moderation/requirements.txt .
+COPY requirements.txt .
 
 # Install the dependencies
 RUN pip install -r requirements.txt
 
-# Copy the moderation service contents into the container at /app
-COPY services/moderation/ .
+# Copy the current directory contents into the container at /app
+COPY . .
 
 # Expose port 80 to allow access to the API
 EXPOSE 8000

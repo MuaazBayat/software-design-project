@@ -28,7 +28,7 @@ jobs:
             --platform linux/amd64 \
             -t $MESSAGING_IMAGE \
             -f services/messaging/messaging.Dockerfile \
-            . \
+            services/messaging \
             --push
 
       - name: Google Auth
