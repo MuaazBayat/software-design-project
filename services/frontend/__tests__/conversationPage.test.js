@@ -293,7 +293,6 @@ test('User Information Display: handles missing currentUser gracefully', async (
         last_message_id: 'msg-2', // from last of initial items
       });
     });
-<<<<<<< HEAD
   });
 
   test('Pagination: disables load more button while loading', async () => {
@@ -416,8 +415,6 @@ test('Component Lifecycle: reloads messages when conversation thread ID changes'
         last_message_id: 'msg-2',
       });
     });
-=======
->>>>>>> develop
   });
 
   test('Pagination: disables load more button while loading', async () => {

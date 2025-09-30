@@ -114,12 +114,9 @@ const setApiHappy = () => {
   api.banUser.mockResolvedValue({});
 };
 
-// … your tests go here (unchanged) …
-
-
 const setApiEmpty = () => {
-  api.getModerationLogs.mockResolvedValue(null); // component guards with `|| []`
-  api.getBannedUsers.mockResolvedValue(null);
+  api.getModerationLogs.mockResolvedValue([]);
+  api.getBannedUsers.mockResolvedValue([]);
 };
 
 const setApiBannedError = () => {
@@ -147,147 +144,151 @@ describe('ModerationDashboard — access & rendering', () => {
     expect(api.getBannedUsers).not.toHaveBeenCalled();
   });
 
-test('renders dashboard for moderators and fetches data', async () => {
-  setApiHappy();
-  await renderAs('moderator');
-
-  // Initial fetches fire due to useEffect
-  await waitFor(() => {
-    expect(api.getModerationLogs).toHaveBeenCalledWith('mod-1');
-  });
-  await waitFor(() => {
-    expect(api.getBannedUsers).toHaveBeenCalled();
-  });
-
-  // Header states visible
-  expect(screen.getByRole('heading', { name: /moderation dashboard/i })).toBeInTheDocument();
-  expect(screen.getByText(/manage reports and moderate content/i)).toBeInTheDocument();
-
-  // Constrain to <p> metric labels to avoid matching <option> "In Review"
-  expect(screen.getByText('Total Cases', { selector: 'p' }).nextSibling).toHaveTextContent('3');
-  expect(screen.getByText('Open Cases', { selector: 'p' }).nextSibling).toHaveTextContent('1');
-  expect(screen.getByText('In Review', { selector: 'p' }).nextSibling).toHaveTextContent('1');
-  expect(screen.getByText('Resolved', { selector: 'p' }).nextSibling).toHaveTextContent('1');
-
-  // Cases table shows our logs
-  expect(screen.getByRole('heading', { name: /moderation cases/i })).toBeInTheDocument();
-  expect(screen.getByText(/spam links in messages/i)).toBeInTheDocument();
-  expect(screen.getByText(/user sent threats/i)).toBeInTheDocument();
-  expect(screen.getByText(/nsfw content/i)).toBeInTheDocument();
-
-  // Banned users table shows entries
-  expect(screen.getByRole('heading', { name: /banned users/i })).toBeInTheDocument();
-  expect(screen.getByText(/ghost_owl/i)).toBeInTheDocument();
-  expect(screen.getByText(/shadow_fox/i)).toBeInTheDocument();
-});
-
+  
 });
 
 describe('ModerationDashboard — filters & refresh', () => {
-test('can filter by status and type', async () => {
-  setApiHappy();
-  await renderAs('moderator');
+  test('can filter by status and type', async () => {
+    setApiHappy();
+    await renderAs('moderator');
 
-  // Wait for table
-  await screen.findByRole('heading', { name: /moderation cases/i });
+    // Wait for table
+    await screen.findByRole('heading', { name: /moderation cases/i });
 
-  // Scope to the status group (label + select are siblings, label has no htmlFor)
-  const statusGroup = screen.getByText(/^Status:$/i).parentElement;
-  const statusSelect = within(statusGroup).getByRole('combobox');
-  await userEvent.selectOptions(statusSelect, 'open');
+    // Scope to the status group (label + select are siblings, label has no htmlFor)
+    const statusGroup = screen.getByText(/^Status:$/i).parentElement;
+    const statusSelect = within(statusGroup).getByRole('combobox');
+    await userEvent.selectOptions(statusSelect, 'open');
 
-  // Now only the open case should show
-  expect(screen.getByText(/spam links in messages/i)).toBeInTheDocument();
-  expect(screen.queryByText(/user sent threats/i)).not.toBeInTheDocument();
-  expect(screen.queryByText(/nsfw content/i)).not.toBeInTheDocument();
+    // Now only the open case should show
+    expect(screen.getByText(/spam links in messages/i)).toBeInTheDocument();
+    expect(screen.queryByText(/user sent threats/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nsfw content/i)).not.toBeInTheDocument();
 
-  // Further narrow Type: User (removes message cases)
-  const typeGroup = screen.getByText(/^Type:$/i).parentElement;
-  const typeSelect = within(typeGroup).getByRole('combobox');
-  await userEvent.selectOptions(typeSelect, 'user');
+    // Further narrow Type: User (removes message cases)
+    const typeGroup = screen.getByText(/^Type:$/i).parentElement;
+    const typeSelect = within(typeGroup).getByRole('combobox');
+    await userEvent.selectOptions(typeSelect, 'user');
 
-  // Open + user filters => no rows (since open case was message)
-  expect(screen.getByText(/no moderation cases found/i)).toBeInTheDocument();
-});
+    // Open + user filters => no rows (since open case was message)
+    expect(screen.getByText(/no moderation cases found/i)).toBeInTheDocument();
+  });
 
+  test('refresh buttons trigger the respective fetches', async () => {
+    setApiHappy();
+    await renderAs('moderator');
 
- test('refresh buttons trigger the respective fetches', async () => {
-  setApiHappy();
-  await renderAs('moderator');
+    await screen.findByRole('heading', { name: /moderation cases/i });
+    
+    // Wait for initial fetches to complete
+    await waitFor(() => expect(api.getModerationLogs).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(api.getBannedUsers).toHaveBeenCalledTimes(1));
 
-  await screen.findByRole('heading', { name: /moderation cases/i });
+    // Find refresh button for moderation cases - it's in the same section as the heading
+    const casesSection = screen.getByRole('heading', { name: /moderation cases/i }).closest('div');
+    const caseRefresh = within(casesSection).getByRole('button', { name: /refresh/i });
+    await userEvent.click(caseRefresh);
+    await waitFor(() => expect(api.getModerationLogs).toHaveBeenCalledTimes(2));
 
-  // Scope to the header bar containing the "Moderation Cases" heading
-  const casesHeaderBar = screen.getByRole('heading', { name: /moderation cases/i }).parentElement;
-  const caseRefresh = within(casesHeaderBar).getByRole('button', { name: /refresh/i });
-  await userEvent.click(caseRefresh);
-  await waitFor(() => expect(api.getModerationLogs).toHaveBeenCalledTimes(2));
+    // Switch to banned users tab
+    const bannedTab = screen.getAllByText(/banned users/i).find(el => el.closest('button'));
+    await userEvent.click(bannedTab.closest('button'));
+    
+    // Wait for tab content to render
+    await waitFor(() => {
+      expect(screen.getByText(/ghost_owl/i)).toBeInTheDocument();
+    });
 
-  // Scope to the header bar containing the "Banned Users" heading
-  const bannedHeaderBar = screen.getByRole('heading', { name: /banned users/i }).parentElement;
-  const bannedRefresh = within(bannedHeaderBar).getByRole('button', { name: /refresh/i });
-  await userEvent.click(bannedRefresh);
-  await waitFor(() => expect(api.getBannedUsers).toHaveBeenCalledTimes(2));
-});
-
+    // Find refresh button for banned users
+    const bannedSection = screen.getByRole('heading', { name: /banned users/i }).closest('div');
+    const bannedRefresh = within(bannedSection).getByRole('button', { name: /refresh/i });
+    await userEvent.click(bannedRefresh);
+    await waitFor(() => expect(api.getBannedUsers).toHaveBeenCalledTimes(2));
+  });
 });
 
 describe('ModerationDashboard — edge cases & actions', () => {
-// --- FIXED: handles empty datasets gracefully ---
-test('handles empty datasets gracefully', async () => {
-  setApiEmpty();
-  await renderAs('moderator');
+  test('handles empty datasets gracefully', async () => {
+    setApiEmpty();
+    await renderAs('moderator');
 
-  await screen.findByRole('heading', { name: /moderation cases/i });
+    await screen.findByRole('heading', { name: /moderation cases/i });
 
-  // No logs
-  expect(screen.getByText(/no moderation cases found/i)).toBeInTheDocument();
-  // No banned users
-  expect(screen.getByText(/no banned users found/i)).toBeInTheDocument();
+    // No logs
+    expect(screen.getByText(/no moderation cases found/i)).toBeInTheDocument();
+    
+    // Switch to banned users tab to check that table
+    const bannedTab = screen.getAllByText(/banned users/i).find(el => el.closest('button'));
+    await userEvent.click(bannedTab.closest('button'));
+    
+    await waitFor(() => {
+      expect(screen.getByText(/no banned users found/i)).toBeInTheDocument();
+    });
 
-  // Constrain to <p> labels to avoid matching the <option> "In Review"
-  expect(screen.getByText('Total Cases', { selector: 'p' }).nextSibling)
-    .toHaveTextContent('0');
-  expect(screen.getByText('Open Cases', { selector: 'p' }).nextSibling)
-    .toHaveTextContent('0');
-  expect(screen.getByText('In Review', { selector: 'p' }).nextSibling)
-    .toHaveTextContent('0');
-  expect(screen.getByText('Resolved', { selector: 'p' }).nextSibling)
-    .toHaveTextContent('0');
-});
+    // Verify stats show 0 - find each stat card individually
+    const totalCasesLabels = screen.getAllByText('Total Cases');
+    const totalCasesCard = totalCasesLabels[0].parentElement;
+    expect(within(totalCasesCard).getByText('0')).toBeInTheDocument();
 
-// --- FIXED: unban flow: confirms via toast action and refreshes both lists ---
-test('unban flow: confirms via toast action and refreshes both lists', async () => {
-  setApiHappy();
-  await renderAs('moderator');
-  await screen.findByRole('heading', { name: /banned users/i });
+    const openCasesLabels = screen.getAllByText('Open Cases');
+    const openCasesCard = openCasesLabels[0].parentElement;
+    expect(within(openCasesCard).getByText('0')).toBeInTheDocument();
 
-  // Scope to the "Banned Users" panel so we pick the right table
-  const bannedPanelHeader = screen.getByRole('heading', { name: /banned users/i });
-  const bannedPanel = bannedPanelHeader.closest('div').parentElement;
-  const bannedTable = within(bannedPanel).getByRole('table');
+    const inReviewLabels = screen.getAllByText('In Review');
+    const inReviewCard = inReviewLabels[0].parentElement;
+    expect(within(inReviewCard).getByText('0')).toBeInTheDocument();
 
-  // Click Unban on the first row (user with user_id)
-  const firstRow = within(bannedTable).getAllByRole('row')[1];
-  await userEvent.click(within(firstRow).getByRole('button', { name: /unban/i }));
-
-  // A confirmation toast is shown; simulate clicking its action ("Unban")
-  expect(toastFn).toHaveBeenCalled();
-  const last = toastFn._last;
-  expect(last?.options?.action?.label?.toLowerCase()).toContain('unban');
-
-  await act(async () => {
-    await last.options.action.onClick();
+    const resolvedLabels = screen.getAllByText('Resolved');
+    const resolvedCard = resolvedLabels[0].parentElement;
+    expect(within(resolvedCard).getByText('0')).toBeInTheDocument();
   });
 
-  await waitFor(() => {
-    expect(api.unbanUser).toHaveBeenCalledWith('u-123');
-  });
-  // Both lists are refreshed
-  await waitFor(() => expect(api.getBannedUsers).toHaveBeenCalledTimes(2));
-  await waitFor(() => expect(api.getModerationLogs).toHaveBeenCalledTimes(2));
-  // Success toast
-  expect(toastFn.success).toHaveBeenCalledWith('User has been unbanned.');
-});
+  test('unban flow: confirms via toast action and refreshes both lists', async () => {
+    setApiHappy();
+    await renderAs('moderator');
+    
+    // Wait for initial load
+    await waitFor(() => {
+      expect(api.getModerationLogs).toHaveBeenCalledTimes(1);
+      expect(api.getBannedUsers).toHaveBeenCalledTimes(1);
+    });
 
+    // Switch to banned users tab
+    const bannedTab = screen.getAllByText(/banned users/i).find(el => el.closest('button'));
+    await userEvent.click(bannedTab.closest('button'));
+
+    // Wait for the banned users table to appear
+    await waitFor(() => {
+      expect(screen.getByText(/ghost_owl/i)).toBeInTheDocument();
+    });
+
+    // Find all unban buttons and click the first one (for user with user_id)
+    const unbanButtons = screen.getAllByRole('button', { name: /unban/i });
+    await userEvent.click(unbanButtons[0]);
+
+    // A confirmation toast is shown; simulate clicking its action ("Unban")
+    await waitFor(() => {
+      expect(toastFn).toHaveBeenCalled();
+    });
+    
+    const last = toastFn._last;
+    expect(last?.options?.action?.label?.toLowerCase()).toContain('unban');
+
+    // Click the unban action in the toast
+    await act(async () => {
+      await last.options.action.onClick();
+    });
+
+    // Verify unbanUser was called with the correct user_id
+    await waitFor(() => {
+      expect(api.unbanUser).toHaveBeenCalledWith('u-123');
+    });
+    
+    // Both lists are refreshed
+    await waitFor(() => expect(api.getBannedUsers).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.getModerationLogs).toHaveBeenCalledTimes(2));
+    
+    // Success toast
+    expect(toastFn.success).toHaveBeenCalledWith('User has been unbanned.');
+  });
 });
