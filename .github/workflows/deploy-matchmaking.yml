@@ -24,11 +24,12 @@ jobs:
           
       - name: Build & push Matchmaking Docker images
         run: |
+          cd $GITHUB_WORKSPACE
           docker buildx build  --no-cache \
             --platform linux/amd64 \
             -t $MATCHMAKING_IMAGE \
             -f services/matchmaking/matchmaking.Dockerfile \
-            ./services \
+            services \
             --push
 
       - name: Google Auth

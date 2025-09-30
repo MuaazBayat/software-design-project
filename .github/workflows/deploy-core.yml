@@ -24,11 +24,12 @@ jobs:
           
       - name: Build & Push Core Docker Image
         run: |
+          cd $GITHUB_WORKSPACE
           docker buildx build --no-cache \
             --platform linux/amd64 \
             -t $CORE_IMAGE \
             -f services/core/core.Dockerfile \
-            ./services \
+            services \
             --push
 
       - name: Google Auth
