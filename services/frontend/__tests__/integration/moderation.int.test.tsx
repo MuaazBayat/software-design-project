@@ -86,10 +86,13 @@ describe('ModerationDashboard (MSW-backed)', () => {
     });
 
     // Stats cards reflect counts (scope by card labels to avoid duplicate number matches)
-    const totalCard = screen.getByText(/Total Cases/i).closest('div')!;
+    // "Total Cases" appears in both the stat card and nav, so filter for the <p> tag
+    const totalCaseElements = screen.getAllByText(/^Total Cases$/i);
+    const totalCaseP = totalCaseElements.find((el) => el.tagName.toLowerCase() === 'p') as HTMLElement;
+    const totalCard = totalCaseP.closest('div')!;
     expect(within(totalCard).getByText(/^2$/)).toBeInTheDocument();
 
-    const openCard = screen.getByText(/Open Cases/i).closest('div')!;
+    const openCard = screen.getByText(/^Open Cases$/i, { selector: 'p' }).closest('div')!;
     expect(within(openCard).getByText(/^1$/)).toBeInTheDocument();
 
     // "In Review" appears both as a <p> label and a <option> in the filter.
@@ -101,17 +104,53 @@ describe('ModerationDashboard (MSW-backed)', () => {
     const resolvedCard = screen.getByText(/^Resolved$/i, { selector: 'p' }).closest('div')!;
     expect(within(resolvedCard).getByText(/^1$/)).toBeInTheDocument();
 
-    // Banned users header present
-    expect(screen.getByRole('heading', { name: /^Banned Users$/i })).toBeInTheDocument();
+    // Test Cases tab refresh button
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Moderation Cases/i })).toBeInTheDocument();
+    });
 
-    const refreshButtons = await screen.findAllByRole('button', { name: /refresh/i });
-    expect(refreshButtons.length).toBeGreaterThanOrEqual(2);
+    const casesHeading = screen.getByRole('heading', { name: /Moderation Cases/i });
+    const casesHeaderBar = casesHeading.parentElement!;
+    const casesRefreshBtn = within(casesHeaderBar).getByRole('button', { name: /refresh/i });
 
-    await act(async () => { await user.click(refreshButtons[0]); });
-    await waitFor(() => { expect(screen.getByText(/profanity/i)).toBeInTheDocument(); });
+    await act(async () => { await user.click(casesRefreshBtn); });
+    await waitFor(() => { 
+      expect(screen.getByText(/profanity/i)).toBeInTheDocument(); 
+    });
 
-    await act(async () => { await user.click(refreshButtons[1]); });
-    await waitFor(() => { expect(screen.getByRole('heading', { name: /^Banned Users$/i })).toBeInTheDocument(); });
+    // Now test Banned Users tab
+    // Find the nav button that contains "Banned Users"
+    const allButtons = screen.getAllByRole('button');
+    const bannedNavButton = allButtons.find(btn => {
+      const text = btn.textContent || '';
+      return text.includes('Banned Users') && !text.includes('Refresh');
+    });
+    
+    expect(bannedNavButton).toBeInTheDocument();
+
+    // Switch to banned users tab
+    await act(async () => { await user.click(bannedNavButton!); });
+    
+    // Wait for the Banned Users heading to appear in the content area
+    await waitFor(() => {
+      const headings = screen.getAllByRole('heading', { name: /Banned Users/i });
+      // Should have at least one heading (the content area heading)
+      expect(headings.length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Find the banned users content heading (not the nav button text)
+    const bannedHeading = screen.getAllByRole('heading', { name: /Banned Users/i })
+      .find(h => h.tagName.toLowerCase() === 'h2');
+    expect(bannedHeading).toBeInTheDocument();
+
+    const bannedHeaderBar = bannedHeading!.parentElement!;
+    const bannedRefreshBtn = within(bannedHeaderBar).getByRole('button', { name: /refresh/i });
+
+    // Click banned refresh
+    await act(async () => { await user.click(bannedRefreshBtn); });
+    await waitFor(() => { 
+      expect(screen.getByRole('heading', { name: /^Banned Users$/i })).toBeInTheDocument(); 
+    });
   });
 
   test('filters by status and type', async () => {
@@ -159,11 +198,25 @@ describe('ModerationDashboard (MSW-backed)', () => {
 
     await renderWithProfile({ user_id: 'mod_3', moderator: true });
 
-    // Click banned users Refresh to trigger the failing call
-    const refreshButtons = await screen.findAllByRole('button', { name: /refresh/i });
-    await act(async () => { await userEvent.click(refreshButtons[1]); });
+    // Switch to banned users tab first
+    const navButtons = screen.getAllByRole('button');
+    const bannedNavButton = navButtons.find(btn => btn.textContent?.includes('Banned Users'));
+    await act(async () => { await userEvent.click(bannedNavButton!); });
 
-    expect(toastError).toHaveBeenCalled();
+    // Wait for tab to load
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /^Banned Users$/i })).toBeInTheDocument();
+    });
+
+    // Click banned users Refresh to trigger the failing call
+    const bannedSection = screen.getByRole('heading', { name: /^Banned Users$/i }).closest('div')!;
+    const refreshBtn = within(bannedSection).getByRole('button', { name: /refresh/i });
+    
+    await act(async () => { await userEvent.click(refreshBtn); });
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalled();
+    });
   });
 
   test('unban flow calls API via toast action', async () => {
@@ -174,20 +227,41 @@ describe('ModerationDashboard (MSW-backed)', () => {
       ],
     });
 
-    await renderWithProfile({ user_id: 'mod_4', moderator: true });
+    const user = await renderWithProfile({ user_id: 'mod_4', moderator: true });
 
+    // Switch to banned users tab
+    const navButtons = screen.getAllByRole('button');
+    const bannedNavButton = navButtons.find(btn => btn.textContent?.includes('Banned Users'));
+    await act(async () => { await user.click(bannedNavButton!); });
+
+    // Wait for unban button to appear
     const unbanBtn = await screen.findByRole('button', { name: /Unban/i });
-    await act(async () => { await userEvent.click(unbanBtn); });
+    await act(async () => { await user.click(unbanBtn); });
 
     // The component calls toast('Are you sure…', { action: { onClick } })
     // Our mock captured it; grab the last call and invoke the action
+    await waitFor(() => {
+      expect(toastFn).toHaveBeenCalled();
+    });
+
     const calls = (toastFn as jest.Mock).mock.calls;
-    const last = calls[calls.length - 1];
-    const opts = typeof last[0] === 'string' ? last[1] : last[0];
+    const lastCall = calls[calls.length - 1];
+    
+    // Handle both possible toast signatures: toast(message, options) or toast(options)
+    let opts;
+    if (typeof lastCall[0] === 'string') {
+      opts = lastCall[1];
+    } else {
+      opts = lastCall[0];
+    }
+
+    expect(opts?.action?.onClick).toBeDefined();
 
     await act(async () => { await opts.action.onClick(); });
 
     // Success toast should be called after API completes
-    expect(toastSuccess).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalled();
+    });
   });
 });
