@@ -100,19 +100,24 @@ We maintain a formal user testing process to gather qualitative feedback on usab
 * **Backlog integration**: We regularly review the bug tracker and add reported issues to the backlog for prioritization and resolution.
 
 
-### Key takeaways from User Feedback
 
-#### UI & Landing Page Feedback
+### Key Takeaways from User Feedback  
 
-* **Landing page is the main pain point** — **3/12** explicitly asked to improve it:
+_Source documents: [Feedback Form](https://forms.gle/DK6JTrqMdmDxkoSEA) · [Responses Sheet](https://docs.google.com/spreadsheets/d/1ZpXSg8j9_GGlYAYpJe84VJe3fUFiin5dpz9dM-09f9k)_
 
-  * Rework the **hero**: cleaner text, consistent minimal imagery, and make the **CTA** point to an **About/“What GlobeTalk does”** page (not just login/sign‑up).
-  * Improve overall **cohesion** of the landing/main page.
+#### UI & Landing Page Feedback  
 
-* **UI / Color scheme issues** — **2/12** called this out:
+* **Formatting options for letters** — **3/9** asked for this:  
+  * Users want richer ways to write and decorate letters (e.g., fonts, templates, postcard-style UI).  
+  * This would make letters more **meaningful** and fun.  
 
-  * “The colours.”
-  * Current palette/choices make it feel like an **old website**.
+* **Landing page as a pain point** — **3/12** explicitly mentioned it:  
+  * Rework the **hero** with cleaner text, consistent minimal imagery, and a CTA leading to an **About / “What GlobeTalk does”** page (not just login/sign-up).  
+  * Improve cohesion so the first impression feels engaging and not “bare” or “boring.”  
+
+* **UI design & color scheme** — **2/12** called this out:  
+  * Comments included: “The colours” and “yellow background feels like an old website.”  
+  * Users want a **more polished, cohesive design** that feels modern.  
 
 ## Takeaway
 
