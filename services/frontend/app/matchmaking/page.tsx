@@ -161,17 +161,17 @@ const getTimeSinceActive = (lastActive?: string) => {
 const InterestTag: React.FC<{ interest: string }> = ({ interest }) => {
   const getIcon = (interest: string) => {
     const lowerInterest = interest.toLowerCase();
-    if (lowerInterest.includes("read")) return <Book className="w-3 h-3" />;
-    if (lowerInterest.includes("photo")) return <Camera className="w-3 h-3" />;
-    if (lowerInterest.includes("hik")) return <Mountain className="w-3 h-3" />;
-    return <Star className="w-3 h-3" />;
+    if (lowerInterest.includes("read")) return <Book className="w-3 h-3" aria-hidden="true" />;
+    if (lowerInterest.includes("photo")) return <Camera className="w-3 h-3" aria-hidden="true" />;
+    if (lowerInterest.includes("hik")) return <Mountain className="w-3 h-3" aria-hidden="true" />;
+    return <Star className="w-3 h-3" aria-hidden="true" />;
   };
 
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 rounded-full text-xs text-amber-700 border border-amber-200">
+    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 rounded-full text-xs text-amber-700 border border-amber-200" role="listitem">
       {getIcon(interest)}
       <span className="font-medium">{interest}</span>
-    </div>
+    </span>
   );
 };
 
@@ -198,26 +198,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
   }`;
 
   return (
-    <div className={overlayClasses}>
+    <div className={overlayClasses} role="dialog" aria-modal="true" aria-labelledby="filter-modal-title">
       <div className={modalClasses}>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-semibold text-stone-800">
+          <h3 id="filter-modal-title" className="text-2xl font-semibold text-stone-800">
             Find Your Perfect Match
           </h3>
           <button
             onClick={() => setShowFilters(false)}
-            className="p-2 hover:bg-stone-100 rounded-full"
+            className="p-2 hover:bg-stone-100 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            aria-label="Close filter modal"
+            type="button"
           >
-            <X className="w-6 h-6 text-stone-600" />
+            <X className="w-6 h-6 text-stone-600" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-3">
+        <form className="space-y-6" role="form" aria-label="Matching preferences">
+          <fieldset>
+            <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Correspondence Type
-            </label>
-            <div className="grid grid-cols-3 gap-2">
+            </legend>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="correspondence-type-legend">
               {[
                 {
                   value: "long-term" as const,
@@ -237,7 +239,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
               ].map((type) => (
                 <button
                   key={type.value}
-                  className={`p-3 rounded-xl text-center transition-all border-2 ${
+                  type="button"
+                  role="radio"
+                  aria-checked={matchingPreferences.match_type === type.value}
+                  className={`p-3 rounded-xl text-center transition-all border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                     matchingPreferences.match_type === type.value
                       ? "bg-gradient-to-br from-violet-200 to-pink-200 text-white  shadow-lg"
                       : "bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300"
@@ -248,23 +253,25 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       match_type: type.value,
                     })
                   }
+                  aria-label={`${type.label} - ${type.desc}`}
                 >
                   <div className="font-medium text-sm">{type.label}</div>
                   <div className="text-xs opacity-75">{type.desc}</div>
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-3">
+          <fieldset>
+            <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Age Range
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </legend>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="age-range-legend">
               {["18-25", "26-35", "36-45", "46+"].map((range) => (
                 <button
                   key={range}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  type="button"
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                     matchingPreferences.age_ranges.includes(range)
                       ? "bg-gradient-to-r from-violet-200 to-pink-200 text-white shadow-md"
                       : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -282,18 +289,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       age_ranges: newRanges,
                     });
                   }}
+                  aria-pressed={matchingPreferences.age_ranges.includes(range)}
+                  aria-label={`Age range ${range}`}
                 >
                   {range}
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-3">
+          <fieldset>
+            <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Languages
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </legend>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="languages-legend">
               {[
                 { code: "en", name: "🇺🇸 English" },
                 { code: "es", name: "🇪🇸 Spanish" },
@@ -305,7 +314,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
               ].map((lang) => (
                 <button
                   key={lang.code}
-                  className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                  type="button"
+                  className={`px-3 py-2 rounded-full text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                     matchingPreferences.languages.includes(lang.code)
                       ? "bg-gradient-to-r from-violet-200 to-pink-200 text-white shadow-md"
                       : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -323,12 +333,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       languages: newLangs,
                     });
                   }}
+                  aria-pressed={matchingPreferences.languages.includes(lang.code)}
+                  aria-label={lang.name}
                 >
                   {lang.name}
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <div>
             <label className="flex items-center gap-3 p-4 bg-stone-50 rounded-xl">
@@ -341,13 +353,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     exclude_previous: e.target.checked,
                   })
                 }
-                className="w-5 h-5 text-amber-500 rounded focus:ring-amber-500"
+                className="w-5 h-5 text-amber-500 rounded focus:ring-amber-500 focus:ring-2"
+                aria-describedby="exclude-previous-desc"
               />
               <div>
                 <span className="text-sm font-medium text-stone-700">
                   Exclude previous matches
                 </span>
-                <p className="text-xs text-stone-500">
+                <p id="exclude-previous-desc" className="text-xs text-stone-500">
                   Don&apos;t show people I&apos;ve already connected with
                 </p>
               </div>
@@ -356,11 +369,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
           <button
             onClick={() => setShowFilters(false)}
-            className="w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+            className="w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
+            type="button"
+            aria-label="Apply filters and close modal"
           >
             Apply Filters ✨
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -394,6 +409,18 @@ const MatchScreen: React.FC = () => {
 
   // Get current profile (always first in queue)
   const currentProfile = profileQueue[0] || null;
+
+  // Keyboard event handler for action buttons
+  const handleKeyDown = (event: React.KeyboardEvent, action: 'like' | 'pass') => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (action === 'like') {
+        handleLike();
+      } else {
+        handlePass();
+      }
+    }
+  };
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -638,24 +665,26 @@ const MatchScreen: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
       {/* Main Content */}
       <Toaster position="top-center" richColors />
-      <div className="max-w-md mx-auto px-6 py-8">
+      <main className="max-w-md mx-auto px-6 py-8" role="main" aria-label="Matchmaking Interface">
         {/* User Stats Card */}
-        <div className="mb-8">
+        <header className="mb-8" role="banner">
           <div className="bg-white/70 backdrop-blur-sm rounded-sm p-6 border border-white/20">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-stone-800 mb-1">
+                <h1 className="text-2xl font-bold text-stone-800 mb-1">
                   Hi, {user.firstName || user.username || "User"} 👋
-                </h2>
+                </h1>
                 <p className="text-stone-600">
                   Find your next conversation partner
                 </p>
               </div>
               <button
                 onClick={() => setShowFilters(true)}
-                className="p-3 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all"
+                className="p-3 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                aria-label="Open matching preferences filters"
+                type="button"
               >
-                <UserSearch className="w-5 h-5" />
+                <UserSearch className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
@@ -675,12 +704,24 @@ const MatchScreen: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </header>
 
         {/* Profile Card */}
-        <div className="relative">
+        <section 
+          className="relative"
+          aria-labelledby="profile-section-heading"
+          role="region"
+        >
+          <h2 id="profile-section-heading" className="sr-only">
+            Profile Matching Interface
+          </h2>
           {actionLoading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+            <div 
+              className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center"
+              role="status"
+              aria-live="polite"
+              aria-label="Processing action"
+            >
               <div className="text-center">
                 <Loader />
               </div>
@@ -688,9 +729,13 @@ const MatchScreen: React.FC = () => {
           )}
 
           {showLoadingState ? (
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-12 text-center border border-white/20 shadow-lg">
+            <div 
+              className="bg-white/70 backdrop-blur-sm rounded-xl p-12 text-center border border-white/20 shadow-lg"
+              role="status"
+              aria-live="polite"
+            >
               <div className="w-24 h-24 bg-gradient-to-r from-stone-200 to-stone-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Globe className="w-12 h-12 text-stone-500" />
+                <Globe className="w-12 h-12 text-stone-500" aria-hidden="true" />
               </div>
               <h3 className="text-xl font-semibold text-stone-700 mb-2">
                 {isLoadingProfiles
@@ -704,12 +749,20 @@ const MatchScreen: React.FC = () => {
               </p>
             </div>
           ) : currentProfile ? (
-            <div className="relative bg-white rounded-xl shadow-2xl overflow-hidden mb-8 border border-white/20">
+            <article 
+              className="relative bg-white rounded-xl shadow-2xl overflow-hidden mb-8 border border-white/20"
+              role="article"
+              aria-labelledby="profile-name"
+            >
               {/* Profile Header with Country Flag */}
-              <div className="relative h-48 bg-gradient-to-br from-violet-200 to-pink-200 flex items-center justify-center">
-                <div className="absolute inset-0 bg-black/10"></div>
+              <header className="relative h-48 bg-gradient-to-br from-violet-200 to-pink-200 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/10" aria-hidden="true"></div>
                 <div className="relative text-center text-white">
-                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl mb-3 mx-auto">
+                  <div 
+                    className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl mb-3 mx-auto"
+                    role="img"
+                    aria-label={`Flag representing ${getLocationDisplay(currentProfile)}`}
+                  >
                     {/* Country Flags */}
                     {currentProfile.country_code === "US" && "🇺🇸"}{" "}
                     {currentProfile.country_code === "JP" && "🇯🇵"}{" "}
@@ -824,15 +877,16 @@ const MatchScreen: React.FC = () => {
                     {getTimeSinceActive(currentProfile.last_active)}
                   </span>
                 </div>
-              </div>
+              </header>
 
               {/* Profile Info */}
-              <div className="p-6">
+              <section className="p-6" aria-labelledby="profile-details">
+                <h3 id="profile-details" className="sr-only">Profile Details</h3>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-stone-800 mb-2">
+                    <h2 id="profile-name" className="text-2xl font-bold text-stone-800 mb-2">
                       {currentProfile.anonymous_handle}
-                    </h3>
+                    </h2>
                     <div className="flex items-center gap-4 mb-3">
                       <div className="flex items-center gap-1 text-stone-500 text-sm">
                         <MapPin className="w-4 h-4" />
@@ -888,18 +942,18 @@ const MatchScreen: React.FC = () => {
                 )}
 
                 {(currentProfile.interests || []).length > 0 && (
-                  <div className="mb-6">
-                    <p className="text-sm font-semibold text-stone-700 mb-3">
+                  <section className="mb-6" aria-labelledby="interests-heading">
+                    <h4 id="interests-heading" className="text-sm font-semibold text-stone-700 mb-3">
                       Interests
-                    </p>
-                    <div className="flex flex-wrap gap-2">
+                    </h4>
+                    <ul className="flex flex-wrap gap-2" role="list">
                       {(currentProfile.interests || []).map(
                         (interest: string, index: number) => (
                           <InterestTag key={index} interest={interest} />
                         )
                       )}
-                    </div>
-                  </div>
+                    </ul>
+                  </section>
                 )}
 
                 <div className="flex items-center justify-between bg-stone-50 p-4 rounded-xl border border-stone-100">
@@ -928,47 +982,60 @@ const MatchScreen: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </section>
+            </article>
           ) : null}
-        </div>
+        </section>
 
         {/* Action Buttons */}
         {currentProfile && (
-          <div className="flex justify-center gap-6 mb-8">
+          <section 
+            className="flex justify-center gap-6 mb-8"
+            aria-labelledby="action-buttons-heading"
+            role="group"
+          >
+            <h3 id="action-buttons-heading" className="sr-only">
+              Profile Actions
+            </h3>
             <button
-              aria-label="pass"
+              aria-label={`Pass on ${currentProfile.anonymous_handle || 'this profile'}`}
               onClick={handlePass}
+              onKeyDown={(e) => handleKeyDown(e, 'pass')}
               disabled={
                 actionLoading ||
                 Boolean(dailyStats && dailyStats.matches_remaining <= 0)
               }
-              className="w-16 h-16 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-16 h-16 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-stone-300 focus:border-stone-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <X className="w-6 h-6 text-stone-500" />
+              <X className="w-6 h-6 text-stone-500" aria-hidden="true" />
             </button>
 
             <button
-              aria-label="like"
+              aria-label={`Like ${currentProfile.anonymous_handle || 'this profile'}`}
               onClick={handleLike}
+              onKeyDown={(e) => handleKeyDown(e, 'like')}
               disabled={
                 actionLoading ||
                 Boolean(dailyStats && dailyStats.matches_remaining <= 0)
               }
-              className="w-16 h-16 bg-rose-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-16 h-16 bg-rose-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-rose-300 focus:bg-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Heart className="w-8 h-8 text-white" fill="currentColor" />
+              <Heart className="w-8 h-8 text-white" fill="currentColor" aria-hidden="true" />
             </button>
-          </div>
+          </section>
         )}
 
         {/* Status Messages */}
         {dailyStats && dailyStats.matches_remaining <= 0 && (
-          <div className="text-center bg-gradient-to-r from-amber-50 to-orange-50 rounded-sm p-6 border border-amber-200">
+          <section 
+            className="text-center bg-gradient-to-r from-amber-50 to-orange-50 rounded-sm p-6 border border-amber-200"
+            role="alert"
+            aria-labelledby="daily-limit-heading"
+          >
             <div className="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Clock className="w-8 h-8 text-white" />
+              <Clock className="w-8 h-8 text-white" aria-hidden="true" />
             </div>
-            <h3 className="text-lg font-semibold text-amber-800 mb-2">
+            <h3 id="daily-limit-heading" className="text-lg font-semibold text-amber-800 mb-2">
               Daily limit reached!
             </h3>
             <p className="text-amber-700 text-sm">
@@ -977,9 +1044,9 @@ const MatchScreen: React.FC = () => {
               <br />
               <span className="text-xs opacity-75">Resets at midnight</span>
             </p>
-          </div>
+          </section>
         )}
-      </div>
+      </main>
 
       <FilterModal
         showFilters={showFilters}
