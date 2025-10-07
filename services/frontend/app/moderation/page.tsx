@@ -201,27 +201,27 @@ const ModerationDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <header className="bg-white rounded-lg shadow-sm p-6 mb-6" role="banner" aria-label="Moderation Dashboard Header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Shield className="h-8 w-8 text-blue-600" />
+              <Shield className="h-8 w-8 text-blue-600" aria-hidden="true" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Moderation Dashboard</h1>
+                <h1 className="text-2xl font-bold text-gray-900" tabIndex={0}>Moderation Dashboard</h1>
                 <p className="text-gray-600">Manage reports and moderate content</p>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6" aria-label="Moderation Statistics" role="region">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Cases</p>
                 <p className="text-2xl font-bold text-gray-900">{moderationLogs.length}</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-blue-600" />
+              <AlertTriangle className="h-8 w-8 text-blue-600" aria-hidden="true" />
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -232,7 +232,7 @@ const ModerationDashboard = () => {
                   {moderationLogs.filter(log => log.status === 'open').length}
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-red-600" />
+              <Clock className="h-8 w-8 text-red-600" aria-hidden="true" />
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -243,7 +243,7 @@ const ModerationDashboard = () => {
                   {moderationLogs.filter(log => log.status === 'in_review').length}
                 </p>
               </div>
-              <Eye className="h-8 w-8 text-yellow-600" />
+              <Eye className="h-8 w-8 text-yellow-600" aria-hidden="true" />
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -254,25 +254,27 @@ const ModerationDashboard = () => {
                   {moderationLogs.filter(log => log.status === 'resolved').length}
                 </p>
               </div>
-              <Check className="h-8 w-8 text-green-600" />
+              <Check className="h-8 w-8 text-green-600" aria-hidden="true" />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6">
+        <section className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6" aria-label="Filter Controls" role="region">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5 text-gray-400" />
+              <Filter className="h-5 w-5 text-gray-400" aria-hidden="true" />
               <span className="text-sm font-medium text-gray-700 hidden sm:inline">Filters:</span>
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 flex-1">
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700 min-w-0">Status:</label>
+                <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 min-w-0">Status:</label>
                 <select
+                  id="status-filter"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none"
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label="Filter by status"
                 >
                   <option value="all">All</option>
                   <option value="open">Open</option>
@@ -282,11 +284,13 @@ const ModerationDashboard = () => {
                 </select>
               </div>
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700 min-w-0">Type:</label>
+                <label htmlFor="type-filter" className="text-sm font-medium text-gray-700 min-w-0">Type:</label>
                 <select
+                  id="type-filter"
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none"
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm flex-1 sm:flex-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label="Filter by type"
                 >
                   <option value="all">All</option>
                   <option value="user">User Reports</option>
@@ -295,24 +299,29 @@ const ModerationDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Tabbed Interface */}
-        <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-sm overflow-hidden">
+        <main className="flex flex-col lg:flex-row bg-white rounded-lg shadow-sm overflow-hidden" role="main" aria-label="Moderation Content">
           {/* Side Navigation */}
-          <div className="w-full lg:w-64 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-200">
-            <nav className="p-4">
-              <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2">
+          <nav className="w-full lg:w-64 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-200" role="navigation" aria-label="Tab Navigation">
+            <div className="p-4">
+              <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2" role="tablist">
                 <button
                   onClick={() => setActiveTab('cases')}
-                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                     activeTab === 'cases'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-200'
                   }`}
+                  aria-current={activeTab === 'cases' ? 'page' : undefined}
+                  aria-label="Moderation Cases Tab"
+                  role="tab"
+                  aria-selected={activeTab === 'cases'}
+                  type="button"
                 >
                   <div className="flex items-center justify-center lg:justify-start space-x-3">
-                    <AlertTriangle className="h-5 w-5" />
+                    <AlertTriangle className="h-5 w-5" aria-hidden="true" />
                     <div className="hidden sm:block">
                       <div className="font-medium">Moderation Cases</div>
                       <div className="text-xs opacity-75">
@@ -323,14 +332,19 @@ const ModerationDashboard = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('banned')}
-                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                     activeTab === 'banned'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-200'
                   }`}
+                  aria-current={activeTab === 'banned' ? 'page' : undefined}
+                  aria-label="Banned Users Tab"
+                  role="tab"
+                  aria-selected={activeTab === 'banned'}
+                  type="button"
                 >
                   <div className="flex items-center justify-center lg:justify-start space-x-3">
-                    <Ban className="h-5 w-5" />
+                    <Ban className="h-5 w-5" aria-hidden="true" />
                     <div className="hidden sm:block">
                       <div className="font-medium">Banned Users</div>
                       <div className="text-xs opacity-75">
@@ -340,8 +354,8 @@ const ModerationDashboard = () => {
                   </div>
                 </button>
               </div>
-            </nav>
-          </div>
+            </div>
+          </nav>
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
@@ -353,9 +367,11 @@ const ModerationDashboard = () => {
                     <button
                       onClick={fetchModerationLogs}
                       disabled={loading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                      aria-label="Refresh moderation cases"
+                      type="button"
                     >
-                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
                       <span className="hidden sm:inline">Refresh</span>
                     </button>
                   </div>
@@ -363,25 +379,25 @@ const ModerationDashboard = () => {
                 
                 {loading ? (
                   <div className="p-8 text-center">
-                    <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                    <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" aria-hidden="true" />
                     <p className="text-gray-600">Loading moderation cases...</p>
                   </div>
                 ) : filteredLogs.length === 0 ? (
                   <div className="p-8 text-center">
-                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
                     <p className="text-gray-600">No moderation cases found.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
+                    <table className="w-full min-w-[600px]" role="table" aria-label="Moderation Cases">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80">Case</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell w-20">Type</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Severity</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell w-24">Status</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell w-28">Created</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80">Case</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell w-20">Type</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Severity</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell w-24">Status</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell w-28">Created</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -390,9 +406,9 @@ const ModerationDashboard = () => {
                             <td className="px-3 md:px-6 py-4 w-80">
                               <div className="flex items-center">
                                 {log.target_type === 'user' ? (
-                                  <User className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" />
+                                  <User className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" aria-hidden="true" />
                                 ) : (
-                                  <MessageSquare className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" />
+                                  <MessageSquare className="h-5 w-5 text-gray-400 mr-2 md:mr-3 flex-shrink-0" aria-hidden="true" />
                                 )}
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-medium text-gray-900 truncate">{log.violation_type.replace('_', ' ')}</div>
@@ -425,7 +441,7 @@ const ModerationDashboard = () => {
                             </td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell w-28">{new Date(log.created_at).toLocaleDateString()}</td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium w-20">
-                              <button onClick={() => setSelectedCase(log)} className="text-blue-600 hover:text-blue-900 px-2 py-1">View</button>
+                              <button onClick={() => setSelectedCase(log)} className="text-blue-600 hover:text-blue-900 px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2" aria-label={`View details for case ${log.log_id}`}>View</button>
                             </td>
                           </tr>
                         ))}
@@ -444,9 +460,11 @@ const ModerationDashboard = () => {
                     <button 
                       onClick={fetchBannedUsers} 
                       disabled={bannedLoading} 
-                      className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                      className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                      aria-label="Refresh banned users list"
+                      type="button"
                     >
-                      <RefreshCw className={`h-4 w-4 ${bannedLoading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 ${bannedLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
                       <span className="hidden sm:inline">Refresh</span>
                     </button>
                   </div>
@@ -454,23 +472,23 @@ const ModerationDashboard = () => {
 
                 {bannedLoading ? (
                   <div className="p-6 text-center">
-                    <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                    <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" aria-hidden="true" />
                     <p className="text-gray-600">Loading banned users...</p>
                   </div>
                 ) : bannedUsers.length === 0 ? (
                   <div className="p-6 text-center">
-                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
                     <p className="text-gray-600">No banned users found.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[500px]">
+                    <table className="w-full min-w-[500px]" role="table" aria-label="Banned Users">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Clerk ID</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Status</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Clerk ID</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Status</th>
+                          <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -489,8 +507,8 @@ const ModerationDashboard = () => {
                               <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono hidden sm:table-cell">{u.clerk_id || '-'}</td>
                               <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell">{u.account_status || 'banned'}</td>
                               <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onClick={() => handleUnbanUser(u)} disabled={actionLoading === id} className="px-2 md:px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
-                                  <Check className="h-3 w-3 md:h-4 md:w-4" />
+                                <button onClick={() => handleUnbanUser(u)} disabled={actionLoading === id} className="px-2 md:px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1 md:space-x-2 text-xs md:text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2" aria-label={`Unban user ${u.anonymous_handle || u.user_id || id}`}> 
+                                  <Check className="h-3 w-3 md:h-4 md:w-4" aria-hidden="true" />
                                   <span>Unban</span>
                                 </button>
                               </td>
@@ -504,20 +522,22 @@ const ModerationDashboard = () => {
               </div>
             )}
           </div>
-        </div>
+        </main>
 
         {/* Case Detail Modal */}
         {selectedCase && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="case-details-title">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
               <div className="p-4 md:p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">Case Details</h3>
+                  <h3 className="text-lg font-semibold text-gray-900" id="case-details-title">Case Details</h3>
                   <button
                     onClick={() => setSelectedCase(null)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
+                    className="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                    aria-label="Close Case Details Modal"
+                    type="button"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -587,22 +607,28 @@ const ModerationDashboard = () => {
                       <button
                         onClick={() => handleResolveCase(selectedCase.log_id, 'warning', 'Warning issued to user')}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 text-sm"
+                        className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-600 focus-visible:ring-offset-2"
+                        aria-label="Issue Warning"
+                        type="button"
                       >
                         Issue Warning
                       </button>
                       <button
                         onClick={() => handleBanUser(selectedCase.log_id)}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2 text-sm"
+                        className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                        aria-label="Ban User"
+                        type="button"
                       >
-                        <Ban className="h-4 w-4" />
+                        <Ban className="h-4 w-4" aria-hidden="true" />
                         <span>Ban User</span>
                       </button>
                       <button
                         onClick={() => handleResolveCase(selectedCase.log_id, 'no_action', 'Case dismissed - no violation found')}
                         disabled={actionLoading === selectedCase.log_id}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 text-sm"
+                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-600 focus-visible:ring-offset-2"
+                        aria-label="Dismiss Case"
+                        type="button"
                       >
                         Dismiss Case
                       </button>
