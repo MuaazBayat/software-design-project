@@ -20,6 +20,11 @@ interface ConversationCardProps {
     inTransitOrIsRead?: boolean
   ) => React.ReactNode;
   onClick?: (conversation: SearchUsersResponseItem) => void;
+  // Accessibility props
+  tabIndex?: number;
+  role?: string;
+  'aria-label'?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }
 
 const ConversationCard: React.FC<ConversationCardProps> = ({
@@ -27,7 +32,11 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   formatMessagePreview,
   formatTimeAgo,
   getDeliveryStatusBadge,
-  onClick
+  onClick,
+  tabIndex,
+  role,
+  'aria-label': ariaLabel,
+  onKeyDown
 }) => {
   const { user_profile, latest_message } = conversation;
   const { profile } = useSyncProfile();
@@ -61,8 +70,12 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
 
   return (
     <div
-      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-white shadow-2xl overflow-visible"
+      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-white shadow-2xl overflow-visible focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:scale-105 focus:-translate-y-2"
       onClick={handleClick}
+      tabIndex={tabIndex}
+      role={role}
+      aria-label={ariaLabel}
+      onKeyDown={onKeyDown}
     >
       {/* Envelope flap (taller; overflow visible so wax isn't clipped) */}
       <div className="absolute inset-x-0 top-0 z-10 rounded-sm overflow-visible">
@@ -93,8 +106,15 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                 group-hover:-translate-y-1 group-hover:scale-110
               "
               style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
+              aria-hidden="true"
             >
-              <Image src={waxseal} alt="Wax Seal" width={64} height={64} className="select-none" />
+              <Image 
+                src={waxseal} 
+                alt="" 
+                width={64} 
+                height={64} 
+                className="select-none"
+              />
             </div>
           )}
         </div>
@@ -103,12 +123,24 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
       {/* Envelope body */}
       <div className="relative mt-24 flex flex-col">
         {/* Stamp */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4" aria-hidden="true">
           <div className="w-15 h-20 transform rotate-3">
             {isNewIncoming ? (
-              <Image src={notread} alt="Unread" width={32} height={32} className="w-13 h-16 top-1 right-1" />
+              <Image 
+                src={notread} 
+                alt="" 
+                width={32} 
+                height={32} 
+                className="w-13 h-16 top-1 right-1" 
+              />
             ) : (
-              <Image src={read} alt="Read" width={32} height={32} className="w-13 h-16 top-1 right-1" />
+              <Image 
+                src={read} 
+                alt="" 
+                width={32} 
+                height={32} 
+                className="w-13 h-16 top-1 right-1" 
+              />
             )}
           </div>
         </div>
@@ -120,26 +152,31 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
               {fromMe ? 'To:' : 'From:'}
             </div>
             <div className="space-y-1">
-              <h3 className="font-bold text-gray-800 text-lg font-serif">
+              <h2 className="font-bold text-gray-800 text-lg font-serif">
                 {user_profile.anonymous_handle}
-              </h3>
+              </h2>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span className="font-mono text-xs">
                   {user_profile.country_code || 'Unknown'} • {user_profile.age_range}
                 </span>
               </div>
               {!!user_profile.interests?.length && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-2" role="list" aria-label="User interests">
                   {user_profile.interests.slice(0, 2).map((interest, index) => (
                     <span
                       key={index}
                       className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono"
+                      role="listitem"
                     >
                       {interest}
                     </span>
                   ))}
                   {user_profile.interests.length > 2 && (
-                    <span className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono">
+                    <span 
+                      className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono"
+                      role="listitem"
+                      aria-label={`And ${user_profile.interests.length - 2} more interests`}
+                    >
                       +{user_profile.interests.length - 2}
                     </span>
                   )}
@@ -157,6 +194,9 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                   <p className="text-gray-700 text-sm italic font-serif leading-relaxed line-clamp-3">
                     <span className="text-gray-500 not-italic text-xs">
                       {fromMe ? '(You wrote) ' : ''}
+                    </span>
+                    <span className="sr-only">
+                      {isNewIncoming ? 'Unread message: ' : 'Message: '}
                     </span>
                     &ldquo;{formatMessagePreview(lm.message_content ?? '', 80)}&rdquo;
                   </p>
