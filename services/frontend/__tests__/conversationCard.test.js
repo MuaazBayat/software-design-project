@@ -95,7 +95,8 @@ describe('ConversationCard', () => {
       );
 
       expect(screen.getByText('TestUser123')).toBeInTheDocument();
-      expect(screen.getByText('US • 25-30')).toBeInTheDocument();
+      // Check for location and age information using regex to handle screen reader elements
+      expect(screen.getByText(/US.*25-30/)).toBeInTheDocument();
     });
 
     test('renders interests with truncation when more than 2', () => {
