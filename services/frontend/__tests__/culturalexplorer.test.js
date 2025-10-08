@@ -134,7 +134,7 @@ const mockStableRandom = (value = 0.1) =>
 const expectMainLoaded = async () => {
   await flushAll();
   // The main headline is rendered once initial state is ready
-  expect(screen.getByText(/explore your country of choice/i)).toBeInTheDocument();
+  expect(screen.getByText(/cultural explorer/i)).toBeInTheDocument();
 };
 
 // ---------------------------------------------------------------------
@@ -240,10 +240,11 @@ describe('CulturalExplorer — quiz flow (South Africa hardcoded quiz)', () => {
 
     // Quiz appears after 1500ms
     await advance(1500);
-    expect(screen.getByText(/question 1 of/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /south africa quiz/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/question 1 of/i)).toHaveLength(2); // One in UI, one in aria-live announcements
 
     // Answer first question (option A)
-    const firstOption = screen.getByRole('button', { name: /^A\./ });
+    const firstOption = screen.getByRole('button', { name: /Option A: 9 languages/ });
     await user.click(firstOption);
     await flushAll();
 
@@ -254,19 +255,19 @@ describe('CulturalExplorer — quiz flow (South Africa hardcoded quiz)', () => {
     // Next → q2
     await user.click(screen.getByRole('button', { name: /next question/i }));
     await flushAll();
-    expect(screen.getByText(/question 2 of/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/question 2 of/i)).toHaveLength(2); // One in UI, one in aria-live announcements
 
     // Answer Q2 (any option), explain, next
-    const anyOptionQ2 = screen.getByRole('button', { name: /^B\./ });
+    const anyOptionQ2 = screen.getByRole('button', { name: /Option B:/ });
     await user.click(anyOptionQ2);
     await flushAll();
     await advance(500);
     await user.click(screen.getByRole('button', { name: /next question/i }));
     await flushAll();
-    expect(screen.getByText(/question 3 of/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/question 3 of/i)).toHaveLength(2); // One in UI, one in aria-live announcements
 
     // Q3 → finish
-    const anyOptionQ3 = screen.getByRole('button', { name: /^C\./ });
+    const anyOptionQ3 = screen.getByRole('button', { name: /Option C:/ });
     await user.click(anyOptionQ3);
     await flushAll();
     await advance(500);
@@ -275,7 +276,7 @@ describe('CulturalExplorer — quiz flow (South Africa hardcoded quiz)', () => {
 
     // Completed state
     expect(screen.getByRole('heading', { name: /quiz complete/i })).toBeInTheDocument();
-    expect(screen.getByText(/\d+ \/ \d+/)).toBeInTheDocument();
+    expect(screen.getByTestId('final-score')).toHaveTextContent(/\d+ out of \d+ correct/);
 
     // Back to facts
     await user.click(screen.getByRole('button', { name: /back to facts/i }));
