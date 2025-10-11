@@ -83,7 +83,7 @@ def test_create_profile_happy_path():
         "interests": ["history", "art", "travel"],
         "clerk_id": "user_123",
         "anonymous_handle": "globetrotter",
-        "fingerprint": "fp_123"
+        "fingerprint": ["fp_123"]
     }
     fake = FakeSupabaseClient(results=[[], [created_row]])
     override_db(fake)

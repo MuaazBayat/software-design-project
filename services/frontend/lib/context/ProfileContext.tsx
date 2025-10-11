@@ -19,6 +19,12 @@ export interface Profile {
   created_at?: string;
   updated_at?: string;
   moderator: boolean;
+  country_code?: string;
+  bio?: string;
+  age_range?: string;
+  interests?: string[];
+  primary_language?: string;
+  favorite_local_fact?: string;
 }
 
 interface ProfileContextType {

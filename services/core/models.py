@@ -44,11 +44,14 @@ class ProfileUpdate(ProfileBase):
     interests: Optional[List[str]] = None
     anonymous_handle: Optional[str] = None
 
-class Profile(ProfileCreate):
+class Profile(ProfileBase):
     """
     Complete model for a profile as it appears in the database.
     Includes database-managed fields like created_at, updated_at, and last_active.
     """
+    clerk_id: str
+    anonymous_handle: str
+    fingerprint: List[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     last_active: Optional[datetime]

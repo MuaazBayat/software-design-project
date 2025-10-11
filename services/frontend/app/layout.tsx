@@ -6,6 +6,7 @@ import "./globals.css";
 import { ConversationUserProvider } from "@/lib/context/ConversationUserContext";
 import { ProfileProvider } from "@/lib/context/ProfileContext";
 import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +54,7 @@ export default function RootLayout({
               <ConversationUserProvider>
                 <Header />
                 {children}
+                <Toaster richColors position="top-center" />
               </ConversationUserProvider>
             </ProfileProvider>
           </FpjsProvider>

@@ -3,14 +3,17 @@ from typing import Optional, List, Dict, Any, Union
 from enum import Enum
 import uuid
 import random
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from supabase import create_client, Client
 from dotenv import load_dotenv
-import os
+import os, sys
+
+# Import authentication
+from auth import verify_token
 
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
@@ -494,17 +497,17 @@ def health_check():
     return {"status":"healthy","timestamp":datetime.now().isoformat(),"version":"2.0.0"}
 
 @app.get("/user/profile/{clerk_id}")
-async def get_user_profile(clerk_id: str):
+async def get_user_profile(clerk_id: str, token: str = Depends(verify_token)):
     user = await get_user_by_clerk_id(clerk_id)
     return {"profile": clean_profile(user)}
 
 @app.get("/user/stats/{clerk_id}")
-async def get_user_stats(clerk_id: str):
+async def get_user_stats(clerk_id: str, token: str = Depends(verify_token)):
     user = await get_user_by_clerk_id(clerk_id)
     return get_daily_match_stats(user['user_id'])
 
 @app.post("/profiles/pass")
-async def record_profile_pass(request: dict = Body(...)):
+async def record_profile_pass(request: dict = Body(...), token: str = Depends(verify_token)):
     """Record that a user has passed on a profile"""
     clerk_id = request.get("clerk_id")
     passed_user_id = request.get("passed_user_id")
@@ -522,12 +525,13 @@ async def record_profile_pass(request: dict = Body(...)):
 
 @app.get("/profiles/suggestions/{clerk_id}", response_model=List[UserProfile])
 async def suggest_profile_preview(
-    clerk_id: str, 
+    clerk_id: str,
     limit: int = Query(1, le=50),
     languages: Optional[str] = Query(None),
-    age_ranges: Optional[str] = Query(None), 
+    age_ranges: Optional[str] = Query(None),
     interests: Optional[str] = Query(None),
-    match_type: Optional[str] = Query("either")
+    match_type: Optional[str] = Query("either"),
+    token: str = Depends(verify_token)
 ):
     """
     Enhanced suggestions endpoint with filter prioritization and pass tracking.
@@ -627,7 +631,7 @@ async def suggest_profile_preview(
     return [UserProfile(**clean_profile(p)) for p in final_selection[:limit]]
 
 @app.post("/matches/find", response_model=MatchResponse)
-async def find_match_with_decision(match_request: MatchDecisionRequest = Body(...)):
+async def find_match_with_decision(match_request: MatchDecisionRequest = Body(...), token: str = Depends(verify_token)):
     """Enhanced matching with improved filters, scoring, pass tracking, and preference consideration"""
     clerk_id = match_request.clerk_id
     accept = match_request.accept
@@ -814,7 +818,7 @@ async def find_match_with_decision(match_request: MatchDecisionRequest = Body(..
         )
     
 @app.post("/preferences/select")
-async def select_preference_profile(selection: PreferenceSelection):
+async def select_preference_profile(selection: PreferenceSelection, token: str = Depends(verify_token)):
     """Store a user's preference profile selection"""
     try:
         print(f"Received selection: {selection.dict()}")  # Add this for debugging
@@ -850,7 +854,7 @@ async def select_preference_profile(selection: PreferenceSelection):
         raise HTTPException(500, f"Failed to save preference selection: {str(e)}")
 
 @app.get("/preferences/profiles/{clerk_id}", response_model=List[PreferenceProfile])
-async def get_preference_profiles(clerk_id: str):
+async def get_preference_profiles(clerk_id: str, token: str = Depends(verify_token)):
     """Get a mix of real and fake profiles for preference selection"""
     try:
         # Get 4 real active profiles from the database

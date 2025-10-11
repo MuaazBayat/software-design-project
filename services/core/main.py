@@ -17,17 +17,18 @@ from supabase import Client
 from models import ProfileCreate, ProfileUpdate, Profile
 from database import supabase
 
+# Import authentication
+from auth import verify_token
+
 # Create the FastAPI application instance.
 app = FastAPI(title="GlobeTalk Core API")
 
 def add(a, b):
     return a + b
 from fastapi.middleware.cors import CORSMiddleware
-
-ALLOWED_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|globetalk-frontend-388957617777\.us-central1\.run\.app)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+    allow_origins=["*"],
     allow_methods=["*"],      # includes OPTIONS/POST/PUT
     allow_headers=["*"],      # includes content-type, authorization, etc.
     allow_credentials=False,  # keep False with wildcards; use explicit list if True
@@ -40,16 +41,43 @@ def get_supabase() -> Client:
     This ensures a single, reusable client across all requests.
     """
     if supabase is None:
-        raise HTTPException(status_code=500, detail="Supabase client not initialized.")
+        print("ERROR: Supabase client is None - check environment variables and database.py initialization")
+        raise HTTPException(status_code=500, detail="Supabase client not initialized. Check server configuration.")
     return supabase
 
 
 # --- API Endpoints ---
 
+@app.get("/health")
+async def health_check():
+    """
+    Simple health check endpoint to verify the service is running.
+    """
+    try:
+        # Check if Supabase client is initialized
+        if supabase is None:
+            return {"status": "unhealthy", "error": "Supabase client not initialized"}
+
+        # Try a simple database operation to verify connection
+        test_response = supabase.table("user_profiles").select("count", count="exact").limit(0).execute()
+
+        return {
+            "status": "healthy",
+            "supabase_connected": True,
+            "profiles_table_accessible": True
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "supabase_connected": supabase is not None
+        }
+
 @app.post("/profiles", response_model=Profile, status_code=status.HTTP_201_CREATED)
 async def create_profile(
-    profile_data: ProfileCreate, 
-    db: Client = Depends(get_supabase)
+    profile_data: ProfileCreate,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Creates a new user profile in the database.
@@ -100,8 +128,9 @@ async def create_profile(
 
 @app.get("/profiles/{clerk_id}", response_model=Profile)
 async def get_profile(
-    clerk_id: str, 
-    db: Client = Depends(get_supabase)
+    clerk_id: str,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Retrieves a user's profile information by their unique user_id.
@@ -118,20 +147,29 @@ async def get_profile(
         HTTPException:
             404 Not Found: If no profile is found for the given user_id.
     """
-    # Select all columns from the 'user_profiles' table where the clerk_id matches.
-    response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
+    try:
+        # Select all columns from the 'user_profiles' table where the clerk_id matches.
+        response = db.table("user_profiles").select("*").eq("clerk_id", clerk_id).execute()
 
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Profile not found.")
-        
-    return response.data[0]
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Profile not found.")
+
+        return response.data[0]
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        # Log the actual error and return a 500 with proper CORS headers
+        print(f"Database error in get_profile for clerk_id '{clerk_id}': {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.put("/profiles/{clerk_id}", response_model=Profile)
 async def update_profile(
-    clerk_id: str, 
-    profile_data: ProfileUpdate, 
-    db: Client = Depends(get_supabase)
+    clerk_id: str,
+    profile_data: ProfileUpdate,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
 ):
     """
     Updates an existing user's profile.

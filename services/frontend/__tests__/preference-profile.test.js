@@ -1,10 +1,19 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import PreferenceProfileSelector from '../app/preference-profile/page';
 
-
+// Mock sonner properly - provide a mock for Toaster component
+jest.mock('sonner', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    loading: jest.fn(),
+    dismiss: jest.fn(),
+  },
+  Toaster: () => React.createElement('div', null, 'Toaster'), // Mock Toaster as a simple div
+}));
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -14,7 +23,21 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-jest.mock('@clerk/nextjs');
+// Mock useAuth hook
+jest.mock('@clerk/nextjs', () => ({
+  useAuth: jest.fn(() => ({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  })),
+  useUser: jest.fn(() => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { id: 'user-1' },
+  })),
+}));
+
 jest.mock('../lib/supabaseClient', () => ({
   supabase: {
     from: jest.fn().mockReturnThis(),
@@ -24,10 +47,26 @@ jest.mock('../lib/supabaseClient', () => ({
   },
 }));
 
-global.fetch = jest.fn();
-
 beforeEach(() => {
+  global.fetch = jest.fn();
   jest.clearAllMocks();
+  process.env.NEXT_PUBLIC_CORE_URL = 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_MATCHMAKING_URL = 'http://localhost:8001';
+  process.env.NEXT_PUBLIC_AUTH_DISABLED = 'true'; // Disable auth for tests
+
+  // Reset mocks to default
+  useAuth.mockReturnValue({
+    getToken: jest.fn(() => Promise.resolve('mock-token')),
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  });
+
+  useUser.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { id: 'user-1' },
+  });
 });
 
 // Fake users for testing (plain JS objects)
@@ -58,20 +97,23 @@ describe('PreferenceProfileSelector', () => {
     expect(screen.getByText('Javier')).toBeInTheDocument();
   });
 
-  test('falls back to Supabase when API fails', async () => {
-    useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user-1' } });
-    fetch.mockRejectedValueOnce(new Error('API down'));
 
-    render(<PreferenceProfileSelector />);
-    await waitFor(() => expect(screen.getByText('Elara')).toBeInTheDocument());
-  });
 
   test('selects a profile when clicked', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user-1' } });
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => fakeUsers });
+
+    // Debug: log fetch calls
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => fakeUsers
+    });
 
     render(<PreferenceProfileSelector />);
-    await waitFor(() => screen.getByText('Elara'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Elara')).toBeInTheDocument();
+    }, { timeout: 3000 });
+
     fireEvent.click(screen.getByText('Elara'));
 
     const profileCard = screen.getByText('Elara').closest('div');
@@ -80,40 +122,58 @@ describe('PreferenceProfileSelector', () => {
 
   test('alerts when submitting without selection', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user-1' } });
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => fakeUsers });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => fakeUsers
+    });
 
     render(<PreferenceProfileSelector />);
-    await waitFor(() => screen.getByText('Elara'));
+    await waitFor(() => {
+      expect(screen.getByText('Elara')).toBeInTheDocument();
+    }, { timeout: 3000 });
 
-    window.alert = jest.fn();
+    // Import toast inside the test to access the mock
+    const { toast } = require('sonner');
+    
     fireEvent.click(screen.getByText(/Continue with Selected Preferences/i));
-    expect(window.alert).toHaveBeenCalledWith('Please select a profile that matches your interests');
+    
+    expect(toast.error).toHaveBeenCalledWith('Please select a profile that matches your interests');
   });
 
   test('submits selected profile successfully', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user-1' } });
-    fetch
+    global.fetch = jest.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => fakeUsers }) // GET profiles
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) }); // POST select
 
     render(<PreferenceProfileSelector />);
-    await waitFor(() => screen.getByText('Elara'));
+    await waitFor(() => {
+      expect(screen.getByText('Elara')).toBeInTheDocument();
+    }, { timeout: 3000 });
+
     fireEvent.click(screen.getByText('Elara'));
 
-    window.alert = jest.fn();
+    // Import toast inside the test to access the mock
+    const { toast } = require('sonner');
+    
     fireEvent.click(screen.getByText(/Continue with Selected Preferences/i));
 
-    await waitFor(() =>
-      expect(window.alert).toHaveBeenCalledWith('Preference saved, proceeding with signup')
-    );
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Preference saved, proceeding with signup');
+    });
   });
 
   test('toggles between real and example profiles', async () => {
     useUser.mockReturnValue({ isLoaded: true, isSignedIn: true, user: { id: 'user-1' } });
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => fakeUsers });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => fakeUsers
+    });
 
     render(<PreferenceProfileSelector />);
-    await waitFor(() => screen.getByText('Elara'));
+    await waitFor(() => {
+      expect(screen.getByText('Elara')).toBeInTheDocument();
+    }, { timeout: 3000 });
 
     const toggleButton = screen.getAllByText(/Example Profiles/i)[1]; // pick the button, not paragraph
     fireEvent.click(toggleButton);

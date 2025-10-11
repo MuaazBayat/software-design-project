@@ -28,8 +28,8 @@ jobs:
             --platform linux/amd64 \
             -t $MODERATION_IMAGE \
             -f services/moderation/moderation.Dockerfile \
-            services/moderation/.
-          docker push $MODERATION_IMAGE
+            services/moderation \
+            --push
 
       - name: Google Auth
         id: auth
@@ -43,7 +43,7 @@ jobs:
         with:
           service: 'globetalk-moderation'
           image: ${{ env.MODERATION_IMAGE }}
-          flags: '--allow-unauthenticated --port=8000 --update-env-vars=[SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},CORE_URL=${{ secrets.CORE_URL }},MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }},MESSAGING_URL=${{ secrets.MESSAGING_URL }},MODERATION_URL=${{ secrets.MODERATION_URL }}]'
+          flags: '--allow-unauthenticated --port=8000 --update-env-vars=[SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},CORE_URL=${{ secrets.CORE_URL }},MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }},MESSAGING_URL=${{ secrets.MESSAGING_URL }},MODERATION_URL=${{ secrets.MODERATION_URL }},ENABLE_AUTH=true]'
           container_port: 8000
 
       - name: Show Output

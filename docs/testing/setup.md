@@ -4,7 +4,7 @@ A single, consolidated reference for GlobeTalk’s testing workflows across the 
 
 ---
 
-## 1) Install Prerequisites
+## Install Prerequisites
 
 ### Frontend (Next.js)
 
@@ -35,29 +35,21 @@ pip install pytest
 
 ---
 
-## 2) Run Tests (Quick Start — do this right after install)
+## Run Tests (Quick Start — do this right after install)
 
 ### Frontend (Jest)
 
-Run all tests once:
+Run unit tests with coverage:
 
 ```bash
 npm run test
 ```
 
-Watch mode (re-runs on save):
+Run integration tests with coverage:
 
 ```bash
-npm run test:watch
+npm run test:int
 ```
-
-Coverage report:
-
-```bash
-npm run test:coverage
-```
-
-Open the HTML report at `services/frontend/coverage/lcov-report/index.html`.
 
 ### Backend (pytest)
 
@@ -83,7 +75,7 @@ Open the HTML report at `htmlcov/index.html`.
 
 ---
 
-## 3) Frontend Testing (Jest + React Testing Library)
+## Frontend Testing (Jest + React Testing Library)
 
 ### Project Conventions
 
@@ -114,13 +106,13 @@ describe('HomePage', () => {
 
 ### Useful Scripts
 
-* `npm run test` — run once
-* `npm run test:watch` — watch mode
-* `npm run test:coverage` — generate coverage and HTML report
-
+* `npm run test` — run unit tests
+* `npm run test:int` — run integration tests
+* `npm run test filename` — run unit test for a specific file
+* `npm run test:int filename` — run integration test for a specific file
 ---
 
-## 4) Backend Testing (pytest)
+## Backend Testing (pytest)
 
 ### Folder Structure & Imports
 
@@ -182,7 +174,7 @@ def test_add_negative_numbers():
 
 ---
 
-## 5) Tips & Troubleshooting
+## Tips & Troubleshooting
 
 * **Activation**: Ensure the Python venv is active before installing/running pytest.
 * **Imports**: If pytest can’t find modules, confirm `__init__.py` files exist and that you’re running tests from the project root.
@@ -191,15 +183,14 @@ def test_add_negative_numbers():
 
 ---
 
-## 6) At-a-Glance Command Cheat Sheet
+## At-a-Glance Command Cheat Sheet
 
 **Frontend**
 
 ```
 cd services/frontend && npm install
 npm run test
-npm run test:watch
-npm run test:coverage
+npm run test:int
 ```
 
 **Backend**
