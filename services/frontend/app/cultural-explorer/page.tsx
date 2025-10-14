@@ -6,6 +6,19 @@ import Image from 'next/image';
 import wc from 'world-countries';
 import { useSyncProfile } from '@/lib/context/ProfileContext';
 
+// Screen reader only CSS utility
+const srOnlyStyles = {
+  position: 'absolute' as const,
+  width: '1px',
+  height: '1px',
+  padding: '0',
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap' as const,
+  border: '0'
+};
+
 type DeckType = 'my-country' | 'random' | 'select-country';
 
 interface CountryFacts {
@@ -150,8 +163,10 @@ const FlagFrame: React.FC<{
           background: 'linear-gradient(180deg, #fff, #f6f6f6)',
           border: '1px solid rgba(0,0,0,0.08)',
         }}
+        role="img"
+        aria-label={country ? `${country} flag placeholder` : 'Country flag placeholder'}
       >
-        <span style={{ fontSize: Math.min(FRAME_W, FRAME_H) * 0.6 }}>{emojiFallback}</span>
+        <span style={{ fontSize: Math.min(FRAME_W, FRAME_H) * 0.6 }} aria-hidden="true">{emojiFallback}</span>
       </div>
     );
   }
@@ -166,12 +181,19 @@ const FlagFrame: React.FC<{
         background: 'rgba(0,0,0,0.0)',
         border: '1px solid rgba(0,0,0,0.08)',
       }}
+      role="img"
+      aria-label={`Flag of ${country}`}
     >
-      {!loaded && <div className="animate-pulse bg-gray-200/70 absolute inset-0 rounded" />}
+      {!loaded && (
+        <div 
+          className="animate-pulse bg-gray-200/70 absolute inset-0 rounded" 
+          aria-label="Loading flag image"
+        />
+      )}
 
       <Image
         src={`https://flagcdn.com/w320/${alpha2}.png`}
-        alt={`${country} flag`}
+        alt={`Flag of ${country}`}
         fill
         className={`absolute inset-0 transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         style={{
@@ -284,7 +306,7 @@ const CulturalExplorer = () => {
       default:
         return '';
     }
-  }, [selectedDeck, selectedCountry, availableCountries, getRandomCountry, getHomeCountry]);
+  }, [selectedDeck, selectedCountry, getRandomCountry, getHomeCountry]);
 
   const currentFacts = useMemo(() => {
     if (!currentCountry || !factsData[currentCountry]) return [];
@@ -301,15 +323,24 @@ const CulturalExplorer = () => {
     }
   }, [availableCountries, selectedDeck, selectedCountry, getRandomCountry]);
 
-  const fadeCardOutIn = () => {
+  const fadeCardOutIn = useCallback(() => {
     setCardVisible(false);
     setTimeout(() => {
       setCardKey((k) => k + 1);
       setCardVisible(true);
     }, 220);
-  };
+  }, []);
 
-  const flipCard = () => {
+  const restartQuiz = useCallback(() => {
+    setQuizState('idle');
+    setQuizData([]);
+    setCurrentQuizIndex(0);
+    setQuizResults([]);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+  }, []);
+
+  const flipCard = useCallback(() => {
     if (isFlipping) return;
     setIsFlipping(true);
     setTimeout(() => {
@@ -317,9 +348,9 @@ const CulturalExplorer = () => {
       setIsFlipping(false);
       fadeCardOutIn();
     }, 220);
-  };
+  }, [isFlipping, fadeCardOutIn]);
 
-  const shuffleDeck = () => {
+  const shuffleDeck = useCallback(() => {
     if (selectedDeck === 'random') {
       // Cancel any active quiz when shuffling
       if (quizState === 'active' || quizState === 'loading') {
@@ -330,9 +361,9 @@ const CulturalExplorer = () => {
       setCurrentFactIndex(0);
       fadeCardOutIn();
     }
-  };
+  }, [selectedDeck, quizState, getRandomCountry, fadeCardOutIn, restartQuiz]);
 
-  const handleDeckChange = (deck: DeckType) => {
+  const handleDeckChange = useCallback((deck: DeckType) => {
     // Cancel any active quiz when changing decks
     if (quizState === 'active' || quizState === 'loading') {
       restartQuiz();
@@ -346,7 +377,7 @@ const CulturalExplorer = () => {
       setSelectedCountry(availableCountries[0] || '');
     }
     fadeCardOutIn();
-  };
+  }, [quizState, restartQuiz, getRandomCountry, selectedCountry, availableCountries, fadeCardOutIn]);
 
   // Hardcoded South Africa quiz
   const getSouthAfricaQuiz = (): QuizQuestion[] => [
@@ -417,34 +448,7 @@ const CulturalExplorer = () => {
     }
   ];
 
-  // Quiz functions
-  const generateQuiz = async () => {
-    if (!currentCountry || !currentFacts.length) return;
-    
-    setQuizState('loading');
-    setQuizData([]);
-    setCurrentQuizIndex(0);
-    setQuizResults([]);
-    setSelectedAnswer(null);
-    setShowExplanation(false);
-
-    // Simulate loading for better UX
-    setTimeout(() => {
-      if (currentCountry === 'South Africa') {
-        // Use hardcoded quiz for South Africa
-        const southAfricaQuiz = getSouthAfricaQuiz();
-        // Randomly select 3 questions
-        const selectedQuestions = southAfricaQuiz.sort(() => 0.5 - Math.random()).slice(0, 3);
-        setQuizData(selectedQuestions);
-        setQuizState('active');
-      } else {
-        // Use API for other countries
-        generateApiQuiz();
-      }
-    }, 1500); // 1.5 second loading simulation
-  };
-
-  const generateApiQuiz = async () => {
+  const generateApiQuiz = useCallback(async () => {
     try {
       const factsText = currentFacts.join(' ');
       
@@ -483,7 +487,34 @@ const CulturalExplorer = () => {
       setQuizState('idle');
       // You could show an error message here
     }
-  };
+  }, [currentFacts, currentCountry]);
+
+  // Quiz functions
+  const generateQuiz = useCallback(async () => {
+    if (!currentCountry || !currentFacts.length) return;
+    
+    setQuizState('loading');
+    setQuizData([]);
+    setCurrentQuizIndex(0);
+    setQuizResults([]);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+
+    // Simulate loading for better UX
+    setTimeout(() => {
+      if (currentCountry === 'South Africa') {
+        // Use hardcoded quiz for South Africa
+        const southAfricaQuiz = getSouthAfricaQuiz();
+        // Randomly select 3 questions
+        const selectedQuestions = southAfricaQuiz.sort(() => 0.5 - Math.random()).slice(0, 3);
+        setQuizData(selectedQuestions);
+        setQuizState('active');
+      } else {
+        // Use API for other countries
+        generateApiQuiz();
+      }
+    }, 1500); // 1.5 second loading simulation
+  }, [currentCountry, currentFacts.length, generateApiQuiz]);
 
   const selectAnswer = (answer: 'A' | 'B' | 'C' | 'D') => {
     if (selectedAnswer || showExplanation) return;
@@ -513,26 +544,65 @@ const CulturalExplorer = () => {
     }
   };
 
-  const restartQuiz = () => {
-    setQuizState('idle');
-    setQuizData([]);
-    setCurrentQuizIndex(0);
-    setQuizResults([]);
-    setSelectedAnswer(null);
-    setShowExplanation(false);
-  };
-
   const renderFlag = (country: string | null | undefined) => {
     const emoji = country && factsData[country]?.emoji ? factsData[country].emoji : '🌍';
     return <FlagFrame country={country} emojiFallback={emoji} />;
   };
 
+  // Keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle keyboard shortcuts when not in input fields
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
+        return;
+      }
+
+      switch (event.key) {
+        case ' ':
+        case 'Enter':
+          // Allow default behavior for focused buttons
+          break;
+        case 'ArrowRight':
+        case 'ArrowDown':
+          if (currentCountry && quizState === 'idle' && !isFlipping) {
+            event.preventDefault();
+            flipCard();
+          }
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          if (selectedDeck === 'random' && quizState === 'idle') {
+            event.preventDefault();
+            shuffleDeck();
+          }
+          break;
+        case 'q':
+        case 'Q':
+          if (currentCountry && quizState === 'idle' && currentFacts.length > 0) {
+            event.preventDefault();
+            generateQuiz();
+          }
+          break;
+        case 'Escape':
+          if (quizState === 'active' || quizState === 'loading') {
+            event.preventDefault();
+            restartQuiz();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentCountry, quizState, isFlipping, selectedDeck, currentFacts.length, flipCard, shuffleDeck, generateQuiz, restartQuiz]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-8xl mb-4 animate-spin">🃏</div>
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="text-8xl mb-4 animate-spin" aria-hidden="true">🃏</div>
           <p className="text-2xl text-black">Loading the deck...</p>
+          <span className="sr-only">Loading cultural facts and quiz data</span>
         </div>
       </div>
     );
@@ -540,34 +610,81 @@ const CulturalExplorer = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Deck Selection */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-center text-black tracking-tighter mb-6">
-            Explore your country of choice!
-          </h2>
+      {/* Live region for announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only" id="announcements">
+        {quizState === 'loading' && 'Quiz is being generated'}
+        {quizState === 'active' && `Quiz active: Question ${currentQuizIndex + 1} of ${quizData.length}`}
+        {quizState === 'completed' && `Quiz completed. You got ${quizResults.filter(r => r.isCorrect).length} out of ${quizResults.length} correct.`}
+        {isFlipping && 'Loading next fact'}
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <main className="max-w-4xl mx-auto px-4 py-12">
+        {/* Skip to content link for keyboard navigation */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50"
+        >
+          Skip to main content
+        </a>
+
+        {/* Keyboard shortcuts help */}
+        <div className="mb-4 text-center">
+          <details className="inline-block">
+            <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1">
+              ⌨️ Keyboard shortcuts
+            </summary>
+            <div className="mt-2 p-4 bg-white rounded-lg shadow-lg text-sm text-left max-w-md mx-auto">
+              <h3 className="font-bold mb-2">Available shortcuts:</h3>
+              <ul className="space-y-1 text-gray-700">
+                <li><kbd className="bg-gray-100 px-1 rounded">→ ↓</kbd> Next fact</li>
+                <li><kbd className="bg-gray-100 px-1 rounded">← ↑</kbd> Shuffle (random mode)</li>
+                <li><kbd className="bg-gray-100 px-1 rounded">Q</kbd> Take quiz</li>
+                <li><kbd className="bg-gray-100 px-1 rounded">Esc</kbd> Exit quiz</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        {/* Deck Selection */}
+        <section aria-labelledby="deck-selection-heading">
+          <h1 id="deck-selection-heading" className="text-4xl font-bold text-center text-gray-900 tracking-tighter mb-6">
+            Cultural Explorer
+          </h1>
+          <p className="text-xl text-center text-gray-700 mb-8">Discover fascinating facts about countries around the world!</p>
+
+          <fieldset className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <legend className="sr-only">Choose how you want to explore countries</legend>
             <button
               onClick={() => handleDeckChange('my-country')}
-              className={`p-6 transition-all duration-300 relative group ${
+              className={`p-6 transition-all duration-300 relative group rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
                 selectedDeck === 'my-country'
                   ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
                   : 'border-gray-300 bg-white hover:border-purple-300 hover:shadow-lg'
               }`}
+              aria-pressed={selectedDeck === 'my-country'}
+              aria-describedby="my-country-desc"
             >
-              <div className="text-4xl mb-3">🏠</div>
+              <div className="text-4xl mb-3" aria-hidden="true">🏠</div>
               <div className="flex items-center justify-center gap-2 mb-2">
                 <h3 className="text-xl font-bold text-gray-800">
                   {profile?.country_code && synced ? 'Your Country' : 'Our Home Country'}
                 </h3>
-                {!(profile?.country_code && synced) && <HelpCircle className="w-4 h-4 text-gray-400" />}
+                {!(profile?.country_code && synced) && (
+                  <HelpCircle 
+                    className="w-4 h-4 text-gray-400" 
+                    aria-label="Help information available"
+                  />
+                )}
               </div>
-              <p className="text-gray-600 mt-2">Facts about {getHomeCountry}</p>
+              <p id="my-country-desc" className="text-gray-600 mt-2">Facts about {getHomeCountry}</p>
 
               {/* Tooltip - only show when we don't have user's country */}
               {!(profile?.country_code && synced) && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                <div 
+                  className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
+                  role="tooltip"
+                  aria-hidden="true"
+                >
                   Default country (update your profile to change)
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                 </div>
@@ -576,37 +693,46 @@ const CulturalExplorer = () => {
 
             <button
               onClick={() => handleDeckChange('random')}
-              className={`p-6 transition-all duration-300 ${
+              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
                 selectedDeck === 'random'
                   ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
                   : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-lg'
               }`}
+              aria-pressed={selectedDeck === 'random'}
+              aria-describedby="random-desc"
             >
-              <div className="text-4xl mb-3">🎲</div>
+              <div className="text-4xl mb-3" aria-hidden="true">🎲</div>
               <h3 className="text-xl font-bold text-gray-800">Random Country</h3>
-              <p className="text-gray-600 mt-2">Surprise me!</p>
+              <p id="random-desc" className="text-gray-600 mt-2">Surprise me!</p>
             </button>
 
             <button
               onClick={() => handleDeckChange('select-country')}
-              className={`p-6 transition-all duration-300 ${
+              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
                 selectedDeck === 'select-country'
-                  ? 'bg-gradient-to-r from-[#f7dac0] via-[#fcdab4] to-[#fcd3a1] scale-105 shadow-xl'
+                  ? 'bg-gradient-to-r from-[#f7dac0] via-[#fcdab4] to-[#fcd3a1] scale-105 shadow-xl border-orange-400'
                   : 'border-gray-300 bg-white hover:border-green-300 hover:shadow-lg'
               }`}
+              aria-pressed={selectedDeck === 'select-country'}
+              aria-describedby="select-desc"
             >
-              <div className="text-4xl mb-3">🎯</div>
+              <div className="text-4xl mb-3" aria-hidden="true">🎯</div>
               <h3 className="text-xl font-bold text-gray-800">Choose Country</h3>
-              <p className="text-gray-600 mt-2">Pick any country</p>
+              <p id="select-desc" className="text-gray-600 mt-2">Pick any country</p>
             </button>
-          </div>
-        </div>
+          </fieldset>
+        </section>
 
         {/* Country Selector */}
         {selectedDeck === 'select-country' && (
-          <div className="text-center mb-8">
+          <section className="text-center mb-8" aria-labelledby="country-selector-heading">
+            <h2 id="country-selector-heading" className="sr-only">Country selection dropdown</h2>
             <div className="inline-block relative">
+              <label htmlFor="country-select" className="sr-only">
+                Choose a country from the dropdown
+              </label>
               <select
+                id="country-select"
                 value={selectedCountry}
                 onChange={(e) => {
                   // Cancel any active quiz when changing country
@@ -618,7 +744,8 @@ const CulturalExplorer = () => {
                   setCurrentFactIndex(0);
                   fadeCardOutIn();
                 }}
-                className="appearance-none bg-white border-gray-300 px-6 py-3 pr-10 text-lg font-medium text-gray-700 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                className="appearance-none bg-white border-2 border-gray-300 rounded-lg px-6 py-3 pr-10 text-lg font-medium text-gray-700 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-200"
+                aria-describedby="country-select-desc"
               >
                 <option value="">Select a country...</option>
                 {availableCountries.map((country) => (
@@ -627,16 +754,22 @@ const CulturalExplorer = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+              <ChevronDown 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" 
+                aria-hidden="true"
+              />
+              <div id="country-select-desc" className="sr-only">
+                Use arrow keys to navigate through {availableCountries.length} available countries
+              </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* Quiz Loading State */}
         {quizState === 'loading' && currentCountry && (
-          <div className="relative max-w-lg mx-auto">
-            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" />
-            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" />
+          <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-loading-heading">
+            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
+            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden">
               {/* Loading header */}
@@ -644,33 +777,34 @@ const CulturalExplorer = () => {
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 className="text-2xl font-bold">{currentCountry} Quiz</h2>
+                <h2 id="quiz-loading-heading" className="text-2xl font-bold">{currentCountry} Quiz</h2>
                 <p className="opacity-75 mt-1">Generating your personalized quiz...</p>
               </div>
 
               {/* Loading body */}
-              <div className="p-8">
+              <div className="p-8" role="status" aria-live="polite">
                 <div className="min-h-[140px] flex flex-col items-center justify-center">
-                  <div className="text-6xl mb-4 animate-bounce">🧠</div>
+                  <div className="text-6xl mb-4 animate-bounce" aria-hidden="true">🧠</div>
                   <p className="text-lg text-gray-700 text-center mb-4">
                     Creating quiz questions based on the facts you&apos;ve learned...
                   </p>
-                  <div className="flex space-x-1">
+                  <div className="flex space-x-1" aria-hidden="true">
                     <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse"></div>
                     <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse delay-75"></div>
                     <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse delay-150"></div>
                   </div>
+                  <span className="sr-only">Quiz is being generated, please wait</span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* Quiz Active State */}
         {quizState === 'active' && quizData.length > 0 && (
-          <div className="relative max-w-lg mx-auto">
-            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" />
-            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" />
+          <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-question-heading">
+            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
+            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
               key={`quiz-${cardKey}`}
@@ -683,8 +817,8 @@ const CulturalExplorer = () => {
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 className="text-2xl font-bold">{currentCountry} Quiz</h2>
-                <p className="opacity-75 mt-1">
+                <h2 id="quiz-question-heading" className="text-2xl font-bold">{currentCountry} Quiz</h2>
+                <p className="opacity-75 mt-1" aria-live="polite">
                   Question {currentQuizIndex + 1} of {quizData.length}
                 </p>
               </div>
@@ -692,18 +826,20 @@ const CulturalExplorer = () => {
               {/* Quiz body */}
               <div className="p-8">
                 <div className="mb-6">
-                  <p className="text-lg text-gray-700 leading-relaxed text-center font-medium">
+                  <p className="text-lg text-gray-700 leading-relaxed text-center font-medium" id="question-text">
                     {quizData[currentQuizIndex]?.question}
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <fieldset className="space-y-3" aria-labelledby="question-text">
+                  <legend className="sr-only">Multiple choice answers</legend>
                   {['A', 'B', 'C', 'D'].map((option) => {
                     const isSelected = selectedAnswer === option;
                     const isCorrect = option === quizData[currentQuizIndex]?.answer;
                     const showResult = showExplanation;
                     
-                    let buttonClass = 'w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ';
+                    let buttonClass = 'w-full p-4 text-left border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ';
+                    let ariaLabel = `Option ${option}: ${quizData[currentQuizIndex]?.options[option as keyof typeof quizData[0]['options']]}`;
                     
                     if (!showResult) {
                       buttonClass += isSelected 
@@ -712,8 +848,10 @@ const CulturalExplorer = () => {
                     } else {
                       if (isCorrect) {
                         buttonClass += 'border-green-500 bg-green-100 text-green-800';
+                        ariaLabel += isSelected ? ' - Your answer, correct!' : ' - Correct answer';
                       } else if (isSelected && !isCorrect) {
                         buttonClass += 'border-red-500 bg-red-100 text-red-800';
+                        ariaLabel += ' - Your answer, incorrect';
                       } else {
                         buttonClass += 'border-gray-300 bg-gray-50 text-gray-600';
                       }
@@ -725,21 +863,28 @@ const CulturalExplorer = () => {
                         onClick={() => selectAnswer(option as 'A' | 'B' | 'C' | 'D')}
                         disabled={showExplanation}
                         className={buttonClass}
+                        aria-label={ariaLabel}
+                        aria-pressed={isSelected}
                       >
                         <div className="flex items-center justify-between">
                           <span>
                             <strong>{option}.</strong> {quizData[currentQuizIndex]?.options[option as keyof typeof quizData[0]['options']]}
                           </span>
-                          {showResult && isCorrect && <Check className="w-5 h-5 text-green-600" />}
-                          {showResult && isSelected && !isCorrect && <X className="w-5 h-5 text-red-600" />}
+                          {showResult && isCorrect && (
+                            <Check className="w-5 h-5 text-green-600" aria-hidden="true" />
+                          )}
+                          {showResult && isSelected && !isCorrect && (
+                            <X className="w-5 h-5 text-red-600" aria-hidden="true" />
+                          )}
                         </div>
                       </button>
                     );
                   })}
-                </div>
+                </fieldset>
 
                 {showExplanation && (
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-labelledby="explanation-heading">
+                    <h3 id="explanation-heading" className="sr-only">Explanation</h3>
                     <p className="text-sm text-blue-800">
                       <strong>Explanation:</strong> {quizData[currentQuizIndex]?.explanation}
                     </p>
@@ -753,28 +898,28 @@ const CulturalExplorer = () => {
                   {showExplanation && (
                     <button
                       onClick={nextQuestion}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-500/50 transition-all duration-200 shadow-lg"
                     >
                       {currentQuizIndex < quizData.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </button>
                   )}
                   <button
                     onClick={restartQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 transition-all duration-200 shadow-lg"
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
                   >
                     Back to Facts
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* Quiz Completed State */}
         {quizState === 'completed' && (
-          <div className="relative max-w-lg mx-auto">
-            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" />
-            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" />
+          <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-results-heading">
+            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
+            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
               key={`results-${cardKey}`}
@@ -787,18 +932,18 @@ const CulturalExplorer = () => {
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 className="text-2xl font-bold">Quiz Complete!</h2>
+                <h2 id="quiz-results-heading" className="text-2xl font-bold">Quiz Complete!</h2>
                 <p className="opacity-75 mt-1">Here&apos;s how you did</p>
               </div>
 
               {/* Results body */}
               <div className="p-8">
-                <div className="text-center mb-6">
-                  <div className="text-6xl mb-4">
+                <div className="text-center mb-6" role="region" aria-live="polite" aria-labelledby="final-score">
+                  <div className="text-6xl mb-4" aria-hidden="true">
                     <Trophy className="w-16 h-16 mx-auto text-[#6b3f2a]" />
                   </div>
-                  <div className="text-3xl font-bold text-gray-800 mb-2">
-                    {quizResults.filter(r => r.isCorrect).length} / {quizResults.length}
+                  <div id="final-score" data-testid="final-score" className="text-3xl font-bold text-gray-800 mb-2">
+                    {quizResults.filter(r => r.isCorrect).length} out of {quizResults.length} correct
                   </div>
                   <p className="text-lg text-gray-600">
                     {quizResults.filter(r => r.isCorrect).length === quizResults.length
@@ -809,19 +954,21 @@ const CulturalExplorer = () => {
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3" role="list" aria-label="Question results">
                   {quizResults.map((result, index) => (
                     <div
                       key={index}
+                      role="listitem"
                       className={`flex items-center justify-between p-3 rounded-lg ${
                         result.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
+                      aria-label={`Question ${index + 1}: ${result.isCorrect ? 'Correct' : 'Incorrect'}`}
                     >
                       <span className="font-medium">Question {index + 1}</span>
                       {result.isCorrect ? (
-                        <Check className="w-5 h-5" />
+                        <Check className="w-5 h-5" aria-label="Correct" />
                       ) : (
-                        <X className="w-5 h-5" />
+                        <X className="w-5 h-5" aria-label="Incorrect" />
                       )}
                     </div>
                   ))}
@@ -833,28 +980,28 @@ const CulturalExplorer = () => {
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={generateQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 transition-all duration-200 shadow-lg"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-500/50 transition-all duration-200 shadow-lg"
                   >
-                    <Brain className="w-5 h-5" />
+                    <Brain className="w-5 h-5" aria-hidden="true" />
                     Try Again
                   </button>
                   <button
                     onClick={restartQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 transition-all duration-200 shadow-lg"
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
                   >
                     Back to Facts
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* Card Stack */}
         {currentCountry && quizState === 'idle' && (
-          <div className="relative max-w-lg mx-auto">
-            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" />
-            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" />
+          <section className="relative max-w-lg mx-auto" aria-labelledby="facts-card-heading">
+            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
+            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
               key={cardKey}
@@ -867,8 +1014,8 @@ const CulturalExplorer = () => {
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 className="text-2xl font-bold">{currentCountry}</h2>
-                <p className="opacity-75 mt-1">
+                <h2 id="facts-card-heading" className="text-2xl font-bold">{currentCountry}</h2>
+                <p className="opacity-75 mt-1" aria-live="polite">
                   Card {currentFactIndex + 1} of {currentFacts.length}
                 </p>
               </div>
@@ -880,6 +1027,9 @@ const CulturalExplorer = () => {
                     className={`text-lg text-gray-700 leading-relaxed text-center transition-opacity duration-200 ${
                       isFlipping ? 'opacity-0' : 'opacity-100'
                     }`}
+                    aria-live="polite"
+                    role="region"
+                    aria-label="Cultural fact"
                   >
                     {currentFact}
                   </p>
@@ -888,41 +1038,57 @@ const CulturalExplorer = () => {
 
               {/* Card actions */}
               <div className="p-6 bg-gray-50 border-t">
-                <div className="flex justify-center gap-3 flex-wrap">
+                <div className="flex justify-center gap-3 flex-wrap" role="group" aria-label="Card actions">
                   <button
                     onClick={flipCard}
                     disabled={isFlipping || currentFacts.length === 0}
-                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 ${
+                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-teal-500/50 ${
                       isFlipping
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-gradient-to-r from-teal-400 to-yellow-200 rounded-sm text-white hover:scale-105 shadow-lg'
                     }`}
+                    aria-describedby={isFlipping ? undefined : "next-fact-desc"}
                   >
-                    <RotateCw className={`w-5 h-5 ${isFlipping ? 'animate-spin' : ''}`} />
+                    <RotateCw className={`w-5 h-5 ${isFlipping ? 'animate-spin' : ''}`} aria-hidden="true" />
                     {isFlipping ? 'Flipping...' : 'Next Fact'}
                   </button>
+                  {!isFlipping && (
+                    <div id="next-fact-desc" className="sr-only">
+                      Show the next cultural fact about {currentCountry}
+                    </div>
+                  )}
 
                   <button
                     onClick={generateQuiz}
                     disabled={!currentFacts.length}
-                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 ${
+                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-pink-500/50 ${
                       !currentFacts.length
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-gradient-to-r from-pink-500 to-rose-500 rounded-sm text-white hover:scale-105 shadow-lg'
                     }`}
+                    aria-describedby="take-quiz-desc"
                   >
-                    <Brain className="w-5 h-5" />
+                    <Brain className="w-5 h-5" aria-hidden="true" />
                     Take Quiz
                   </button>
+                  <div id="take-quiz-desc" className="sr-only">
+                    Test your knowledge about {currentCountry} with an interactive quiz
+                  </div>
 
                   {selectedDeck === 'random' && (
                     <button
                       onClick={shuffleDeck}
-                      className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 transition-all duration-200 shadow-lg"
+                      className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
+                      aria-describedby="shuffle-desc"
                     >
-                      <Shuffle className="w-5 h-5" />
+                      <Shuffle className="w-5 h-5" aria-hidden="true" />
                       Shuffle
                     </button>
+                  )}
+                  {selectedDeck === 'random' && (
+                    <div id="shuffle-desc" className="sr-only">
+                      Get facts for a different random country
+                    </div>
                   )}
                 </div>
               </div>
@@ -930,23 +1096,25 @@ const CulturalExplorer = () => {
 
             {/* Deck info */}
             <div className="mt-8 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-gray-600">
-                <Globe className="w-4 h-4" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-gray-600" role="status">
+                <Globe className="w-4 h-4" aria-hidden="true" />
                 <span className="font-medium">{availableCountries.length} countries available</span>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* No selection state */}
         {!currentCountry && selectedDeck === 'select-country' && (
-          <div className="text-center py-16">
-            <div className="text-8xl mb-6">🎴</div>
-            <h3 className="text-2xl font-bold text-gray-600 mb-2">Select a Country</h3>
+          <section className="text-center py-16" aria-labelledby="no-selection-heading">
+            <div className="text-8xl mb-6" aria-hidden="true">🎴</div>
+            <h3 id="no-selection-heading" className="text-2xl font-bold text-gray-600 mb-2">Select a Country</h3>
             <p className="text-gray-500">Choose a country from the dropdown to start exploring facts!</p>
-          </div>
+          </section>
         )}
-      </div>
+
+        <div id="main-content"></div>
+      </main>
     </div>
   );
 };

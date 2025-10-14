@@ -66,6 +66,12 @@ export default function ConversationPage({}: ConversationPageProps) {
   // Get the other user's ID from the conversation
   const otherUserId = currentConversationUser?.user_id;
 
+  // Set page title for accessibility
+  useEffect(() => {
+    const userName = currentConversationUser?.anonymous_handle || 'Unknown User';
+    document.title = `Conversation with ${userName} - Letters`;
+  }, [currentConversationUser]);
+
   const loadMessages = useCallback(async (lastMessageId?: string) => {
     try {
       setLoading(true);
@@ -185,11 +191,14 @@ export default function ConversationPage({}: ConversationPageProps) {
   if (!synced || (loading && messages.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Mail className="h-12 w-12 mx-auto text-amber-600 animate-pulse" />
+        <div className="text-center space-y-4" role="status" aria-live="polite">
+          <Mail className="h-12 w-12 mx-auto text-amber-600 animate-pulse" aria-hidden="true" />
           <p className="text-amber-800 font-medium">
             {!synced ? 'Syncing your profile...' : 'Loading your letters...'}
           </p>
+          <span className="sr-only">
+            {!synced ? 'Please wait while we sync your profile data' : 'Please wait while we load your conversation letters'}
+          </span>
         </div>
       </div>
     );
@@ -198,13 +207,21 @@ export default function ConversationPage({}: ConversationPageProps) {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 flex items-center justify-center">
-        <Card className="max-w-md p-8 text-center border-red-200 bg-red-50">
-          <Mail className="h-12 w-12 mx-auto text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Oops!</h2>
+        <Card className="max-w-md p-8 text-center border-red-200 bg-red-50" role="alert">
+          <Mail className="h-12 w-12 mx-auto text-red-500 mb-4" aria-hidden="true" />
+          <h1 className="text-xl font-semibold text-red-800 mb-2">Oops!</h1>
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => loadMessages()} variant="outline" className="border-red-200">
+          <Button 
+            onClick={() => loadMessages()} 
+            variant="outline" 
+            className="border-red-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            aria-describedby="error-retry-help"
+          >
             Try Again
           </Button>
+          <p id="error-retry-help" className="sr-only">
+            Click to retry loading the conversation messages
+          </p>
         </Card>
       </div>
     );
@@ -212,17 +229,27 @@ export default function ConversationPage({}: ConversationPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50">
-       <Toaster position="top-center" richColors />
+      {/* Skip to main content link for screen readers */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-black text-white px-4 py-2 rounded z-50"
+      >
+        Skip to conversation
+      </a>
+      
+      <Toaster position="top-center" richColors />
+      
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-amber-200">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-amber-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-amber-700 hover:bg-amber-100"
+            className="text-amber-700 hover:bg-amber-100 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
             onClick={() => router.push('/inbox')}
+            aria-label="Go back to inbox"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
             Back to Inbox
           </Button>
           <div className="flex-1 text-center">
@@ -231,7 +258,8 @@ export default function ConversationPage({}: ConversationPageProps) {
             </h1>
             {currentConversationUser?.country_code && (
               <p className="text-sm text-amber-600 flex items-center justify-center gap-1">
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">User location:</span>
                 {currentConversationUser.country_code}
               </p>
             )}
@@ -240,13 +268,18 @@ export default function ConversationPage({}: ConversationPageProps) {
           {/* Moderation Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-amber-700 hover:bg-amber-100">
-                <MoreVertical className="h-4 w-4" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-amber-700 hover:bg-amber-100 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                aria-label="User moderation options"
+              >
+                <MoreVertical className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShowReportDialog(true)}>
-                <Flag className="h-4 w-4 mr-2" />
+                <Flag className="h-4 w-4 mr-2" aria-hidden="true" />
                 Report User
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -254,47 +287,62 @@ export default function ConversationPage({}: ConversationPageProps) {
                 onClick={() => setShowBlockDialog(true)}
                 className="text-red-600 focus:text-red-600"
               >
-                <Ban className="h-4 w-4 mr-2" />
+                <Ban className="h-4 w-4 mr-2" aria-hidden="true" />
                 Block User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </header>
 
       {/* Messages Container */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <ScrollArea className="h-[calc(100vh-200px)]">
-          <div className="space-y-6">
-            {messages.map((message) => (
-              <LetterCard
-                key={message.message_id}
-                message={message}
-                currentUserId={CURRENT_USER_ID}
-                onReportMessage={handleReportMessage}
-              />
-            ))}
+      <main id="main-content" className="max-w-4xl mx-auto px-4 py-8">
+        <ScrollArea className="h-[calc(100vh-200px)]" aria-label="Conversation messages">
+          <div className="space-y-6" role="log" aria-live="polite" aria-label="Letter conversation">
+            {messages.length === 0 && !loading ? (
+              <div className="text-center py-12" role="status">
+                <Mail className="h-16 w-16 mx-auto text-amber-400 mb-4" aria-hidden="true" />
+                <h2 className="text-xl font-semibold text-amber-800 mb-2">No letters yet</h2>
+                <p className="text-amber-600">
+                  Start your conversation by writing the first letter!
+                </p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <LetterCard
+                  key={message.message_id}
+                  message={message}
+                  currentUserId={CURRENT_USER_ID}
+                  onReportMessage={handleReportMessage}
+                  aria-label={`Letter ${index + 1} of ${messages.length}`}
+                />
+              ))
+            )}
 
             {hasMore && (
               <div className="flex justify-center py-8">
                 <Button 
                   onClick={() => loadMessages(messages[messages.length - 1]?.message_id)}
                   variant="outline"
-                  className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                   disabled={loading}
+                  aria-describedby="load-more-help"
                 >
                   {loading ? (
                     <>
-                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      <Clock className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
                       Loading more letters...
                     </>
                   ) : (
                     <>
-                      <Mail className="h-4 w-4 mr-2" />
+                      <Mail className="h-4 w-4 mr-2" aria-hidden="true" />
                       Load Earlier Letters
                     </>
                   )}
                 </Button>
+                <p id="load-more-help" className="sr-only">
+                  Click to load earlier letters in this conversation
+                </p>
               </div>
             )}
           </div>
@@ -305,39 +353,49 @@ export default function ConversationPage({}: ConversationPageProps) {
           <Button 
             onClick={() => router.push(`/compose-letter/${otherUserId}`)}
             size="lg" 
-            className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
+            aria-label="Write a new letter to this user"
           >
-            <Send className="h-5 w-5 mr-2" />
+            <Send className="h-5 w-5 mr-2" aria-hidden="true" />
             Write Letter
           </Button>
         </div>
-      </div>
+      </main>
 
       {/* Report User Dialog */}
       <AlertDialog open={showReportDialog} onOpenChange={setShowReportDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent role="dialog" aria-labelledby="report-dialog-title" aria-describedby="report-dialog-description">
           <AlertDialogHeader>
-            <AlertDialogTitle>Report User</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle id="report-dialog-title">Report User</AlertDialogTitle>
+            <AlertDialogDescription id="report-dialog-description">
               Why are you reporting this user? This will help our moderation team review the issue.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Violation Type</label>
+              <label htmlFor="violation-type" className="text-sm font-medium">
+                Violation Type
+              </label>
               <select 
+                id="violation-type"
                 value={selectedViolation}
                 onChange={(e) => setSelectedViolation(e.target.value)}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+                className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                aria-describedby="violation-type-help"
               >
                 <option value="harassment">Harassment</option>
                 <option value="spam">Spam</option>
                 <option value="inappropriate_content">Inappropriate Content</option>
                 <option value="other">Other</option>
               </select>
+              <p id="violation-type-help" className="sr-only">
+                Select the type of violation this user has committed
+              </p>
             </div>
             {moderationError && (
-              <p className="text-sm text-red-600">{moderationError}</p>
+              <div role="alert" className="text-sm text-red-600" aria-live="polite">
+                {moderationError}
+              </div>
             )}
           </div>
           <AlertDialogFooter>
@@ -345,35 +403,45 @@ export default function ConversationPage({}: ConversationPageProps) {
             <AlertDialogAction 
               onClick={handleReportUser}
               disabled={moderationLoading}
-              className="bg-rose-600 hover:bg-rose-700"
+              className="bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
+              aria-describedby="report-action-help"
             >
               {moderationLoading ? 'Reporting...' : 'Report User'}
             </AlertDialogAction>
+            <p id="report-action-help" className="sr-only">
+              {moderationLoading ? 'Please wait while we process your report' : 'Click to submit the report to our moderation team'}
+            </p>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Block User Dialog */}
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent role="dialog" aria-labelledby="block-dialog-title" aria-describedby="block-dialog-description">
           <AlertDialogHeader>
-            <AlertDialogTitle>Block User</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle id="block-dialog-title">Block User</AlertDialogTitle>
+            <AlertDialogDescription id="block-dialog-description">
               {"Are you sure you want to block this user? You will no longer receive messages from them and they won't be able to see your profile."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {moderationError && (
-            <p className="text-sm text-red-600">{moderationError}</p>
+            <div role="alert" className="text-sm text-red-600" aria-live="polite">
+              {moderationError}
+            </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleBlockUser}
               disabled={moderationLoading}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              aria-describedby="block-action-help"
             >
               {moderationLoading ? 'Blocking...' : 'Block User'}
             </AlertDialogAction>
+            <p id="block-action-help" className="sr-only">
+              {moderationLoading ? 'Please wait while we process the block request' : 'Click to permanently block this user from contacting you'}
+            </p>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

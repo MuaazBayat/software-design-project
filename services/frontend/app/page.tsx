@@ -2,12 +2,13 @@ import Image from "next/image";
 export default function Home() {
   return (
     <>
-    <section className="min-h-screen w-full bg-black text-white relative overflow-hidden">
+    <main>
+    <section className="min-h-screen w-full bg-black text-white relative overflow-hidden" role="banner" aria-label="Hero section">
       {/* Background Hero Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0" aria-hidden="true">
         <Image
           src='/hero.png'
-          alt="Cultural diversity background"
+          alt=""
           fill
           className="object-cover"
           priority
@@ -19,7 +20,7 @@ export default function Home() {
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
         {/* Hero Section */}
-        <div className="text-center max-w-4xl mx-auto mb-16">
+        <header className="text-center max-w-4xl mx-auto mb-16">
           <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
             Connecting Cultures,{" "}
             <span className="bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent">One</span>
@@ -31,40 +32,42 @@ export default function Home() {
             Discover the joy of cultural exchange with GlobeTalk - your global pen pal community where meaningful friendships begin.
           </p>
 
-          <a href="/matchmaking" className="group relative inline-flex h-[calc(56px+8px)] items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 py-1 pl-8 pr-16 font-bold text-xl text-white mx-auto transition-all duration-300 transform hover:scale-105">
+          <a href="/matchmaking" 
+             className="group relative inline-flex h-[calc(56px+8px)] items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 py-1 pl-8 pr-16 font-bold text-xl text-white mx-auto transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50"
+             aria-label="Find your pen pal match">
             <span className="z-10 pr-2">Find Your Match</span>
             <div className="absolute right-1 inline-flex h-14 w-14 items-center justify-end rounded-full bg-gradient-to-r from-pink-600 to-rose-600 transition-[width] group-hover:w-[calc(100%-8px)]">
               <div className="mr-3.5 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
           </a>
-        </div>
+        </header>
 
         {/* Statistics Section */}
-        <div className="flex flex-wrap justify-center items-center gap-12 md:gap-16">
+        <section className="flex flex-wrap justify-center items-center gap-12 md:gap-16" aria-label="Platform statistics">
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2">50+</div>
+            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="50 plus countries">50+</div>
             <div className="text-gray-300 text-xl">Countries</div>
           </div>
 
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2">1000+</div>
+            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="1000 plus active users">1000+</div>
             <div className="text-gray-300 text-xl">Active Users</div>
           </div>
 
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2">5000+</div>
+            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="5000 plus letters sent">5000+</div>
             <div className="text-gray-300 text-xl">Letters Sent</div>
           </div>
-        </div>
+        </section>
       </div>
     </section>
 
     {/* Transition Section with Stats */}
-    <section className="bg-black  py-16 px-6">
+    <section className="bg-black py-16 px-6" aria-label="Global community statistics">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -78,34 +81,34 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8 items-center">
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center rounded-full">
-              <Image src="/letter.png" alt="Cute letters illustration" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
+              <Image src="/letter.png" alt="Illustration of letters being exchanged" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Letters Exchanged</h3>
-            <p className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-yellow-200 bg-clip-text text-transparent mb-2">50,000+</p>
+            <p className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-yellow-200 bg-clip-text text-transparent mb-2" aria-label="50,000 plus letters exchanged">50,000+</p>
             <p className="text-gray-400 text-lg">Heartfelt messages shared daily</p>
           </div>
 
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center">
-              <Image src="/friends.png" alt="Cute friends illustration" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
+              <Image src="/friends.png" alt="Illustration of people from different cultures becoming friends" width={256} height={256} className="w-64 h-64 object-contain rounded-full" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Friendships Formed</h3>
-            <p className="text-4xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">25,000+</p>
+            <p className="text-4xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent mb-2" aria-label="25,000 plus friendships formed">25,000+</p>
             <p className="text-gray-400 text-lg">Lasting bonds across borders</p>
           </div>
 
           <div className="text-center">
             <div className="w-64 h-64 mx-auto mb-6 flex items-center justify-center">
-              <Image src="/globe.png" alt="Cute globe illustration" width={256} height={256} className="w-64 h-64 object-contain" />
+              <Image src="/globe.png" alt="Illustration of a globe showing global connectivity" width={256} height={256} className="w-64 h-64 object-contain" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Countries Connected</h3>
-            <p className="text-4xl font-bold bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent mb-2">180+</p>
+            <p className="text-4xl font-bold bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent mb-2" aria-label="180 plus countries connected">180+</p>
             <p className="text-gray-400 text-lg">Cultures united through words</p>
           </div>
         </div>
       </div>
     </section>
-        <section className="bg-black text-white py-20 px-6">
+        <section className="bg-black text-white py-20 px-6" aria-label="Why choose GlobeTalk features">
       <div className="max-w-7xl mx-auto text-center">
         <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
           Why Choose <span className="bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">GlobeTalk</span>?
@@ -116,9 +119,9 @@ export default function Home() {
       </div>
 
       <div className="max-w-6xl mx-auto grid gap-12 md:grid-cols-2 lg:grid-cols-4">
-        <div className="text-center group">
-          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-violet-200 to-pink-200 mb-6 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-4xl">💕</span>
+        <article className="text-center group">
+          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-violet-200 to-pink-200 mb-6 group-hover:scale-110 transition-transform duration-300" aria-hidden="true">
+            <span className="text-4xl" role="img" aria-label="Heart emoji">💕</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">
             Smart Matching
@@ -126,11 +129,11 @@ export default function Home() {
           <p className="text-gray-300 leading-relaxed">
             Connect with like-minded individuals worldwide through our intelligent compatibility system based on interests, values, and cultural curiosity.
           </p>
-        </div>
+        </article>
 
-        <div className="text-center group">
-          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 mb-6 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-4xl">✉️</span>
+        <article className="text-center group">
+          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 mb-6 group-hover:scale-110 transition-transform duration-300" aria-hidden="true">
+            <span className="text-4xl" role="img" aria-label="Letter emoji">✉️</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">
             Beautiful Letters
@@ -138,11 +141,11 @@ export default function Home() {
           <p className="text-gray-300 leading-relaxed">
             Express yourself with stunning letter templates inspired by global traditions - from elegant calligraphy to modern minimalist designs.
           </p>
-        </div>
+        </article>
 
-        <div className="text-center group">
-          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 mb-6 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-4xl">🌍</span>
+        <article className="text-center group">
+          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 mb-6 group-hover:scale-110 transition-transform duration-300" aria-hidden="true">
+            <span className="text-4xl" role="img" aria-label="Globe emoji">🌍</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">
             Cultural Discovery
@@ -150,11 +153,11 @@ export default function Home() {
           <p className="text-gray-300 leading-relaxed">
             Explore traditions, learn languages, and expand your worldview through interactive cultural exchanges and engaging activities.
           </p>
-        </div>
+        </article>
 
-        <div className="text-center group">
-          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-violet-200 to-pink-200 mb-6 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-4xl">🔒</span>
+        <article className="text-center group">
+          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-violet-200 to-pink-200 mb-6 group-hover:scale-110 transition-transform duration-300" aria-hidden="true">
+            <span className="text-4xl" role="img" aria-label="Lock emoji">🔒</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">
             Safe & Secure
@@ -162,12 +165,12 @@ export default function Home() {
           <p className="text-gray-300 leading-relaxed">
             Your privacy matters. Enjoy end-to-end encryption, verified profiles, and comprehensive safety tools for worry-free connections.
           </p>
-        </div>
+        </article>
       </div>
     </section>
 
     {/* Testimonials Section */}
-    <section className="bg-black to-gray-900 py-20 px-6">
+    <section className="bg-black to-gray-900 py-20 px-6" aria-label="User testimonials">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -179,21 +182,21 @@ export default function Home() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+          <article className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
-            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
+            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif" aria-hidden="true">
               &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center">
-                <span className="text-3xl">🇨🇦</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center" aria-hidden="true">
+                <span className="text-3xl" role="img" aria-label="Canadian flag">🇨🇦</span>
               </div>
               <div className="ml-4 flex-1">
-                <h4 className="text-black font-bold text-lg">Sarah Chen</h4>
+                <h3 className="text-black font-bold text-lg">Sarah Chen</h3>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-700">Canada</span>
-                  <span className="text-pink-400">→</span>
+                  <span className="text-pink-400" aria-hidden="true">→</span>
                   <span className="text-gray-700">Japan</span>
                 </div>
               </div>
@@ -204,27 +207,27 @@ export default function Home() {
             </blockquote>
 
             <div className="flex justify-end">
-              <span className="text-xs text-gray-500">
+              <time className="text-xs text-gray-500" dateTime="2024-08">
                 2 months ago
-              </span>
+              </time>
             </div>
-          </div>
+          </article>
 
-          <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+          <article className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
-            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
+            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif" aria-hidden="true">
               &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center">
-                <span className="text-3xl">🇩🇪</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center" aria-hidden="true">
+                <span className="text-3xl" role="img" aria-label="German flag">🇩🇪</span>
               </div>
               <div className="ml-4 flex-1">
-                <h4 className="text-black font-bold text-lg">Marcus Weber</h4>
+                <h3 className="text-black font-bold text-lg">Marcus Weber</h3>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-700">Germany</span>
-                  <span className="text-pink-400">→</span>
+                  <span className="text-pink-400" aria-hidden="true">→</span>
                   <span className="text-gray-700">Brazil</span>
                 </div>
               </div>
@@ -235,27 +238,27 @@ export default function Home() {
             </blockquote>
 
             <div className="flex justify-end">
-              <span className="text-xs text-gray-500">
+              <time className="text-xs text-gray-500" dateTime="2024-05">
                 5 months ago
-              </span>
+              </time>
             </div>
-          </div>
+          </article>
 
-          <div className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+          <article className="group relative bg-white p-8 border border-gray-300 hover:border-pink-400 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             {/* Quote icon */}
-            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif">
+            <div className="absolute top-6 right-6 text-pink-400/50 text-4xl font-serif" aria-hidden="true">
               &ldquo;
             </div>
 
             <div className="flex items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center">
-                <span className="text-3xl">🇮🇳</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 flex items-center justify-center" aria-hidden="true">
+                <span className="text-3xl" role="img" aria-label="Indian flag">🇮🇳</span>
               </div>
               <div className="ml-4 flex-1">
-                <h4 className="text-black font-bold text-lg">Priya Sharma</h4>
+                <h3 className="text-black font-bold text-lg">Priya Sharma</h3>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-700">India</span>
-                  <span className="text-pink-400">→</span>
+                  <span className="text-pink-400" aria-hidden="true">→</span>
                   <span className="text-gray-700">Morocco</span>
                 </div>
               </div>
@@ -266,18 +269,18 @@ export default function Home() {
             </blockquote>
 
             <div className="flex justify-end">
-              <span className="text-xs text-gray-500">
+              <time className="text-xs text-gray-500" dateTime="2024-09">
                 1 month ago
-              </span>
+              </time>
             </div>
-          </div>
+          </article>
         </div>
 
 
       </div>
     </section>
 
-    <section className="w-full bg-black text-white py-20 px-6">
+    <section className="w-full bg-black text-white py-20 px-6" aria-label="Call to action">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
           Ready to Connect the <span className="bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent">World</span>?
@@ -285,11 +288,13 @@ export default function Home() {
         <p className="text-xl md:text-2xl text-gray-200 mb-12 leading-relaxed max-w-3xl mx-auto">
           Join thousands of people discovering friendship and culture through meaningful correspondence. Your global pen pal awaits!
         </p>
-        <a href="/matchmaking" className="group relative inline-flex h-[calc(60px+8px)] items-center justify-center rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 py-1 pl-8 pr-16 font-bold text-xl text-black mx-auto transition-all duration-300 transform hover:scale-105">
+        <a href="/matchmaking" 
+           className="group relative inline-flex h-[calc(60px+8px)] items-center justify-center rounded-full bg-gradient-to-r from-teal-400 to-yellow-200 py-1 pl-8 pr-16 font-bold text-xl text-black mx-auto transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300 focus:ring-opacity-50"
+           aria-label="Start your journey to find a pen pal">
           <span className="z-10 pr-2">Start Your Journey</span>
           <div className="absolute right-1 inline-flex h-16 w-16 items-center justify-end rounded-full bg-gradient-to-r from-teal-500 to-yellow-300 transition-[width] group-hover:w-[calc(100%-8px)]">
             <div className="mr-3.5 flex items-center justify-center">
-              <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
@@ -299,7 +304,7 @@ export default function Home() {
     </section>
 
 
-    <footer className="bg-black border-t-2 border-transparent" style={{borderImage: 'linear-gradient(to right, rgb(221 214 254), rgb(236 72 153), rgb(45 212 191)) 1'}}>
+    <footer className="bg-black border-t-2 border-transparent" style={{borderImage: 'linear-gradient(to right, rgb(221 214 254), rgb(236 72 153), rgb(45 212 191)) 1'}} role="contentinfo">
       <div className="mx-auto max-w-6xl px-6 py-5">
         {/* Header Section */}
         <div className="text-center mb-8">
@@ -314,16 +319,16 @@ export default function Home() {
         
 
         {/* Quick Links */}
-        <div className="text-center mb-12">
+        <nav className="text-center mb-12" aria-label="Footer navigation">
           <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">About</a>
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">How It Works</a>
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">Safety</a>
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">Support</a>
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">Privacy</a>
-            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg" href="#">Terms</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Learn about GlobeTalk">About</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Learn how GlobeTalk works">How It Works</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Safety information">Safety</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Support and help">Support</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Privacy policy">Privacy</a>
+            <a className="text-gray-300 hover:text-pink-400 transition-colors font-medium text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50 rounded" href="#" aria-label="Terms of service">Terms</a>
           </div>
-        </div>
+        </nav>
 
         {/* Social Media */}
         <div className="text-center">
@@ -333,9 +338,9 @@ export default function Home() {
               href="#"
               rel="noreferrer"
               target="_blank"
-              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110"
+              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50"
+              aria-label="Follow us on Facebook"
             >
-              <span className="sr-only">Facebook</span>
               <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fillRule="evenodd"
@@ -348,9 +353,9 @@ export default function Home() {
               href="#"
               rel="noreferrer"
               target="_blank"
-              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110"
+              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50"
+              aria-label="Follow us on Instagram"
             >
-              <span className="sr-only">Instagram</span>
               <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fillRule="evenodd"
@@ -363,9 +368,9 @@ export default function Home() {
               href="#"
               rel="noreferrer"
               target="_blank"
-              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110"
+              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50"
+              aria-label="Follow us on Twitter"
             >
-              <span className="sr-only">Twitter</span>
               <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"
@@ -376,9 +381,9 @@ export default function Home() {
               href="#"
               rel="noreferrer"
               target="_blank"
-              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110"
+              className="w-12 h-12 rounded-full bg-gray-800 hover:bg-pink-400 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50"
+              aria-label="View our GitHub repository"
             >
-              <span className="sr-only">GitHub</span>
               <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fillRule="evenodd"
@@ -398,13 +403,14 @@ export default function Home() {
             </p>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">Made with</span>
-              <span className="text-pink-400 text-lg">❤️</span>
+              <span className="text-pink-400 text-lg" role="img" aria-label="love">❤️</span>
               <span className="text-sm text-gray-400">in Johannesburg.</span>
             </div>
           </div>
         </div>
       </div>
     </footer>
+    </main>
 
     </>
   );

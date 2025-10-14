@@ -101,7 +101,7 @@ describe("MatchScreen (integration)", () => {
 
     // Profile card appears
     await screen.findByRole("heading", {
-      level: 3,
+      level: 2,
       name: /FirstProfile/i,
     });
 
@@ -149,13 +149,13 @@ describe("MatchScreen (integration)", () => {
     const Page = await loadPage();
     render(<Page />);
 
-    await screen.findByRole("heading", { level: 3, name: /FirstProfile/i });
+    await screen.findByRole("heading", { level: 2, name: /FirstProfile/i });
 
     // Pass current profile
     await userEvent.click(screen.getByRole("button", { name: /pass/i }));
 
     // New current profile is presented
-    await screen.findByRole("heading", { level: 3, name: /SecondProfile/i });
+    await screen.findByRole("heading", { level: 2, name: /SecondProfile/i });
 
     // NOTE: We intentionally do NOT assert that the first heading node is removed
     // because the UI may retain elements in the DOM during transitions.
@@ -213,7 +213,7 @@ describe("MatchScreen (integration)", () => {
     render(<Page />);
 
     // Ensure the card is rendered
-    await screen.findByRole("heading", { level: 3, name: /Sarah/i });
+    await screen.findByRole("heading", { level: 2, name: /Sarah/i });
 
     // Like
     await userEvent.click(screen.getByRole("button", { name: /like/i }));
@@ -268,7 +268,7 @@ describe("MatchScreen (integration)", () => {
     const Page = await loadPage();
     render(<Page />);
 
-    await screen.findByRole("heading", { level: 3, name: /AnyProfile/i });
+    await screen.findByRole("heading", { level: 2, name: /AnyProfile/i });
 
     const passBtn = screen.getByRole("button", { name: /pass/i });
     const likeBtn = screen.getByRole("button", { name: /like/i });

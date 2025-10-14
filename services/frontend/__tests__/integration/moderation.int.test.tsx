@@ -160,17 +160,13 @@ describe('ModerationDashboard (MSW-backed)', () => {
     });
 
     // Now test Banned Users tab
-    // Find the nav button that contains "Banned Users"
-    const allButtons = screen.getAllByRole('button');
-    const bannedNavButton = allButtons.find(btn => {
-      const text = btn.textContent || '';
-      return text.includes('Banned Users') && !text.includes('Refresh');
-    });
+    // Find the nav button using aria-label since text might be hidden on mobile
+    const bannedNavButton = screen.getByRole('tab', { name: /Banned Users Tab/i });
     
     expect(bannedNavButton).toBeInTheDocument();
 
     // Switch to banned users tab
-    await act(async () => { await user.click(bannedNavButton!); });
+    await act(async () => { await user.click(bannedNavButton); });
     
     // Wait for the Banned Users heading to appear in the content area
     await waitFor(() => {
@@ -259,9 +255,8 @@ describe('ModerationDashboard (MSW-backed)', () => {
     await renderWithProfile({ user_id: 'mod_3', moderator: true });
 
     // Switch to banned users tab first
-    const navButtons = screen.getAllByRole('button');
-    const bannedNavButton = navButtons.find(btn => btn.textContent?.includes('Banned Users'));
-    await act(async () => { await userEvent.click(bannedNavButton!); });
+    const bannedNavButton = screen.getByRole('tab', { name: /Banned Users Tab/i });
+    await act(async () => { await userEvent.click(bannedNavButton); });
 
     // Wait for tab to load
     await waitFor(() => {
@@ -310,9 +305,8 @@ describe('ModerationDashboard (MSW-backed)', () => {
     const user = await renderWithProfile({ user_id: 'mod_4', moderator: true });
 
     // Switch to banned users tab
-    const navButtons = screen.getAllByRole('button');
-    const bannedNavButton = navButtons.find(btn => btn.textContent?.includes('Banned Users'));
-    await act(async () => { await user.click(bannedNavButton!); });
+    const bannedNavButton = screen.getByRole('tab', { name: /Banned Users Tab/i });
+    await act(async () => { await user.click(bannedNavButton); });
 
     // Wait for unban button to appear
     const unbanBtn = await screen.findByRole('button', { name: /Unban/i });

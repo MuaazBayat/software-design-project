@@ -20,6 +20,11 @@ interface ConversationCardProps {
     inTransitOrIsRead?: boolean
   ) => React.ReactNode;
   onClick?: (conversation: SearchUsersResponseItem) => void;
+  // Accessibility props
+  tabIndex?: number;
+  role?: string;
+  'aria-label'?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }
 
 const ConversationCard: React.FC<ConversationCardProps> = ({
@@ -27,7 +32,11 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   formatMessagePreview,
   formatTimeAgo,
   getDeliveryStatusBadge,
-  onClick
+  onClick,
+  tabIndex,
+  role,
+  'aria-label': ariaLabel,
+  onKeyDown
 }) => {
   const { user_profile, latest_message } = conversation;
   const { profile } = useSyncProfile();
@@ -60,9 +69,19 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
   const handleClick = () => onClick?.(conversation);
 
   return (
-    <div
-      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-white shadow-2xl overflow-visible"
+    <article
+      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 bg-white shadow-2xl overflow-visible focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:scale-105 focus:-translate-y-2"
       onClick={handleClick}
+      tabIndex={tabIndex ?? 0}
+      role={role ?? "button"}
+      aria-label={ariaLabel ?? `Open conversation with ${user_profile.anonymous_handle} from ${user_profile.country_code}`}
+      onKeyDown={onKeyDown ?? ((e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      })}
+      aria-describedby={`conversation-status-${user_profile.anonymous_handle}`}
     >
       {/* Envelope flap (taller; overflow visible so wax isn't clipped) */}
       <div className="absolute inset-x-0 top-0 z-10 rounded-sm overflow-visible">
@@ -94,7 +113,13 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
               "
               style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
             >
-              <Image src={waxseal} alt="Wax Seal" width={64} height={64} className="select-none" />
+              <Image 
+                src={waxseal} 
+                alt="Wax Seal" 
+                width={64} 
+                height={64} 
+                className="select-none"
+              />
             </div>
           )}
         </div>
@@ -106,51 +131,76 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
         <div className="absolute top-4 right-4">
           <div className="w-15 h-20 transform rotate-3">
             {isNewIncoming ? (
-              <Image src={notread} alt="Unread" width={32} height={32} className="w-13 h-16 top-1 right-1" />
+              <Image 
+                src={notread} 
+                alt="Unread" 
+                width={32} 
+                height={32} 
+                className="w-13 h-16 top-1 right-1" 
+              />
             ) : (
-              <Image src={read} alt="Read" width={32} height={32} className="w-13 h-16 top-1 right-1" />
+              <Image 
+                src={read} 
+                alt="Read" 
+                width={32} 
+                height={32} 
+                className="w-13 h-16 top-1 right-1" 
+              />
             )}
           </div>
         </div>
 
         {/* Address */}
         <div className="relative p-6 pt-12 flex-1 flex flex-col">
-          <div className="mb-4">
+          <section className="mb-4" aria-labelledby={`user-info-${user_profile.anonymous_handle}`}>
             <div className="text-xs text-gray-500 mb-2 font-mono">
               {fromMe ? 'To:' : 'From:'}
             </div>
             <div className="space-y-1">
-              <h3 className="font-bold text-gray-800 text-lg font-serif">
+              <h2 
+                id={`user-info-${user_profile.anonymous_handle}`}
+                className="font-bold text-gray-800 text-lg font-serif"
+              >
                 {user_profile.anonymous_handle}
-              </h3>
+              </h2>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span className="font-mono text-xs">
-                  {user_profile.country_code || 'Unknown'} • {user_profile.age_range}
+                  <span className="sr-only">Location:</span>
+                  {user_profile.country_code || 'Unknown'} • 
+                  <span className="sr-only">Age range:</span>
+                  {user_profile.age_range}
                 </span>
               </div>
               {!!user_profile.interests?.length && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-2" role="list" aria-label="User interests">
                   {user_profile.interests.slice(0, 2).map((interest, index) => (
                     <span
                       key={index}
                       className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono"
+                      role="listitem"
                     >
                       {interest}
                     </span>
                   ))}
                   {user_profile.interests.length > 2 && (
-                    <span className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono">
+                    <span 
+                      className="px-2 py-0.5 bg-black text-white text-[10px] rounded-full font-mono"
+                      role="listitem"
+                      aria-label={`And ${user_profile.interests.length - 2} more interests`}
+                    >
                       +{user_profile.interests.length - 2}
                     </span>
                   )}
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
           {/* Message preview + single inline badge */}
-          <div className="relative flex-1 overflow-hidden">
-            <div className="text-xs text-gray-500 mb-2 font-mono">Message:</div>
+          <section className="relative flex-1 overflow-hidden" aria-labelledby={`message-preview-${user_profile.anonymous_handle}`}>
+            <h3 id={`message-preview-${user_profile.anonymous_handle}`} className="text-xs text-gray-500 mb-2 font-mono">
+              Message:
+            </h3>
             {latest_message ? (
               <div className="bg-white/50 rounded p-3 border border-gray-200">
                 <div className="flex items-start justify-between gap-2">
@@ -158,34 +208,51 @@ const ConversationCard: React.FC<ConversationCardProps> = ({
                     <span className="text-gray-500 not-italic text-xs">
                       {fromMe ? '(You wrote) ' : ''}
                     </span>
+                    <span className="sr-only">
+                      {isNewIncoming ? 'Unread message: ' : 'Message: '}
+                    </span>
                     &ldquo;{formatMessagePreview(lm.message_content ?? '', 80)}&rdquo;
                   </p>
 
                   {/* KEY: if there is a future outgoing, treat as "from me" for the badge,
                       and pass that future timestamp so it shows "Outgoing…" */}
-                  {getDeliveryStatusBadge(
-                    deliveryStatus || 'unknown',
-                    fromMe || hasOutgoingFuture,
-                    (fromMe || hasOutgoingFuture) ? (hasOutgoingFuture ? nextOutgoingISO : scheduledAtISO) : scheduledAtISO,
-                    (fromMe || hasOutgoingFuture) ? hasOutgoingFuture : isRead
-                  )}
+                  <div aria-label={`Message status: ${deliveryStatus || 'unknown'}`}>
+                    {getDeliveryStatusBadge(
+                      deliveryStatus || 'unknown',
+                      fromMe || hasOutgoingFuture,
+                      (fromMe || hasOutgoingFuture) ? (hasOutgoingFuture ? nextOutgoingISO : scheduledAtISO) : scheduledAtISO,
+                      (fromMe || hasOutgoingFuture) ? hasOutgoingFuture : isRead
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
-                  <span className="font-mono">
+                  <span className="font-mono" aria-label={`Message time: ${scheduledAtISO ? formatTimeAgo(scheduledAtISO) : 'Unknown time'}`}>
                     {scheduledAtISO ? formatTimeAgo(scheduledAtISO) : ''}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="text-gray-400 italic text-sm">You haven&apos;t written to each other...</div>
+              <div className="text-gray-400 italic text-sm" role="status">
+                You haven&apos;t written to each other...
+              </div>
             )}
-          </div>
+          </section>
 
           {/* Bottom chips intentionally removed */}
         </div>
       </div>
-    </div>
+      
+      {/* Hidden status description for screen readers */}
+      <div id={`conversation-status-${user_profile.anonymous_handle}`} className="sr-only">
+        {isNewIncoming 
+          ? `You have an unread message from ${user_profile.anonymous_handle}` 
+          : latest_message 
+            ? `Latest message exchanged ${formatTimeAgo(scheduledAtISO || '')}`
+            : `No messages exchanged yet with ${user_profile.anonymous_handle}`
+        }
+      </div>
+    </article>
   );
 };
 
