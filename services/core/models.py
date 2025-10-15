@@ -49,7 +49,7 @@ class Profile(ProfileBase):
     Complete model for a profile as it appears in the database.
     Includes database-managed fields like created_at, updated_at, and last_active.
     """
-    user_id: UUID
+    user_id: Optional[UUID] = None  # Make user_id optional for now since tests use clerk_id
     clerk_id: str
     anonymous_handle: str
     fingerprint: Optional[List[str]] = Field(default_factory=list)

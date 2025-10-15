@@ -114,7 +114,7 @@ async def create_profile(
         )
 
     # Insert the new profile data into the Supabase table.
-    response = db.table("user_profiles").insert(profile_data.dict()).execute()
+    response = db.table("user_profiles").insert(profile_data.model_dump()).execute()
     
     # Check if the database operation was successful.
     if not response.data:
