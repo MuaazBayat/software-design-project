@@ -125,6 +125,7 @@ const FlagImage: React.FC<{
         src={`https://flagcdn.com/w320/${alpha2}.png`}
         alt={`Flag of ${country}`}
         fill
+        sizes="(max-width: 768px) 60px, 80px"
         className={`absolute inset-0 transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         style={{
           objectFit: 'fill',       // force stretch
@@ -482,36 +483,36 @@ const CulturalExplorer = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100 flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">
           <div className="text-8xl mb-4 animate-spin" aria-hidden="true">🃏</div>
-          <p className="text-2xl text-black">Loading the cultural explorer...</p>
+          <p className="text-2xl text-orange-800">Loading the cultural explorer...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100">
       <main className="container mx-auto px-4 py-8">
         {/* Skip to main content for screen readers */}
         <a 
           href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-md"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-orange-800 text-white px-4 py-2 rounded-md"
         >
           Skip to main content
         </a>
 
         {/* Header Section */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Globe className="w-8 h-8 text-blue-500 mr-3" />
-            <h1 id="deck-selection-heading" className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="flex items-center justify-center mb-6">
+            <Globe className="w-8 h-8 text-orange-600 mr-3" />
+            <h1 id="deck-selection-heading" className="text-5xl font-bold bg-gradient-to-r from-orange-700 via-amber-700 to-yellow-700 bg-clip-text text-transparent">
               Cultural Explorer
             </h1>
-            <Sparkles className="w-8 h-8 text-pink-500 ml-3" />
+            <Sparkles className="w-8 h-8 text-amber-500 ml-3" />
           </div>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-orange-700 max-w-2xl mx-auto">
             Discover fascinating facts about countries and test your knowledge with fun quizzes!
           </p>
         </div>
@@ -522,20 +523,20 @@ const CulturalExplorer = () => {
             <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
-            <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden">
+            <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden">
               {/* Loading header */}
-              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-orange-200 to-amber-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 id="quiz-loading-heading" className="text-2xl font-bold text-gray-800">{currentCountry} Quiz</h2>
-                <p className="opacity-75 mt-1 text-gray-700">Preparing your questions...</p>
+                <h2 id="quiz-loading-heading" className="text-2xl font-bold text-orange-800">{currentCountry} Quiz</h2>
+                <p className="opacity-75 mt-1 text-orange-700">Preparing your questions...</p>
               </div>
 
               {/* Loading animation */}
               <div className="p-8 bg-white flex flex-col items-center justify-center min-h-[200px]">
-                <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-                <p className="text-gray-600 text-center">
+                <div className="animate-spin w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+                <p className="text-orange-600 text-center">
                   Creating personalized quiz questions about {currentCountry}...
                 </p>
               </div>
@@ -550,15 +551,15 @@ const CulturalExplorer = () => {
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
-              className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
+              className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
             >
               {/* Quiz header */}
-              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-orange-200 to-amber-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 id="quiz-heading" className="text-2xl font-bold text-gray-800">{currentCountry} Quiz</h2>
-                <p className="opacity-75 mt-1 text-gray-700">
+                <h2 id="quiz-heading" className="text-2xl font-bold text-orange-800">{currentCountry} Quiz</h2>
+                <p className="opacity-75 mt-1 text-orange-700">
                   Question {currentQuizIndex + 1} of {quizData.length}
                 </p>
               </div>
@@ -566,18 +567,19 @@ const CulturalExplorer = () => {
               {/* Quiz content */}
               <div className="p-8 bg-white">
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  <h3 className="text-lg font-semibold text-orange-800 mb-4" id={`quiz-question-${currentQuizIndex}`}>
                     {quizData[currentQuizIndex].question}
                   </h3>
                   
-                  <div className="space-y-3">
-                    {Object.entries(quizData[currentQuizIndex].options).map(([key, value]) => (
+                  <fieldset className="space-y-3" aria-labelledby={`quiz-question-${currentQuizIndex}`}>
+                    <legend className="sr-only">Choose your answer from the following options</legend>
+                    {Object.entries(quizData[currentQuizIndex].options).map(([key, value], index) => (
                       <label
                         key={key}
-                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 focus-within:ring-2 focus-within:ring-amber-500 focus-within:ring-offset-2 ${
                           selectedAnswer === key
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-25'
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-orange-200 hover:border-amber-300 hover:bg-amber-25'
                         }`}
                       >
                         <input
@@ -587,33 +589,47 @@ const CulturalExplorer = () => {
                           checked={selectedAnswer === key}
                           onChange={(e) => setSelectedAnswer(e.target.value as 'A' | 'B' | 'C' | 'D')}
                           className="sr-only"
+                          aria-describedby={`option-${key}-description`}
                         />
-                        <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                          selectedAnswer === key ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                        }`}>
+                        <div 
+                          className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                            selectedAnswer === key ? 'border-amber-500 bg-amber-500' : 'border-orange-300'
+                          }`}
+                          aria-hidden="true"
+                        >
                           {selectedAnswer === key && <div className="w-2 h-2 rounded-full bg-white"></div>}
                         </div>
-                        <span className="text-gray-700">{key}. {value}</span>
+                        <span className="text-orange-700" id={`option-${key}-description`}>
+                          <span className="font-medium">{key}.</span> {value}
+                        </span>
                       </label>
                     ))}
-                  </div>
+                  </fieldset>
                 </div>
 
                 {showExplanation && (
-                  <div className={`p-4 rounded-lg mb-6 ${
-                    quizResults[quizResults.length - 1]?.isCorrect 
-                      ? 'bg-green-100 border border-green-300' 
-                      : 'bg-red-100 border border-red-300'
-                  }`}>
+                  <div 
+                    className={`p-4 rounded-lg mb-6 ${
+                      quizResults[quizResults.length - 1]?.isCorrect 
+                        ? 'bg-green-100 border border-green-300' 
+                        : 'bg-red-100 border border-red-300'
+                    }`}
+                    role="alert"
+                    aria-live="polite"
+                    aria-labelledby="quiz-result-status"
+                  >
                     <div className="flex items-center mb-2">
                       {quizResults[quizResults.length - 1]?.isCorrect ? (
-                        <Check className="w-5 h-5 text-green-600 mr-2" />
+                        <Check className="w-5 h-5 text-green-600 mr-2" aria-hidden="true" />
                       ) : (
-                        <X className="w-5 h-5 text-red-600 mr-2" />
+                        <X className="w-5 h-5 text-red-600 mr-2" aria-hidden="true" />
                       )}
-                      <span className={`font-semibold ${
-                        quizResults[quizResults.length - 1]?.isCorrect ? 'text-green-800' : 'text-red-800'
-                      }`}>
+                      <span 
+                        id="quiz-result-status"
+                        className={`font-semibold ${
+                          quizResults[quizResults.length - 1]?.isCorrect ? 'text-green-800' : 'text-red-800'
+                        }`}
+                      >
                         {quizResults[quizResults.length - 1]?.isCorrect ? 'Correct!' : 'Incorrect'}
                       </span>
                     </div>
@@ -626,26 +642,33 @@ const CulturalExplorer = () => {
                 )}
 
                 {/* Quiz actions */}
-                <div className="flex justify-center space-x-4">
+                <div className="flex justify-center space-x-4" role="group" aria-label="Quiz actions">
                   {!showExplanation ? (
                     <>
                       <button
                         onClick={submitAnswer}
                         disabled={!selectedAnswer}
-                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                           selectedAnswer
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-105'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            ? 'bg-amber-500 text-white hover:bg-amber-600 hover:scale-105'
+                            : 'bg-orange-300 text-orange-500 cursor-not-allowed'
                         }`}
+                        aria-describedby={!selectedAnswer ? "submit-help-text" : undefined}
                       >
                         Submit Answer
                       </button>
+                      {!selectedAnswer && (
+                        <div id="submit-help-text" className="sr-only">
+                          Please select an answer before submitting
+                        </div>
+                      )}
                       <button
                         onClick={() => {
                           setSelectedAnswer(null);
                           restartQuiz();
                         }}
-                        className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 hover:scale-105 transition-all duration-200"
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        aria-label="Exit quiz and return to cultural facts"
                       >
                         Exit Quiz
                       </button>
@@ -654,13 +677,15 @@ const CulturalExplorer = () => {
                     <>
                       <button
                         onClick={nextQuestion}
-                        className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:scale-105 transition-all duration-200"
+                        className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                        aria-label={currentQuizIndex < quizData.length - 1 ? `Continue to question ${currentQuizIndex + 2} of ${quizData.length}` : 'Complete quiz and view results'}
                       >
                         {currentQuizIndex < quizData.length - 1 ? 'Next Question' : 'Finish Quiz'}
                       </button>
                       <button
                         onClick={restartQuiz}
-                        className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 hover:scale-105 transition-all duration-200"
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        aria-label="Exit quiz and return to cultural facts"
                       >
                         Exit Quiz
                       </button>
@@ -679,59 +704,70 @@ const CulturalExplorer = () => {
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
-              className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
+              className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
             >
               {/* Results header */}
-              <div className="bg-gradient-to-r from-green-400 to-blue-500 text-white p-6 text-center">
-                <Trophy className="w-12 h-12 mx-auto mb-2 text-yellow-300" />
+              <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 text-center">
+                <Trophy className="w-12 h-12 mx-auto mb-2 text-yellow-100" aria-hidden="true" />
                 <h2 id="quiz-results-heading" className="text-2xl font-bold">Quiz Complete!</h2>
-                <p className="opacity-75 mt-1">
-                  Score: {quizResults.filter(r => r.isCorrect).length} / {quizResults.length}
+                <p className="opacity-75 mt-1" aria-live="polite">
+                  Score: {quizResults.filter(r => r.isCorrect).length} out of {quizResults.length} correct
+                  ({Math.round((quizResults.filter(r => r.isCorrect).length / quizResults.length) * 100)}%)
                 </p>
               </div>
 
               {/* Results content */}
               <div className="p-8 bg-white">
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 mb-6" role="list" aria-label="Quiz question results">
                   {quizResults.map((result, index) => (
                     <div
                       key={index}
+                      role="listitem"
                       className={`p-4 rounded-lg border ${
                         result.isCorrect 
                           ? 'border-green-300 bg-green-50' 
                           : 'border-red-300 bg-red-50'
                       }`}
+                      aria-labelledby={`result-${index}-status`}
                     >
                       <div className="flex items-center mb-2">
                         {result.isCorrect ? (
-                          <Check className="w-5 h-5 text-green-600 mr-2" />
+                          <Check className="w-5 h-5 text-green-600 mr-2" aria-hidden="true" />
                         ) : (
-                          <X className="w-5 h-5 text-red-600 mr-2" />
+                          <X className="w-5 h-5 text-red-600 mr-2" aria-hidden="true" />
                         )}
-                        <span className="font-medium text-gray-800">Question {index + 1}</span>
+                        <span id={`result-${index}-status`} className="font-medium text-orange-800">
+                          Question {index + 1}: {result.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">{result.question}</p>
-                      <p className="text-sm">
-                        <span className="font-medium">Your answer:</span> {result.userAnswer} {' '}
-                        <span className="font-medium">Correct:</span> {result.correctAnswer}
-                      </p>
+                      <p className="text-sm text-orange-600 mb-1">{result.question}</p>
+                      <div className="text-sm">
+                        <p>
+                          <span className="font-medium">Your answer:</span> {result.userAnswer}
+                        </p>
+                        <p>
+                          <span className="font-medium">Correct answer:</span> {result.correctAnswer}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex justify-center space-x-4">
+                <div className="flex justify-center space-x-4" role="group" aria-label="Quiz completion actions">
                   <button
                     onClick={() => {
                       restartQuiz();
                       generateQuiz();
                     }}
-                    className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:scale-105 transition-all duration-200"
+                    className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                    aria-label="Start a new quiz with different questions"
                   >
                     Try Again
                   </button>
                   <button
                     onClick={restartQuiz}
-                    className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 hover:scale-105 transition-all duration-200"
+                    className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    aria-label="Return to cultural facts without retaking quiz"
                   >
                     Back to Facts
                   </button>
@@ -739,9 +775,7 @@ const CulturalExplorer = () => {
               </div>
             </div>
           </section>
-        )}
-
-        {/* Facts Carousel Display */}
+        )}        {/* Facts Carousel Display */}
         {matchedCountries.length > 0 && quizState === 'idle' && (
           <section className="max-w-6xl mx-auto mb-12" aria-labelledby="facts-carousel-heading">
             {/* Country Carousel Rows */}
@@ -752,30 +786,31 @@ const CulturalExplorer = () => {
                 const currentFact = facts[currentIndex];
                 
                 return (
-                  <div key={country} className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+                  <article key={country} className="bg-white rounded-2xl shadow-xl border border-orange-200 overflow-hidden" aria-labelledby={`country-${country.replace(/\s+/g, '-').toLowerCase()}-heading`}>
                     {/* Country Header */}
-                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+                    <header className="bg-gradient-to-r from-orange-500 to-amber-600 text-white p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center justify-center">
                             {renderFlag(country)}
                           </div>
                           <div>
-                            <h3 className="text-2xl font-bold">{country}</h3>
-                            <p className="text-blue-100">
-                              {facts.length > 0 ? `${facts.length} fascinating facts` : 'Loading facts...'}
+                            <h3 id={`country-${country.replace(/\s+/g, '-').toLowerCase()}-heading`} className="text-2xl font-bold">{country}</h3>
+                            <p className="text-blue-100" aria-live="polite">
+                              {facts.length > 0 ? `${facts.length} fascinating facts available` : 'Loading facts...'}
                             </p>
                             {/* Pen Pal Information */}
                             {countryPenPals[country] && countryPenPals[country].length > 0 && (
                               <div className="mt-2">
                                 <p className="text-blue-200 text-sm">
-                                  <Users className="w-4 h-4 inline mr-1" />
-                                  {countryPenPals[country].length} pen pal{countryPenPals[country].length !== 1 ? 's' : ''}:
+                                  <Users className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                                  {countryPenPals[country].length} pen pal{countryPenPals[country].length !== 1 ? 's' : ''} from this country:
                                 </p>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="flex flex-wrap gap-1 mt-1" role="list" aria-label={`Pen pals from ${country}`}>
                                   {(expandedPenPals[country] ? countryPenPals[country] : countryPenPals[country].slice(0, 4)).map((penPal, index) => (
                                     <span
                                       key={penPal.user_id}
+                                      role="listitem"
                                       className="inline-block bg-white/20 text-white text-xs px-2 py-1 rounded-full"
                                     >
                                       @{penPal.anonymous_handle}
@@ -784,7 +819,8 @@ const CulturalExplorer = () => {
                                   {countryPenPals[country].length > 4 && !expandedPenPals[country] && (
                                     <button
                                       onClick={() => setExpandedPenPals(prev => ({ ...prev, [country]: true }))}
-                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors"
+                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                                      aria-label={`Show ${countryPenPals[country].length - 4} more pen pals from ${country}`}
                                     >
                                       +{countryPenPals[country].length - 4} more
                                     </button>
@@ -792,7 +828,8 @@ const CulturalExplorer = () => {
                                   {expandedPenPals[country] && countryPenPals[country].length > 4 && (
                                     <button
                                       onClick={() => setExpandedPenPals(prev => ({ ...prev, [country]: false }))}
-                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors"
+                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                                      aria-label={`Show fewer pen pals from ${country}`}
                                     >
                                       show less
                                     </button>
@@ -802,28 +839,30 @@ const CulturalExplorer = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2" role="group" aria-label={`Actions for ${country}`}>
                           <button
                             onClick={() => refreshFactsForCountry(country)}
                             disabled={facts.length === 0}
-                            className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Refresh facts"
+                            className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                            aria-label={`Refresh facts for ${country}`}
+                            title={`Refresh facts for ${country}`}
                           >
-                            <RefreshCw className="w-5 h-5" />
+                            <RefreshCw className="w-5 h-5" aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => {
                               generateQuiz(country);
                             }}
                             disabled={facts.length === 0}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                            aria-label={`Start quiz about ${country}`}
                           >
-                            <Brain className="w-4 h-4" />
+                            <Brain className="w-4 h-4" aria-hidden="true" />
                             Quiz
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </header>
 
                     {/* Facts Carousel */}
                     {facts.length > 0 ? (
@@ -855,10 +894,10 @@ const CulturalExplorer = () => {
                               Array.from({ length: 3 - facts.slice(currentIndex, currentIndex + 3).length }).map((_, index) => (
                                 <div
                                   key={`empty-${index}`}
-                                  className="bg-gray-100 rounded-xl p-6 min-h-[200px] flex items-center justify-center opacity-50"
+                                  className="bg-orange-100 rounded-xl p-6 min-h-[200px] flex items-center justify-center opacity-50"
                                 >
-                                  <div className="text-gray-400 text-center">
-                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm mx-auto mb-3">
+                                  <div className="text-orange-400 text-center">
+                                    <div className="w-8 h-8 bg-orange-300 rounded-full flex items-center justify-center text-orange-500 font-bold text-sm mx-auto mb-3">
                                       {currentIndex + facts.slice(currentIndex, currentIndex + 3).length + index + 1}
                                     </div>
                                     <p className="text-sm">No more facts</p>
@@ -873,22 +912,22 @@ const CulturalExplorer = () => {
                               <button
                                 onClick={() => navigateCarousel(country, 'prev')}
                                 disabled={currentIndex === 0}
-                                className={`absolute left-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 ${
+                                className={`absolute left-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                                   currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'
                                 }`}
-                                aria-label="Previous facts"
+                                aria-label={`Show previous 3 facts for ${country} (currently showing ${currentIndex + 1}-${Math.min(currentIndex + 3, facts.length)} of ${facts.length})`}
                               >
-                                <ChevronLeft className="w-6 h-6 text-gray-600" />
+                                <ChevronLeft className="w-6 h-6 text-orange-600" aria-hidden="true" />
                               </button>
                               <button
                                 onClick={() => navigateCarousel(country, 'next')}
                                 disabled={currentIndex + 3 >= facts.length}
-                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 ${
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                                   currentIndex + 3 >= facts.length ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'
                                 }`}
-                                aria-label="Next facts"
+                                aria-label={`Show next 3 facts for ${country} (currently showing ${currentIndex + 1}-${Math.min(currentIndex + 3, facts.length)} of ${facts.length})`}
                               >
-                                <ChevronRight className="w-6 h-6 text-gray-600" />
+                                <ChevronRight className="w-6 h-6 text-orange-600" aria-hidden="true" />
                               </button>
                             </>
                           )}
@@ -896,58 +935,69 @@ const CulturalExplorer = () => {
 
                         {/* Carousel Dots */}
                         {facts.length > 3 && (
-                          <div className="flex justify-center space-x-2 mt-6">
+                          <nav className="flex justify-center space-x-2 mt-6" role="tablist" aria-label={`${country} facts navigation`}>
                             {Array.from({ length: Math.ceil(facts.length / 3) }).map((_, index) => {
                               const isActive = Math.floor(currentIndex / 3) === index;
+                              const startFact = index * 3 + 1;
+                              const endFact = Math.min((index + 1) * 3, facts.length);
                               return (
                                 <button
                                   key={index}
                                   onClick={() => setCarouselIndices(prev => ({ ...prev, [country]: index * 3 }))}
-                                  className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                                  className={`w-3 h-3 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                                     isActive
-                                      ? 'bg-blue-500 scale-125'
-                                      : 'bg-gray-300 hover:bg-gray-400'
+                                      ? 'bg-amber-500 scale-125'
+                                      : 'bg-orange-300 hover:bg-orange-400'
                                   }`}
-                                  aria-label={`Go to facts ${index * 3 + 1}-${Math.min((index + 1) * 3, facts.length)}`}
+                                  role="tab"
+                                  aria-selected={isActive}
+                                  aria-label={`Go to ${country} facts ${startFact}-${endFact} of ${facts.length}`}
                                 />
                               );
                             })}
-                          </div>
+                          </nav>
                         )}
                       </div>
                     ) : (
                       <div className="p-8 text-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading fascinating facts about {country}...</p>
+                        <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-orange-600">Loading fascinating facts about {country}...</p>
                       </div>
                     )}
-                  </div>
+                  </article>
                 );
               })}
             </div>
 
             {/* Global Actions */}
-            <div className="flex justify-center gap-4 mt-8">
+            <section className="flex justify-center gap-4 mt-8" aria-label="Global actions">
               <button
                 onClick={generateAllRandomFacts}
                 disabled={matchedCountries.length === 0}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                   matchedCountries.length === 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-105 shadow-lg'
+                    ? 'bg-orange-300 text-orange-500 cursor-not-allowed'
+                    : 'bg-amber-500 text-white hover:bg-amber-600 hover:scale-105 shadow-lg'
                 }`}
+                aria-label={`Refresh facts for all ${matchedCountries.length} countries`}
+                aria-describedby="refresh-help-text"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className="w-5 h-5" aria-hidden="true" />
                 Refresh All Facts
               </button>
-            </div>
+              {matchedCountries.length === 0 && (
+                <div id="refresh-help-text" className="sr-only">
+                  No countries available to refresh. Connect with pen pals to see their countries.
+                </div>
+              )}
+            </section>
 
             {/* Summary Info */}
             <div className="mt-8 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-gray-600" role="status">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-orange-600" role="status" aria-live="polite">
                 <Heart className="w-4 h-4 text-pink-500" aria-hidden="true" />
                 <span className="font-medium">
-                  {matchedCountries.length} pen pal countr{matchedCountries.length !== 1 ? 'ies' : 'y'} • {Object.values(countryPenPals).reduce((total, pals) => total + pals.length, 0)} pen pals • {Object.values(countryFacts).reduce((total, facts) => total + facts.length, 0)} facts available
+                  {matchedCountries.length} pen pal countr{matchedCountries.length !== 1 ? 'ies' : 'y'}, {Object.values(countryPenPals).reduce((total, pals) => total + pals.length, 0)} pen pals, {Object.values(countryFacts).reduce((total, facts) => total + facts.length, 0)} facts available
                 </span>
               </div>
             </div>
@@ -956,23 +1006,23 @@ const CulturalExplorer = () => {
 
         {/* No matches state */}
         {matchedCountries.length === 0 && !isLoadingMatches && (
-          <section className="text-center py-16" aria-labelledby="no-matches-heading">
+          <section className="text-center py-16" aria-labelledby="no-matches-heading" role="region">
             <div className="text-8xl mb-6" aria-hidden="true">💌</div>
-            <h3 id="no-matches-heading" className="text-2xl font-bold text-gray-600 mb-2">No Pen Pal Countries Yet</h3>
-            <p className="text-gray-500 mb-4">
+            <h3 id="no-matches-heading" className="text-2xl font-bold text-orange-600 mb-2">No Pen Pal Countries Yet</h3>
+            <p className="text-orange-500 mb-4" id="no-matches-description">
               {matchedUsersCount === 0 
-                ? "Start connecting with pen pals to unlock their countries!" 
-                : "Your pen pals haven't shared their countries yet."
+                ? "Start connecting with pen pals to unlock their countries and explore fascinating cultural facts!" 
+                : "Your pen pals haven't shared their countries yet. Facts will appear once they update their profiles."
               }
             </p>
-            <div className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-600 rounded-lg">
-              <Heart className="w-5 h-5 mr-2" />
-              Match with pen pals to explore their cultures
+            <div className="inline-flex items-center px-6 py-3 bg-orange-100 text-orange-600 rounded-lg" role="note" aria-describedby="no-matches-description">
+              <Heart className="w-5 h-5 mr-2" aria-hidden="true" />
+              <span>Match with pen pals to explore their cultures</span>
             </div>
           </section>
         )}
 
-        <div id="main-content"></div>
+        <div id="main-content" tabIndex={-1}></div>
       </main>
     </div>
   );
