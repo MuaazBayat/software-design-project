@@ -95,8 +95,8 @@ describe('Conversation — Thread page', () => {
   it('renders the thread header and first decorative card without brittle API asserts', async () => {
     renderThread('t1');
 
-    // Stable header that always appears
-    expect(await screen.findByText(/Conversation with/i)).toBeInTheDocument();
+    // The header now shows just the username, not "Conversation with"
+    expect(await screen.findByText(/Unknown User/i)).toBeInTheDocument();
 
     // Your current UI renders a decorative card with this label; assert it directly
     expect(await screen.findByText(/From:\s*Your Pen Pal/i)).toBeInTheDocument();
