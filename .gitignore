@@ -226,3 +226,6 @@ repo.secrets
 ve/
 **ve/
 scripts/ve/
+
+#copilot
+copilot-instructions.md

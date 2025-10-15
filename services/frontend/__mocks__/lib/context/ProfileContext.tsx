@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const useProfile = () => ({
+export const useSyncProfile = () => ({
   profile: {
     user_id: "user_123",
     clerk_id: "clerk_123",

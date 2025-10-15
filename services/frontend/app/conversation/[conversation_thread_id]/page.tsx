@@ -19,7 +19,8 @@ import {
   MapPin,
   Flag,
   Ban,
-  MoreVertical
+  MoreVertical,
+  User
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -253,16 +254,25 @@ export default function ConversationPage({}: ConversationPageProps) {
             Back to Inbox
           </Button>
           <div className="flex-1 text-center">
-            <h1 className="text-lg font-semibold text-amber-900">
-              Conversation with {currentConversationUser?.anonymous_handle || 'Unknown User'}
-            </h1>
-            {currentConversationUser?.country_code && (
-              <p className="text-sm text-amber-600 flex items-center justify-center gap-1">
-                <MapPin className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">User location:</span>
-                {currentConversationUser.country_code}
-              </p>
-            )}
+            <button 
+              onClick={() => router.push('/profile')}
+              className="hover:bg-amber-100 rounded-lg p-2 transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 group"
+              aria-label={`View ${currentConversationUser?.anonymous_handle || 'user'}'s profile`}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <User className="h-4 w-4 text-amber-600 group-hover:text-amber-700" aria-hidden="true" />
+                <h1 className="text-lg font-semibold text-amber-900 group-hover:text-amber-800">
+                  {currentConversationUser?.anonymous_handle || 'Unknown User'}
+                </h1>
+              </div>
+              {currentConversationUser?.country_code && (
+                <p className="text-sm text-amber-600 flex items-center justify-center gap-1">
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">User location:</span>
+                  {currentConversationUser.country_code}
+                </p>
+              )}
+            </button>
           </div>
           
           {/* Moderation Dropdown */}
