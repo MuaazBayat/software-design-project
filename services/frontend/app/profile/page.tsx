@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { useConversationUser } from "@/lib/context/ConversationUserContext";
 import { useSyncProfile } from "@/lib/context/ProfileContext";
 import MessagingApiClient from "@/lib/MessagingApiClient";
+import { ExtendedUserProfile, ProfilesApiClient } from "@/lib/profilesApiClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,22 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, MapPin, Clock, MessageCircle, Heart, Globe } from "lucide-react";
 
-interface ExtendedUserProfile {
-  user_id: string;
-  anonymous_handle: string;
-  country_code?: string | null;
-  bio?: string;
-  age_range?: string;
-  interests?: string[];
-  primary_language?: string;
-  secondary_languages?: string[];
-  last_active?: string;
-  favorite_local_fact?: string;
-}
-
 export default function ProfilePage() {
   const { currentConversationUser } = useConversationUser();
   const { profile: myProfile } = useSyncProfile();
+  const { getToken } = useAuth();
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [conversationThreadId, setConversationThreadId] = useState<string | null>(null);
@@ -54,13 +44,17 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/profiles/by-user-id/${currentConversationUser.user_id}`);
-        if (response.ok) {
-          const profileData = await response.json();
-          setProfile(profileData);
-        } else {
-          console.error("Failed to fetch profile");
-        }
+        
+        // Create profiles client with auth token
+        const profilesClient = new ProfilesApiClient(
+          process.env.NEXT_PUBLIC_CORE_SERVICE_URL || "http://localhost:8000",
+          getToken
+        );
+        
+        // Use the profiles client to fetch the profile directly
+        const profileData = await profilesClient.getProfileByUserId(currentConversationUser.user_id);
+        setProfile(profileData);
+        
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -94,7 +88,7 @@ export default function ProfilePage() {
 
     fetchProfile();
     fetchConversationThreadId();
-  }, [currentConversationUser, router, myProfile]);
+  }, [currentConversationUser, router, myProfile, getToken]);
 
   const formatLastActive = (lastActive?: string) => {
     if (!lastActive) return "Unknown";
