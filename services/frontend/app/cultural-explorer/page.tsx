@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCircle } from 'lucide-react';
+import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCircle, Users, Heart, Sparkles, Map as MapIcon } from 'lucide-react';
 import Image from 'next/image';
 import wc from 'world-countries';
 import { useSyncProfile } from '@/lib/context/ProfileContext';
+import MessagingApiClient, { SearchUsersResponse } from '@/lib/MessagingApiClient';
 
 // Screen reader only CSS utility
 const srOnlyStyles = {
@@ -18,8 +19,6 @@ const srOnlyStyles = {
   whiteSpace: 'nowrap' as const,
   border: '0'
 };
-
-type DeckType = 'my-country' | 'random' | 'select-country';
 
 interface CountryFacts {
   emoji: string;
@@ -211,32 +210,59 @@ const FlagFrame: React.FC<{
 const CulturalExplorer = () => {
   const { profile, synced } = useSyncProfile();
 
-  const [selectedDeck, setSelectedDeck] = useState<DeckType>('random');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [factsData, setFactsData] = useState<FactsData>({});
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [matchedCountries, setMatchedCountries] = useState<string[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [matchedUsersCount, setMatchedUsersCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Get user's home country based on their profile, default to South Africa
-  const getHomeCountry = useMemo(() => {
-    if (!synced) return 'South Africa';
-
-    const countryCode = profile?.country_code;
-    if (!countryCode) return 'South Africa';
-
-    // Convert country code to country name using world-countries data
-    const countryData = wc.find(c => c.cca2?.toLowerCase() === countryCode.toLowerCase());
-    const countryName = countryData?.name?.common;
-
-    // Check if we have facts for this country, otherwise fall back to South Africa
-    if (countryName && Object.keys(factsData).length > 0 && factsData[countryName]) {
-      return countryName;
+  // Fetch matched users and extract their countries
+  const fetchMatchedCountries = useCallback(async () => {
+    if (!synced || !profile?.user_id) {
+      return;
     }
 
-    return 'South Africa';
-  }, [profile?.country_code, synced, factsData]);
+    try {
+      setIsLoadingMatches(true);
+      const apiClient = new MessagingApiClient();
+      const response: SearchUsersResponse = await apiClient.searchUsers({
+        anonymous_handle: "",
+        my_user_id: profile.user_id,
+        limit: 100,
+        offset: 0,
+      });
+
+      // Extract unique country codes from matched users
+      const countryCodeSet = new Set<string>();
+      response.items.forEach(item => {
+        if (item.user_profile.country_code) {
+          countryCodeSet.add(item.user_profile.country_code);
+        }
+      });
+
+      // Convert country codes to country names
+      const countryNames: string[] = [];
+      countryCodeSet.forEach(code => {
+        const countryData = wc.find(c => c.cca2?.toLowerCase() === code.toLowerCase());
+        const countryName = countryData?.name?.common;
+        if (countryName && factsData[countryName]) {
+          countryNames.push(countryName);
+        }
+      });
+
+      setMatchedCountries(countryNames.sort());
+      setMatchedUsersCount(response.items.length);
+    } catch (error) {
+      console.error('Error fetching matched countries:', error);
+      setMatchedCountries([]);
+      setMatchedUsersCount(0);
+    } finally {
+      setIsLoadingMatches(false);
+    }
+  }, [synced, profile?.user_id, factsData]);
 
   const [cardKey, setCardKey] = useState(0);
   const [cardVisible, setCardVisible] = useState(true);
@@ -256,7 +282,6 @@ const CulturalExplorer = () => {
         if (!response.ok) throw new Error(String(response.status));
         const data: FactsData = await response.json();
         setFactsData(data);
-        setAvailableCountries(Object.keys(data).sort());
       } catch {
         const fallbackData: FactsData = {
           'South Africa': {
@@ -281,7 +306,6 @@ const CulturalExplorer = () => {
           },
         };
         setFactsData(fallbackData);
-        setAvailableCountries(Object.keys(fallbackData).sort());
       } finally {
         setIsLoading(false);
       }
@@ -289,24 +313,16 @@ const CulturalExplorer = () => {
     loadFacts();
   }, []);
 
-  const getRandomCountry = useCallback(() => {
-    if (availableCountries.length === 0) return '';
-    const randomIndex = Math.floor(Math.random() * availableCountries.length);
-    return availableCountries[randomIndex];
-  }, [availableCountries]);
+  // Fetch matched countries when facts data is available
+  useEffect(() => {
+    if (Object.keys(factsData).length > 0) {
+      fetchMatchedCountries();
+    }
+  }, [factsData, fetchMatchedCountries]);
 
   const currentCountry = useMemo(() => {
-    switch (selectedDeck) {
-      case 'my-country':
-        return getHomeCountry;
-      case 'random':
-        return selectedCountry || getRandomCountry();
-      case 'select-country':
-        return selectedCountry;
-      default:
-        return '';
-    }
-  }, [selectedDeck, selectedCountry, getRandomCountry, getHomeCountry]);
+    return selectedCountry || (matchedCountries.length > 0 ? matchedCountries[0] : '');
+  }, [selectedCountry, matchedCountries]);
 
   const currentFacts = useMemo(() => {
     if (!currentCountry || !factsData[currentCountry]) return [];
@@ -318,10 +334,10 @@ const CulturalExplorer = () => {
     : 'Select a country to see amazing facts!';
 
   useEffect(() => {
-    if (selectedDeck === 'random' && availableCountries.length > 0 && !selectedCountry) {
-      setSelectedCountry(getRandomCountry());
+    if (matchedCountries.length > 0 && !selectedCountry) {
+      setSelectedCountry(matchedCountries[0]);
     }
-  }, [availableCountries, selectedDeck, selectedCountry, getRandomCountry]);
+  }, [matchedCountries, selectedCountry]);
 
   const fadeCardOutIn = useCallback(() => {
     setCardVisible(false);
@@ -351,33 +367,22 @@ const CulturalExplorer = () => {
   }, [isFlipping, fadeCardOutIn]);
 
   const shuffleDeck = useCallback(() => {
-    if (selectedDeck === 'random') {
+    if (matchedCountries.length > 1) {
       // Cancel any active quiz when shuffling
       if (quizState === 'active' || quizState === 'loading') {
         restartQuiz();
       }
 
-      setSelectedCountry(getRandomCountry());
-      setCurrentFactIndex(0);
-      fadeCardOutIn();
+      // Get a random country from matched countries that's different from current
+      const otherCountries = matchedCountries.filter(c => c !== selectedCountry);
+      if (otherCountries.length > 0) {
+        const randomIndex = Math.floor(Math.random() * otherCountries.length);
+        setSelectedCountry(otherCountries[randomIndex]);
+        setCurrentFactIndex(0);
+        fadeCardOutIn();
+      }
     }
-  }, [selectedDeck, quizState, getRandomCountry, fadeCardOutIn, restartQuiz]);
-
-  const handleDeckChange = useCallback((deck: DeckType) => {
-    // Cancel any active quiz when changing decks
-    if (quizState === 'active' || quizState === 'loading') {
-      restartQuiz();
-    }
-
-    setSelectedDeck(deck);
-    setCurrentFactIndex(0);
-    if (deck === 'random') {
-      setSelectedCountry(getRandomCountry());
-    } else if (deck === 'select-country' && !selectedCountry) {
-      setSelectedCountry(availableCountries[0] || '');
-    }
-    fadeCardOutIn();
-  }, [quizState, restartQuiz, getRandomCountry, selectedCountry, availableCountries, fadeCardOutIn]);
+  }, [quizState, fadeCardOutIn, restartQuiz, matchedCountries, selectedCountry]);
 
   // Hardcoded South Africa quiz
   const getSouthAfricaQuiz = (): QuizQuestion[] => [
@@ -549,53 +554,6 @@ const CulturalExplorer = () => {
     return <FlagFrame country={country} emojiFallback={emoji} />;
   };
 
-  // Keyboard navigation support
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle keyboard shortcuts when not in input fields
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
-        return;
-      }
-
-      switch (event.key) {
-        case ' ':
-        case 'Enter':
-          // Allow default behavior for focused buttons
-          break;
-        case 'ArrowRight':
-        case 'ArrowDown':
-          if (currentCountry && quizState === 'idle' && !isFlipping) {
-            event.preventDefault();
-            flipCard();
-          }
-          break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          if (selectedDeck === 'random' && quizState === 'idle') {
-            event.preventDefault();
-            shuffleDeck();
-          }
-          break;
-        case 'q':
-        case 'Q':
-          if (currentCountry && quizState === 'idle' && currentFacts.length > 0) {
-            event.preventDefault();
-            generateQuiz();
-          }
-          break;
-        case 'Escape':
-          if (quizState === 'active' || quizState === 'loading') {
-            event.preventDefault();
-            restartQuiz();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentCountry, quizState, isFlipping, selectedDeck, currentFacts.length, flipCard, shuffleDeck, generateQuiz, restartQuiz]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
@@ -627,140 +585,125 @@ const CulturalExplorer = () => {
           Skip to main content
         </a>
 
-        {/* Keyboard shortcuts help */}
-        <div className="mb-4 text-center">
-          <details className="inline-block">
-            <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1">
-              ⌨️ Keyboard shortcuts
-            </summary>
-            <div className="mt-2 p-4 bg-white rounded-lg shadow-lg text-sm text-left max-w-md mx-auto">
-              <h3 className="font-bold mb-2">Available shortcuts:</h3>
-              <ul className="space-y-1 text-gray-700">
-                <li><kbd className="bg-gray-100 px-1 rounded">→ ↓</kbd> Next fact</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">← ↑</kbd> Shuffle (random mode)</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">Q</kbd> Take quiz</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">Esc</kbd> Exit quiz</li>
-              </ul>
-            </div>
-          </details>
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-4">
+            <Globe className="w-8 h-8 text-blue-500 mr-3" />
+            <h1 id="deck-selection-heading" className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Cultural Explorer
+            </h1>
+            <Sparkles className="w-8 h-8 text-pink-500 ml-3" />
+          </div>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Discover fascinating facts about countries and test your knowledge with fun quizzes!
+          </p>
         </div>
 
-        {/* Deck Selection */}
-        <section aria-labelledby="deck-selection-heading">
-          <h1 id="deck-selection-heading" className="text-4xl font-bold text-center text-gray-900 tracking-tighter mb-6">
-            Cultural Explorer
-          </h1>
-          <p className="text-xl text-center text-gray-700 mb-8">Discover fascinating facts about countries around the world!</p>
-
-          <fieldset className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <legend className="sr-only">Choose how you want to explore countries</legend>
-            <button
-              onClick={() => handleDeckChange('my-country')}
-              className={`p-6 transition-all duration-300 relative group rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'my-country'
-                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
-                  : 'border-gray-300 bg-white hover:border-purple-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'my-country'}
-              aria-describedby="my-country-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🏠</div>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {profile?.country_code && synced ? 'Your Country' : 'Our Home Country'}
-                </h3>
-                {!(profile?.country_code && synced) && (
-                  <HelpCircle 
-                    className="w-4 h-4 text-gray-400" 
-                    aria-label="Help information available"
-                  />
-                )}
-              </div>
-              <p id="my-country-desc" className="text-gray-600 mt-2">Facts about {getHomeCountry}</p>
-
-              {/* Tooltip - only show when we don't have user's country */}
-              {!(profile?.country_code && synced) && (
-                <div 
-                  className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
-                  role="tooltip"
-                  aria-hidden="true"
-                >
-                  Default country (update your profile to change)
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+        {/* Exploration Mode */}
+        <section aria-labelledby="exploration-modes" className="mb-16">
+          <h2 id="exploration-modes" className="text-3xl font-bold text-center text-gray-800 mb-8">
+            Explore Your Pen Pals&apos; Countries
+          </h2>
+          
+          {/* Main Mode - Matched Countries */}
+          <div className="max-w-4xl mx-auto">
+            <div className={`w-full p-8 transition-all duration-500 relative group rounded-2xl border-3 ${
+              'border-purple-500 bg-gradient-to-r from-purple-100 via-pink-50 to-indigo-100 shadow-2xl'
+            }`}>
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div className="flex items-center mb-4 md:mb-0">
+                  <div className="relative mr-6">
+                    <Heart className="w-12 h-12 text-pink-500" />
+                    <Users className="w-6 h-6 text-purple-500 absolute -top-1 -right-1" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      Your Pen Pals&apos; Countries
+                    </h3>
+                    <p className="text-gray-600">
+                      {isLoadingMatches 
+                        ? 'Loading your matches...'
+                        : matchedCountries.length > 0 
+                          ? `Explore ${matchedCountries.length} countries from your ${matchedUsersCount} pen pal${matchedUsersCount !== 1 ? 's' : ''}`
+                          : matchedUsersCount === 0
+                            ? 'Start matching with pen pals to unlock their countries!'
+                            : 'No country data available for your matches'
+                      }
+                    </p>
+                  </div>
                 </div>
-              )}
-            </button>
+                
+                <div className="flex items-center space-x-2">
+                  {matchedCountries.slice(0, 3).map((country, index) => (
+                    <div
+                      key={country}
+                      className={`flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md transform ${
+                        index === 1 ? 'scale-110 z-10' : index === 2 ? 'scale-105' : ''
+                      }`}
+                    >
+                      <span className="text-xl" aria-hidden="true">
+                        {factsData[country]?.emoji || '🌍'}
+                      </span>
+                    </div>
+                  ))}
+                  {matchedCountries.length > 3 && (
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 text-white text-sm font-bold shadow-md">
+                      +{matchedCountries.length - 3}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <button
-              onClick={() => handleDeckChange('random')}
-              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'random'
-                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
-                  : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'random'}
-              aria-describedby="random-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🎲</div>
-              <h3 className="text-xl font-bold text-gray-800">Random Country</h3>
-              <p id="random-desc" className="text-gray-600 mt-2">Surprise me!</p>
-            </button>
-
-            <button
-              onClick={() => handleDeckChange('select-country')}
-              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'select-country'
-                  ? 'bg-gradient-to-r from-[#f7dac0] via-[#fcdab4] to-[#fcd3a1] scale-105 shadow-xl border-orange-400'
-                  : 'border-gray-300 bg-white hover:border-green-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'select-country'}
-              aria-describedby="select-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🎯</div>
-              <h3 className="text-xl font-bold text-gray-800">Choose Country</h3>
-              <p id="select-desc" className="text-gray-600 mt-2">Pick any country</p>
-            </button>
-          </fieldset>
+              <div className="mt-4 p-4 bg-white/50 rounded-lg">
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <MapIcon className="w-4 h-4 mr-1" />
+                    {matchedCountries.length} Countries
+                  </span>
+                  <span className="flex items-center">
+                    <Users className="w-4 h-4 mr-1" />
+                    {matchedUsersCount} Pen Pals
+                  </span>
+                  <span className="flex items-center">
+                    <Brain className="w-4 h-4 mr-1" />
+                    Quizzes Available
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Country Selector */}
-        {selectedDeck === 'select-country' && (
-          <section className="text-center mb-8" aria-labelledby="country-selector-heading">
-            <h2 id="country-selector-heading" className="sr-only">Country selection dropdown</h2>
-            <div className="inline-block relative">
-              <label htmlFor="country-select" className="sr-only">
-                Choose a country from the dropdown
-              </label>
-              <select
-                id="country-select"
-                value={selectedCountry}
-                onChange={(e) => {
-                  // Cancel any active quiz when changing country
-                  if (quizState === 'active' || quizState === 'loading') {
-                    restartQuiz();
-                  }
-
-                  setSelectedCountry(e.target.value);
-                  setCurrentFactIndex(0);
-                  fadeCardOutIn();
-                }}
-                className="appearance-none bg-white border-2 border-gray-300 rounded-lg px-6 py-3 pr-10 text-lg font-medium text-gray-700 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-200"
-                aria-describedby="country-select-desc"
-              >
-                <option value="">Select a country...</option>
-                {availableCountries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" 
-                aria-hidden="true"
-              />
-              <div id="country-select-desc" className="sr-only">
-                Use arrow keys to navigate through {availableCountries.length} available countries
-              </div>
+        {/* Country Selector - Matched Countries */}
+        {matchedCountries.length > 1 && (
+          <section className="text-center mb-8" aria-labelledby="matched-countries-selector-heading">
+            <h2 id="matched-countries-selector-heading" className="text-xl font-semibold text-gray-800 mb-4">
+              Choose from your pen pals&apos; countries
+            </h2>
+            <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+              {matchedCountries.map((country) => (
+                <button
+                  key={country}
+                  onClick={() => {
+                    if (quizState === 'active' || quizState === 'loading') {
+                      restartQuiz();
+                    }
+                    setSelectedCountry(country);
+                    setCurrentFactIndex(0);
+                    fadeCardOutIn();
+                  }}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    selectedCountry === country
+                      ? 'bg-purple-500 text-white shadow-lg scale-105'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-purple-300 hover:shadow-md'
+                  }`}
+                >
+                  <span className="text-2xl" aria-hidden="true">
+                    {factsData[country]?.emoji || '🌍'}
+                  </span>
+                  <span className="font-medium">{country}</span>
+                </button>
+              ))}
             </div>
           </section>
         )}
@@ -1038,6 +981,27 @@ const CulturalExplorer = () => {
 
               {/* Card actions */}
               <div className="p-6 bg-gray-50 border-t">
+                {/* Primary Action - Quiz */}
+                <div className="flex justify-center mb-4">
+                  <button
+                    onClick={generateQuiz}
+                    disabled={!currentFacts.length}
+                    className={`flex items-center gap-3 px-8 py-4 font-bold text-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-500/50 rounded-xl ${
+                      !currentFacts.length
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white hover:scale-110 hover:shadow-2xl shadow-lg transform hover:rotate-1'
+                    }`}
+                    aria-describedby="take-quiz-desc"
+                  >
+                    <Brain className="w-6 h-6" aria-hidden="true" />
+                    🧠 Test Your Knowledge!
+                  </button>
+                  <div id="take-quiz-desc" className="sr-only">
+                    Test your knowledge about {currentCountry} with an interactive quiz
+                  </div>
+                </div>
+
+                {/* Secondary Actions */}
                 <div className="flex justify-center gap-3 flex-wrap" role="group" aria-label="Card actions">
                   <button
                     onClick={flipCard}
@@ -1058,36 +1022,19 @@ const CulturalExplorer = () => {
                     </div>
                   )}
 
-                  <button
-                    onClick={generateQuiz}
-                    disabled={!currentFacts.length}
-                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-pink-500/50 ${
-                      !currentFacts.length
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-pink-500 to-rose-500 rounded-sm text-white hover:scale-105 shadow-lg'
-                    }`}
-                    aria-describedby="take-quiz-desc"
-                  >
-                    <Brain className="w-5 h-5" aria-hidden="true" />
-                    Take Quiz
-                  </button>
-                  <div id="take-quiz-desc" className="sr-only">
-                    Test your knowledge about {currentCountry} with an interactive quiz
-                  </div>
-
-                  {selectedDeck === 'random' && (
+                  {matchedCountries.length > 1 && (
                     <button
                       onClick={shuffleDeck}
                       className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
                       aria-describedby="shuffle-desc"
                     >
                       <Shuffle className="w-5 h-5" aria-hidden="true" />
-                      Shuffle
+                      Next Country
                     </button>
                   )}
-                  {selectedDeck === 'random' && (
+                  {matchedCountries.length > 1 && (
                     <div id="shuffle-desc" className="sr-only">
-                      Get facts for a different random country
+                      Explore another country from your pen pals
                     </div>
                   )}
                 </div>
@@ -1097,19 +1044,30 @@ const CulturalExplorer = () => {
             {/* Deck info */}
             <div className="mt-8 text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-gray-600" role="status">
-                <Globe className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">{availableCountries.length} countries available</span>
+                <Heart className="w-4 h-4 text-pink-500" aria-hidden="true" />
+                <span className="font-medium">
+                  {matchedCountries.length} pen pal countr{matchedCountries.length !== 1 ? 'ies' : 'y'} available
+                </span>
               </div>
             </div>
           </section>
         )}
 
-        {/* No selection state */}
-        {!currentCountry && selectedDeck === 'select-country' && (
-          <section className="text-center py-16" aria-labelledby="no-selection-heading">
-            <div className="text-8xl mb-6" aria-hidden="true">🎴</div>
-            <h3 id="no-selection-heading" className="text-2xl font-bold text-gray-600 mb-2">Select a Country</h3>
-            <p className="text-gray-500">Choose a country from the dropdown to start exploring facts!</p>
+        {/* No matches state */}
+        {matchedCountries.length === 0 && !isLoadingMatches && (
+          <section className="text-center py-16" aria-labelledby="no-matches-heading">
+            <div className="text-8xl mb-6" aria-hidden="true">💌</div>
+            <h3 id="no-matches-heading" className="text-2xl font-bold text-gray-600 mb-2">No Pen Pal Countries Yet</h3>
+            <p className="text-gray-500 mb-4">
+              {matchedUsersCount === 0 
+                ? "Start connecting with pen pals to unlock their countries!" 
+                : "Your pen pals haven't shared their countries yet."
+              }
+            </p>
+            <div className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-600 rounded-lg">
+              <Heart className="w-5 h-5 mr-2" />
+              Match with pen pals to explore their cultures
+            </div>
           </section>
         )}
 
