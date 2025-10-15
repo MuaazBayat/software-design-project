@@ -14,11 +14,11 @@ class ProfileBase(BaseModel):
     """Base model for user profiles, containing common fields."""
     age_range: Optional[str] = None
     primary_language: Optional[str] = None
-    secondary_languages: List[str] = Field(default_factory=list)
+    secondary_languages: Optional[List[str]] = Field(default_factory=list)
     time_zone: Optional[str] = None
     country_code: Optional[str] = None
     bio: Optional[str] = None
-    interests: List[str] = Field(default_factory=list)
+    interests: Optional[List[str]] = Field(default_factory=list)
 
 class ProfileCreate(ProfileBase):
     """
@@ -49,9 +49,11 @@ class Profile(ProfileBase):
     Complete model for a profile as it appears in the database.
     Includes database-managed fields like created_at, updated_at, and last_active.
     """
+    user_id: UUID
     clerk_id: str
     anonymous_handle: str
-    fingerprint: List[str] = Field(default_factory=list)
+    fingerprint: Optional[List[str]] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     last_active: Optional[datetime]
+    favorite_local_fact: Optional[str] = None

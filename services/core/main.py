@@ -59,7 +59,7 @@ async def health_check():
             return {"status": "unhealthy", "error": "Supabase client not initialized"}
 
         # Try a simple database operation to verify connection
-        test_response = supabase.table("user_profiles").select("count", count="exact").limit(0).execute()
+        test_response = supabase.table("user_profiles").select("*").limit(0).execute()
 
         return {
             "status": "healthy",
@@ -124,6 +124,55 @@ async def create_profile(
         status_code=status.HTTP_201_CREATED,
         content=response.data[0]
     )
+
+
+@app.get("/profiles/by-user-id/{user_id}", response_model=Profile)
+async def get_profile_by_user_id(
+    user_id: str,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
+):
+    """
+    Retrieves a user's profile information by their unique user_id (UUID).
+    This endpoint is used for viewing other users' profiles from conversations.
+    
+    Args:
+        user_id (str): The unique UUID of the user from the database.
+        db (Client): The Supabase client dependency.
+        
+    Returns:
+        The user's profile object.
+        
+    Raises:
+        HTTPException:
+            404 Not Found: If no profile is found for the given user_id.
+    """
+    try:
+        # Select all columns from the 'user_profiles' table where the user_id matches.
+        response = db.table("user_profiles").select("*").eq("user_id", user_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Profile not found.")
+
+        raw_data = response.data[0]
+        print(f"Raw profile data for user_id '{user_id}': {raw_data}")
+        
+        # Handle None values for array fields
+        if raw_data.get('fingerprint') is None:
+            raw_data['fingerprint'] = []
+        if raw_data.get('secondary_languages') is None:
+            raw_data['secondary_languages'] = []
+        if raw_data.get('interests') is None:
+            raw_data['interests'] = []
+            
+        return raw_data
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        # Log the actual error and return a 500 with proper CORS headers
+        print(f"Database error in get_profile_by_user_id for user_id '{user_id}': {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.get("/profiles/{clerk_id}", response_model=Profile)
