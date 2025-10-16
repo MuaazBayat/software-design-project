@@ -79,7 +79,8 @@ export default function ConversationPage({}: ConversationPageProps) {
       const response: PageLettersResponse = await apiClient.pageLetters({
         conversation_thread_id: conversationThreadId,
         page_size: 50,
-        last_message_id: lastMessageId
+        last_message_id: lastMessageId,
+        viewer_user_id: CURRENT_USER_ID || "",
       });
 
       console.log("API response:", response);
