@@ -261,14 +261,15 @@ test('Grammar: API failure → falls back to basic checks; Apply All Fixes updat
   // Seed text with double space to exercise whitespace fix in fallback
   await act(async () => setEditorHtml(editor, 'i  forgot.'));
 
+  // Mock fetch to fail initially, forcing fallback behavior
+  const fetchMock = jest.spyOn(global, 'fetch' as any).mockRejectedValueOnce(new Error('Network down'));
+
   // Open dialog
   await userEvent.click(screen.getByLabelText('check-grammar'));
 
-  const dialog = await screen.findByRole('dialog');
+  // Wait for dialog to appear after grammar check completes (even with failure)
+  const dialog = await screen.findByRole('dialog', {}, { timeout: 5000 });
   expect(within(dialog).getByRole('heading', { name: /Grammar Check/i })).toBeInTheDocument();
-
-  // Force API failure so component uses fallback path
-  const fetchMock = jest.spyOn(global, 'fetch' as any).mockRejectedValueOnce(new Error('Network down'));
 
   // Apply all fixes (fallback path renders this control)
   await userEvent.click(await within(dialog).findByRole('button', { name: /Apply All Fixes/i }));
@@ -281,7 +282,7 @@ test('Grammar: API failure → falls back to basic checks; Apply All Fixes updat
   expect(props.setLetterContent).toHaveBeenCalledWith(expect.stringMatching(/^I\s*forgot\.$/));
 
   // Dialog closed
-  await expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
   // Cleanup
   fetchMock.mockRestore();

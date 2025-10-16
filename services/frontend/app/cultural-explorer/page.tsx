@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCircle } from 'lucide-react';
+import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCircle, Users, Heart, Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import wc from 'world-countries';
 import { useSyncProfile } from '@/lib/context/ProfileContext';
+import MessagingApiClient, { SearchUsersResponse } from '@/lib/MessagingApiClient';
 
 // Screen reader only CSS utility
 const srOnlyStyles = {
@@ -13,13 +14,11 @@ const srOnlyStyles = {
   height: '1px',
   padding: '0',
   margin: '-1px',
-  overflow: 'hidden',
+  overflow: 'hidden' as const,
   clip: 'rect(0, 0, 0, 0)',
   whiteSpace: 'nowrap' as const,
   border: '0'
 };
-
-type DeckType = 'my-country' | 'random' | 'select-country';
 
 interface CountryFacts {
   emoji: string;
@@ -32,123 +31,54 @@ interface FactsData {
 interface QuizQuestion {
   type: 'multiple_choice';
   question: string;
-  options: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
-  };
-  answer: 'A' | 'B' | 'C' | 'D';
+  options: Record<string, string>;
+  answer: string;
   hint: string;
+  explanation: string;
+};
+
+interface QuizResult {
+  question: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
   explanation: string;
 }
 
-interface QuizData {
-  exercises: QuizQuestion[];
-}
+type QuizState = 'idle' | 'loading' | 'active' | 'complete';
 
-type QuizState = 'idle' | 'loading' | 'active' | 'completed';
-
-interface QuizResult {
-  questionIndex: number;
-  selectedAnswer: 'A' | 'B' | 'C' | 'D' | null;
-  isCorrect: boolean;
-}
-
-/** ---------- Name → ISO Alpha-2 resolver (robust) ---------- */
-const norm = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/&/g, ' and ')
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\b(the|of|and|republic|kingdom|federation|state|states|democratic|people|islamic|united)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const buildCountryIndex = () => {
-  const map = new Map<string, string>();
-  for (const c of wc) {
-    const code = (c.cca2 || '').toUpperCase();
-    if (!code) continue;
-
-    const candidates: string[] = [];
-    if (c.name?.common) candidates.push(c.name.common);
-    if (c.name?.official) candidates.push(c.name.official);
-    if (Array.isArray(c.altSpellings)) candidates.push(...c.altSpellings);
-
-    if (c.name?.common === 'United States') candidates.push('USA', 'US', 'United States of America', 'America');
-    if (c.name?.common === 'United Kingdom') candidates.push('UK', 'Great Britain', 'Britain');
-    if (c.name?.common === 'Czechia') candidates.push('Czech Republic');
-    if (c.name?.common === 'Myanmar') candidates.push('Burma');
-    if (c.name?.common === 'Côte d’Ivoire') candidates.push("Cote d'Ivoire", 'Ivory Coast');
-    if (c.name?.common === 'South Korea') candidates.push('Korea, Republic of', 'Republic of Korea');
-    if (c.name?.common === 'North Korea') candidates.push("Korea, Democratic People's Republic of", 'DPRK');
-    if (c.name?.common === 'Russia') candidates.push('Russian Federation');
-    if (c.name?.common === 'Taiwan') candidates.push('Taiwan, Province of China');
-    if (c.name?.common === 'Vietnam') candidates.push('Viet Nam');
-
-    for (const raw of candidates) {
-      const key = norm(raw);
-      if (key && !map.has(key)) map.set(key, code);
-    }
-  }
-  return map;
+// World Countries utility to resolve alpha2 codes
+const resolveAlpha2 = (countryName: string): string | null => {
+  const country = wc.find(c => c.name.common.toLowerCase() === countryName.toLowerCase());
+  return country?.cca2 || null;
 };
-const COUNTRY_INDEX = buildCountryIndex();
 
-function resolveAlpha2(countryName: string | null | undefined): string | null {
-  if (!countryName) return null;
+// Country name mapping to handle discrepancies between world-countries and facts.json
+const mapCountryName = (countryName: string): string => {
+  const countryMappings: Record<string, string> = {
+    'United States': 'United States of America',
+    'United Kingdom': 'United Kingdom',
+    'South Korea': 'Korea (South)',
+    'North Korea': 'Korea (North)',
+    // Add more mappings as needed
+  };
+  
+  return countryMappings[countryName] || countryName;
+};
 
-  let code = COUNTRY_INDEX.get(norm(countryName));
-  if (code) return code;
+// Flag rendering component
+const FRAME_W = 48;
+const FRAME_H = 32;
 
-  const parts = countryName.split(',').map((p) => p.trim());
-  for (const p of parts) {
-    code = COUNTRY_INDEX.get(norm(p));
-    if (code) return code;
-  }
-
-  const stripped = countryName
-    .replace(/\(.*\)/g, '')
-    .replace(/Republic of|Kingdom of|Federation of|State of|Province of/gi, '')
-    .trim();
-
-  code = COUNTRY_INDEX.get(norm(stripped));
-  return code || null;
-}
-/** ----------------------------------------------------------- */
-
-/** Skeleton */
-const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div
-    className={`relative overflow-hidden bg-gray-200/70 ${className}`}
-    style={{ borderRadius: 8 }}
-  >
-    <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-    <style jsx global>{`
-      @keyframes shimmer {
-        100% { transform: translateX(100%); }
-      }
-    `}</style>
-  </div>
-);
-
-/** Fixed-frame flag:
- * - Frame: 3:2 (adjust FRAME_W/FRAME_H to taste)
- * - Default: objectFit 'cover' to fill frame and center
- * - Nepal (NP): objectFit 'contain' + scale up a touch so it reads nicely
- */
-const FRAME_W = 90; // px
-const FRAME_H = 60;  // px
-
-
-const FlagFrame: React.FC<{
-  country: string | null | undefined;
+const FlagImage: React.FC<{
+  country: string;
   emojiFallback?: string;
 }> = ({ country, emojiFallback = '🌍' }) => {
   const [loaded, setLoaded] = useState(false);
-  const alpha2 = resolveAlpha2(country || '')?.toLowerCase();
+  
+  // For flag lookup, convert back to the common name for world-countries lookup
+  const flagCountryName = country === 'United States of America' ? 'United States' : country;
+  const alpha2 = resolveAlpha2(flagCountryName || '')?.toLowerCase();
 
   useEffect(() => setLoaded(false), [country]);
 
@@ -195,6 +125,7 @@ const FlagFrame: React.FC<{
         src={`https://flagcdn.com/w320/${alpha2}.png`}
         alt={`Flag of ${country}`}
         fill
+        sizes="(max-width: 768px) 60px, 80px"
         className={`absolute inset-0 transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         style={{
           objectFit: 'fill',       // force stretch
@@ -211,35 +142,16 @@ const FlagFrame: React.FC<{
 const CulturalExplorer = () => {
   const { profile, synced } = useSyncProfile();
 
-  const [selectedDeck, setSelectedDeck] = useState<DeckType>('random');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
-  const [currentFactIndex, setCurrentFactIndex] = useState(0);
-  const [isFlipping, setIsFlipping] = useState(false);
+  const [countryFacts, setCountryFacts] = useState<Record<string, string[]>>({});
+  const [countryPenPals, setCountryPenPals] = useState<Record<string, Array<{ anonymous_handle: string; user_id: string }>>>({});
+  const [expandedPenPals, setExpandedPenPals] = useState<Record<string, boolean>>({});
   const [factsData, setFactsData] = useState<FactsData>({});
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [matchedCountries, setMatchedCountries] = useState<string[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [matchedUsersCount, setMatchedUsersCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Get user's home country based on their profile, default to South Africa
-  const getHomeCountry = useMemo(() => {
-    if (!synced) return 'South Africa';
-
-    const countryCode = profile?.country_code;
-    if (!countryCode) return 'South Africa';
-
-    // Convert country code to country name using world-countries data
-    const countryData = wc.find(c => c.cca2?.toLowerCase() === countryCode.toLowerCase());
-    const countryName = countryData?.name?.common;
-
-    // Check if we have facts for this country, otherwise fall back to South Africa
-    if (countryName && Object.keys(factsData).length > 0 && factsData[countryName]) {
-      return countryName;
-    }
-
-    return 'South Africa';
-  }, [profile?.country_code, synced, factsData]);
-
-  const [cardKey, setCardKey] = useState(0);
-  const [cardVisible, setCardVisible] = useState(true);
+  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
 
   // Quiz state
   const [quizState, setQuizState] = useState<QuizState>('idle');
@@ -249,6 +161,68 @@ const CulturalExplorer = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
+  // Fetch matched users and extract their countries
+  const fetchMatchedCountries = useCallback(async () => {
+    if (!synced || !profile?.user_id) {
+      return;
+    }
+
+    try {
+      setIsLoadingMatches(true);
+      const apiClient = new MessagingApiClient();
+      const response: SearchUsersResponse = await apiClient.searchUsers({
+        anonymous_handle: "", // Empty to act like inbox
+        my_user_id: profile.user_id,
+        limit: 100 // Get more matches to find countries
+      });
+      
+      setMatchedUsersCount(response.items.length);
+
+      if (response.items.length === 0) {
+        setMatchedCountries([]);
+        return;
+      }
+
+      // Extract unique countries from matched users using country_code
+      const countryGroups: Record<string, Array<{ anonymous_handle: string; user_id: string }>> = {};
+      const countries: string[] = [];
+
+      response.items.forEach(item => {
+        const countryCode = item.user_profile.country_code;
+        if (!countryCode) return;
+        
+        // Convert country code to country name using world-countries data
+        const countryData = wc.find(c => c.cca2?.toLowerCase() === countryCode.toLowerCase());
+        const commonName = countryData?.name?.common;
+        if (!commonName) return;
+        
+        // Map to the correct name used in facts.json
+        const mappedCountryName = mapCountryName(commonName);
+        
+        // Group pen pals by country
+        if (!countryGroups[mappedCountryName]) {
+          countryGroups[mappedCountryName] = [];
+          countries.push(mappedCountryName);
+        }
+        
+        countryGroups[mappedCountryName].push({
+          anonymous_handle: item.user_profile.anonymous_handle,
+          user_id: item.user_profile.user_id
+        });
+      });
+
+      setMatchedCountries(countries.sort());
+      setCountryPenPals(countryGroups);
+    } catch (error) {
+      console.error('Error fetching matched countries:', error);
+      setMatchedCountries([]);
+      setCountryPenPals({});
+      setMatchedUsersCount(0);
+    } finally {
+      setIsLoadingMatches(false);
+    }
+  }, [synced, profile?.user_id]);
+
   useEffect(() => {
     const loadFacts = async () => {
       try {
@@ -256,32 +230,20 @@ const CulturalExplorer = () => {
         if (!response.ok) throw new Error(String(response.status));
         const data: FactsData = await response.json();
         setFactsData(data);
-        setAvailableCountries(Object.keys(data).sort());
       } catch {
         const fallbackData: FactsData = {
           'South Africa': {
             emoji: '🇿🇦',
             facts: [
               'South Africa has 11 official languages - more than any other country!',
-              "The world's largest diamond was found in South Africa in 1905.",
-              'South Africa is the only country to voluntarily dismantle its nuclear weapons program.',
-              "Cape Town's Table Mountain is one of the New7Wonders of Nature.",
-              "South Africa has the world's deepest gold mine, nearly 4km underground!",
-            ],
-          },
-          Japan: {
-            emoji: '🇯🇵',
-            facts: [
-              'Japan consists of 6,852 islands, though only 430 are inhabited.',
-              'In Japan, slurping your noodles loudly is considered polite!',
-              'Japan has more pets than children.',
-              'Square watermelons are grown in Japan to save space.',
-              'Japan has over 50,000 people aged 100 or older.',
-            ],
+              'It is the only country to voluntarily dismantle its nuclear weapons program.',
+              'The world\'s largest diamond, the Cullinan, was found here in 1905.',
+              'Cape Town\'s Table Mountain is over 260 million years old.',
+              'South Africa has three capital cities: Cape Town, Pretoria, and Bloemfontein.'
+            ]
           },
         };
         setFactsData(fallbackData);
-        setAvailableCountries(Object.keys(fallbackData).sort());
       } finally {
         setIsLoading(false);
       }
@@ -289,47 +251,51 @@ const CulturalExplorer = () => {
     loadFacts();
   }, []);
 
-  const getRandomCountry = useCallback(() => {
-    if (availableCountries.length === 0) return '';
-    const randomIndex = Math.floor(Math.random() * availableCountries.length);
-    return availableCountries[randomIndex];
-  }, [availableCountries]);
+  useEffect(() => {
+    if (Object.keys(factsData).length > 0) {
+      fetchMatchedCountries();
+    }
+  }, [factsData, fetchMatchedCountries]);
 
   const currentCountry = useMemo(() => {
-    switch (selectedDeck) {
-      case 'my-country':
-        return getHomeCountry;
-      case 'random':
-        return selectedCountry || getRandomCountry();
-      case 'select-country':
-        return selectedCountry;
-      default:
-        return '';
+    return selectedCountry || (matchedCountries.length > 0 ? matchedCountries[0] : '');
+  }, [selectedCountry, matchedCountries]);
+
+  // Function to get 9 random facts for a specific country
+  const generateRandomFactsForCountry = useCallback((country: string) => {
+    if (!factsData[country]?.facts) return [];
+    
+    const facts = factsData[country].facts;
+    const shuffled = [...facts].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(9, facts.length));
+  }, [factsData]);
+
+  // Function to generate random facts for all matched countries
+  const generateAllRandomFacts = useCallback(() => {
+    const newCountryFacts: Record<string, string[]> = {};
+    const newCarouselIndices: Record<string, number> = {};
+    
+    matchedCountries.forEach(country => {
+      newCountryFacts[country] = generateRandomFactsForCountry(country);
+      newCarouselIndices[country] = 0;
+    });
+    
+    setCountryFacts(newCountryFacts);
+    setCarouselIndices(newCarouselIndices);
+  }, [matchedCountries, generateRandomFactsForCountry]);
+
+  // Generate random facts when matched countries change
+  useEffect(() => {
+    if (matchedCountries.length > 0 && Object.keys(factsData).length > 0) {
+      generateAllRandomFacts();
     }
-  }, [selectedDeck, selectedCountry, getRandomCountry, getHomeCountry]);
-
-  const currentFacts = useMemo(() => {
-    if (!currentCountry || !factsData[currentCountry]) return [];
-    return factsData[currentCountry].facts;
-  }, [currentCountry, factsData]);
-
-  const currentFact = currentFacts.length
-    ? currentFacts[currentFactIndex % currentFacts.length]
-    : 'Select a country to see amazing facts!';
+  }, [matchedCountries, factsData, generateAllRandomFacts]);
 
   useEffect(() => {
-    if (selectedDeck === 'random' && availableCountries.length > 0 && !selectedCountry) {
-      setSelectedCountry(getRandomCountry());
+    if (matchedCountries.length > 0 && !selectedCountry) {
+      setSelectedCountry(matchedCountries[0]);
     }
-  }, [availableCountries, selectedDeck, selectedCountry, getRandomCountry]);
-
-  const fadeCardOutIn = useCallback(() => {
-    setCardVisible(false);
-    setTimeout(() => {
-      setCardKey((k) => k + 1);
-      setCardVisible(true);
-    }, 220);
-  }, []);
+  }, [matchedCountries, selectedCountry]);
 
   const restartQuiz = useCallback(() => {
     setQuizState('idle');
@@ -340,44 +306,59 @@ const CulturalExplorer = () => {
     setShowExplanation(false);
   }, []);
 
-  const flipCard = useCallback(() => {
-    if (isFlipping) return;
-    setIsFlipping(true);
-    setTimeout(() => {
-      setCurrentFactIndex((prev) => prev + 1);
-      setIsFlipping(false);
-      fadeCardOutIn();
-    }, 220);
-  }, [isFlipping, fadeCardOutIn]);
+  const refreshFacts = useCallback(() => {
+    generateAllRandomFacts();
+  }, [generateAllRandomFacts]);
 
-  const shuffleDeck = useCallback(() => {
-    if (selectedDeck === 'random') {
-      // Cancel any active quiz when shuffling
+  const switchToNextCountry = useCallback(() => {
+    if (matchedCountries.length > 1) {
+      // Cancel any active quiz when switching countries
       if (quizState === 'active' || quizState === 'loading') {
         restartQuiz();
       }
 
-      setSelectedCountry(getRandomCountry());
-      setCurrentFactIndex(0);
-      fadeCardOutIn();
+      // Get a random country from matched countries that's different from current
+      const otherCountries = matchedCountries.filter(c => c !== selectedCountry);
+      if (otherCountries.length > 0) {
+        const randomIndex = Math.floor(Math.random() * otherCountries.length);
+        setSelectedCountry(otherCountries[randomIndex]);
+      }
     }
-  }, [selectedDeck, quizState, getRandomCountry, fadeCardOutIn, restartQuiz]);
+  }, [quizState, restartQuiz, matchedCountries, selectedCountry]);
 
-  const handleDeckChange = useCallback((deck: DeckType) => {
-    // Cancel any active quiz when changing decks
-    if (quizState === 'active' || quizState === 'loading') {
-      restartQuiz();
+  // Carousel navigation functions
+  const navigateCarousel = useCallback((country: string, direction: 'prev' | 'next') => {
+    const currentIndex = carouselIndices[country] || 0;
+    const factsLength = countryFacts[country]?.length || 0;
+    
+    if (factsLength === 0) return;
+    
+    let newIndex = currentIndex;
+    if (direction === 'next') {
+      // Move forward by 3, but don't go past the last possible starting position
+      newIndex = Math.min(currentIndex + 3, Math.max(0, factsLength - 3));
+    } else {
+      // Move backward by 3, but don't go below 0
+      newIndex = Math.max(currentIndex - 3, 0);
     }
+    
+    setCarouselIndices(prev => ({
+      ...prev,
+      [country]: newIndex
+    }));
+  }, [carouselIndices, countryFacts]);
 
-    setSelectedDeck(deck);
-    setCurrentFactIndex(0);
-    if (deck === 'random') {
-      setSelectedCountry(getRandomCountry());
-    } else if (deck === 'select-country' && !selectedCountry) {
-      setSelectedCountry(availableCountries[0] || '');
-    }
-    fadeCardOutIn();
-  }, [quizState, restartQuiz, getRandomCountry, selectedCountry, availableCountries, fadeCardOutIn]);
+  const refreshFactsForCountry = useCallback((country: string) => {
+    const newFacts = generateRandomFactsForCountry(country);
+    setCountryFacts(prev => ({
+      ...prev,
+      [country]: newFacts
+    }));
+    setCarouselIndices(prev => ({
+      ...prev,
+      [country]: 0
+    }));
+  }, [generateRandomFactsForCountry]);
 
   // Hardcoded South Africa quiz
   const getSouthAfricaQuiz = (): QuizQuestion[] => [
@@ -414,356 +395,127 @@ const CulturalExplorer = () => {
         A: 'Russia in 1920',
         B: 'South Africa in 1905',
         C: 'Australia in 1890',
-        D: 'Canada in 1912'
+        D: 'Canada in 1999'
       },
       answer: 'B',
-      hint: 'This massive diamond was discovered over 100 years ago.',
-      explanation: 'The world\'s largest diamond, the Cullinan Diamond weighing 3,106 carats, was found in South Africa in 1905. It was later cut into several smaller diamonds, some of which are part of the British Crown Jewels.'
-    },
-    {
-      type: 'multiple_choice',
-      question: 'What is special about South Africa\'s gold mines?',
-      options: {
-        A: 'They produce the purest gold in the world',
-        B: 'They are the oldest mines in the world',
-        C: 'They include the world\'s deepest gold mine',
-        D: 'They are completely automated'
-      },
-      answer: 'C',
-      hint: 'These mines go extremely deep underground.',
-      explanation: 'South Africa has the world\'s deepest gold mine, extending nearly 4 kilometers (about 2.5 miles) underground. The extreme depth creates challenging working conditions due to heat and pressure.'
-    },
-    {
-      type: 'multiple_choice',
-      question: 'Which natural wonder is located in Cape Town?',
-      options: {
-        A: 'Victoria Falls',
-        B: 'Table Mountain',
-        C: 'Drakensberg Mountains', 
-        D: 'Blyde River Canyon'
-      },
-      answer: 'B',
-      hint: 'This landmark is one of the New7Wonders of Nature.',
-      explanation: 'Table Mountain in Cape Town is one of the New7Wonders of Nature. Its distinctive flat-topped shape and dramatic cliffs make it one of the most recognizable landmarks in the world.'
+      hint: 'This discovery happened over 100 years ago in the same country we\'re learning about.',
+      explanation: 'The Cullinan Diamond, the largest gem-quality rough diamond ever found, was discovered in South Africa in 1905. It weighed over 3,100 carats!'
     }
   ];
 
-  const generateApiQuiz = useCallback(async () => {
-    try {
-      const factsText = currentFacts.join(' ');
-      
-      const response = await fetch('https://sdp-orpin-iota.vercel.app/api/quiz-engine', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'x-api-key': 'my_a22_12_1tchy_450ee210-7f72-4b96-9323-23542b0b4349',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: {
-            topic: currentCountry,
-            skill_level: 'Beginner',
-            number_of_questions: 3,
-            additional_instructions: 'Create interesting questions based on the cultural and geographical facts provided.',
-            information_from_sources: factsText
-          }
-        })
-      });
+  const generateQuiz = useCallback((targetCountry?: string) => {
+    const quizCountry = targetCountry || currentCountry;
+    if (!quizCountry || !countryFacts[quizCountry]?.length) return;
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.data && result.data.exercises) {
-        setQuizData(result.data.exercises);
-        setQuizState('active');
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      console.error('Quiz generation failed:', error);
-      setQuizState('idle');
-      // You could show an error message here
-    }
-  }, [currentFacts, currentCountry]);
-
-  // Quiz functions
-  const generateQuiz = useCallback(async () => {
-    if (!currentCountry || !currentFacts.length) return;
-    
     setQuizState('loading');
-    setQuizData([]);
+    
+    // Set the selected country if a target country was provided
+    if (targetCountry) {
+      setSelectedCountry(targetCountry);
+    }
+    
+    if (quizCountry === 'South Africa') {
+      // Use hardcoded quiz for South Africa
+      setQuizData(getSouthAfricaQuiz());
+      setQuizState('active');
+      setCurrentQuizIndex(0);
+      return;
+    }
+
+    // For other countries, create simple fact-based questions
+    const selectedFacts = countryFacts[quizCountry]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+
+    const generatedQuiz: QuizQuestion[] = selectedFacts.map((fact: string, index: number) => ({
+      type: 'multiple_choice',
+      question: `True or False: ${fact}`,
+      options: {
+        A: 'True',
+        B: 'False',
+        C: 'Not sure',
+        D: 'Need more info'
+      },
+      answer: 'A', // All our facts are true
+      hint: 'This information comes from our cultural facts database.',
+      explanation: `This is true! ${fact}`
+    }));
+
+    setQuizData(generatedQuiz);
+    setQuizState('active');
     setCurrentQuizIndex(0);
-    setQuizResults([]);
-    setSelectedAnswer(null);
-    setShowExplanation(false);
+  }, [currentCountry, countryFacts]);
 
-    // Simulate loading for better UX
-    setTimeout(() => {
-      if (currentCountry === 'South Africa') {
-        // Use hardcoded quiz for South Africa
-        const southAfricaQuiz = getSouthAfricaQuiz();
-        // Randomly select 3 questions
-        const selectedQuestions = southAfricaQuiz.sort(() => 0.5 - Math.random()).slice(0, 3);
-        setQuizData(selectedQuestions);
-        setQuizState('active');
-      } else {
-        // Use API for other countries
-        generateApiQuiz();
-      }
-    }, 1500); // 1.5 second loading simulation
-  }, [currentCountry, currentFacts.length, generateApiQuiz]);
+  const submitAnswer = useCallback(() => {
+    if (!selectedAnswer || quizData.length === 0) return;
 
-  const selectAnswer = (answer: 'A' | 'B' | 'C' | 'D') => {
-    if (selectedAnswer || showExplanation) return;
-    
-    setSelectedAnswer(answer);
     const currentQuestion = quizData[currentQuizIndex];
-    const isCorrect = answer === currentQuestion.answer;
+    const isCorrect = selectedAnswer === currentQuestion.answer;
     
-    setQuizResults(prev => [...prev, {
-      questionIndex: currentQuizIndex,
-      selectedAnswer: answer,
-      isCorrect
-    }]);
-    
-    setTimeout(() => setShowExplanation(true), 500);
-  };
+    const result: QuizResult = {
+      question: currentQuestion.question,
+      userAnswer: selectedAnswer,
+      correctAnswer: currentQuestion.answer,
+      isCorrect,
+      explanation: currentQuestion.explanation
+    };
 
-  const nextQuestion = () => {
+    setQuizResults(prev => [...prev, result]);
+    setShowExplanation(true);
+  }, [selectedAnswer, quizData, currentQuizIndex]);
+
+  const nextQuestion = useCallback(() => {
     if (currentQuizIndex < quizData.length - 1) {
       setCurrentQuizIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
-      fadeCardOutIn();
     } else {
-      setQuizState('completed');
-      fadeCardOutIn();
+      setQuizState('complete');
     }
-  };
+  }, [currentQuizIndex, quizData.length]);
 
-  const renderFlag = (country: string | null | undefined) => {
-    const emoji = country && factsData[country]?.emoji ? factsData[country].emoji : '🌍';
-    return <FlagFrame country={country} emojiFallback={emoji} />;
-  };
-
-  // Keyboard navigation support
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle keyboard shortcuts when not in input fields
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
-        return;
-      }
-
-      switch (event.key) {
-        case ' ':
-        case 'Enter':
-          // Allow default behavior for focused buttons
-          break;
-        case 'ArrowRight':
-        case 'ArrowDown':
-          if (currentCountry && quizState === 'idle' && !isFlipping) {
-            event.preventDefault();
-            flipCard();
-          }
-          break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          if (selectedDeck === 'random' && quizState === 'idle') {
-            event.preventDefault();
-            shuffleDeck();
-          }
-          break;
-        case 'q':
-        case 'Q':
-          if (currentCountry && quizState === 'idle' && currentFacts.length > 0) {
-            event.preventDefault();
-            generateQuiz();
-          }
-          break;
-        case 'Escape':
-          if (quizState === 'active' || quizState === 'loading') {
-            event.preventDefault();
-            restartQuiz();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentCountry, quizState, isFlipping, selectedDeck, currentFacts.length, flipCard, shuffleDeck, generateQuiz, restartQuiz]);
+  const renderFlag = (country: string) => (
+    <FlagImage 
+      country={country} 
+      emojiFallback={factsData[country]?.emoji || '🌍'} 
+    />
+  );
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100 flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">
           <div className="text-8xl mb-4 animate-spin" aria-hidden="true">🃏</div>
-          <p className="text-2xl text-black">Loading the deck...</p>
-          <span className="sr-only">Loading cultural facts and quiz data</span>
+          <p className="text-2xl text-orange-800">Loading the cultural explorer...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      {/* Live region for announcements */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only" id="announcements">
-        {quizState === 'loading' && 'Quiz is being generated'}
-        {quizState === 'active' && `Quiz active: Question ${currentQuizIndex + 1} of ${quizData.length}`}
-        {quizState === 'completed' && `Quiz completed. You got ${quizResults.filter(r => r.isCorrect).length} out of ${quizResults.length} correct.`}
-        {isFlipping && 'Loading next fact'}
-      </div>
-
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        {/* Skip to content link for keyboard navigation */}
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100">
+      <main className="container mx-auto px-4 py-8">
+        {/* Skip to main content for screen readers */}
         <a 
           href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-orange-800 text-white px-4 py-2 rounded-md"
         >
           Skip to main content
         </a>
 
-        {/* Keyboard shortcuts help */}
-        <div className="mb-4 text-center">
-          <details className="inline-block">
-            <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1">
-              ⌨️ Keyboard shortcuts
-            </summary>
-            <div className="mt-2 p-4 bg-white rounded-lg shadow-lg text-sm text-left max-w-md mx-auto">
-              <h3 className="font-bold mb-2">Available shortcuts:</h3>
-              <ul className="space-y-1 text-gray-700">
-                <li><kbd className="bg-gray-100 px-1 rounded">→ ↓</kbd> Next fact</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">← ↑</kbd> Shuffle (random mode)</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">Q</kbd> Take quiz</li>
-                <li><kbd className="bg-gray-100 px-1 rounded">Esc</kbd> Exit quiz</li>
-              </ul>
-            </div>
-          </details>
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
+            <Globe className="w-8 h-8 text-orange-600 mr-3" />
+            <h1 id="deck-selection-heading" className="text-5xl font-bold bg-gradient-to-r from-orange-700 via-amber-700 to-yellow-700 bg-clip-text text-transparent">
+              Cultural Explorer
+            </h1>
+            <Sparkles className="w-8 h-8 text-amber-500 ml-3" />
+          </div>
+          <p className="text-xl text-orange-700 max-w-2xl mx-auto">
+            Discover fascinating facts about countries and test your knowledge with fun quizzes!
+          </p>
         </div>
-
-        {/* Deck Selection */}
-        <section aria-labelledby="deck-selection-heading">
-          <h1 id="deck-selection-heading" className="text-4xl font-bold text-center text-gray-900 tracking-tighter mb-6">
-            Cultural Explorer
-          </h1>
-          <p className="text-xl text-center text-gray-700 mb-8">Discover fascinating facts about countries around the world!</p>
-
-          <fieldset className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <legend className="sr-only">Choose how you want to explore countries</legend>
-            <button
-              onClick={() => handleDeckChange('my-country')}
-              className={`p-6 transition-all duration-300 relative group rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'my-country'
-                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
-                  : 'border-gray-300 bg-white hover:border-purple-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'my-country'}
-              aria-describedby="my-country-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🏠</div>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {profile?.country_code && synced ? 'Your Country' : 'Our Home Country'}
-                </h3>
-                {!(profile?.country_code && synced) && (
-                  <HelpCircle 
-                    className="w-4 h-4 text-gray-400" 
-                    aria-label="Help information available"
-                  />
-                )}
-              </div>
-              <p id="my-country-desc" className="text-gray-600 mt-2">Facts about {getHomeCountry}</p>
-
-              {/* Tooltip - only show when we don't have user's country */}
-              {!(profile?.country_code && synced) && (
-                <div 
-                  className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
-                  role="tooltip"
-                  aria-hidden="true"
-                >
-                  Default country (update your profile to change)
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                </div>
-              )}
-            </button>
-
-            <button
-              onClick={() => handleDeckChange('random')}
-              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'random'
-                  ? 'border-rose-500 bg-orange-300 scale-105 shadow-xl'
-                  : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'random'}
-              aria-describedby="random-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🎲</div>
-              <h3 className="text-xl font-bold text-gray-800">Random Country</h3>
-              <p id="random-desc" className="text-gray-600 mt-2">Surprise me!</p>
-            </button>
-
-            <button
-              onClick={() => handleDeckChange('select-country')}
-              className={`p-6 transition-all duration-300 rounded-lg border-2 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ${
-                selectedDeck === 'select-country'
-                  ? 'bg-gradient-to-r from-[#f7dac0] via-[#fcdab4] to-[#fcd3a1] scale-105 shadow-xl border-orange-400'
-                  : 'border-gray-300 bg-white hover:border-green-300 hover:shadow-lg'
-              }`}
-              aria-pressed={selectedDeck === 'select-country'}
-              aria-describedby="select-desc"
-            >
-              <div className="text-4xl mb-3" aria-hidden="true">🎯</div>
-              <h3 className="text-xl font-bold text-gray-800">Choose Country</h3>
-              <p id="select-desc" className="text-gray-600 mt-2">Pick any country</p>
-            </button>
-          </fieldset>
-        </section>
-
-        {/* Country Selector */}
-        {selectedDeck === 'select-country' && (
-          <section className="text-center mb-8" aria-labelledby="country-selector-heading">
-            <h2 id="country-selector-heading" className="sr-only">Country selection dropdown</h2>
-            <div className="inline-block relative">
-              <label htmlFor="country-select" className="sr-only">
-                Choose a country from the dropdown
-              </label>
-              <select
-                id="country-select"
-                value={selectedCountry}
-                onChange={(e) => {
-                  // Cancel any active quiz when changing country
-                  if (quizState === 'active' || quizState === 'loading') {
-                    restartQuiz();
-                  }
-
-                  setSelectedCountry(e.target.value);
-                  setCurrentFactIndex(0);
-                  fadeCardOutIn();
-                }}
-                className="appearance-none bg-white border-2 border-gray-300 rounded-lg px-6 py-3 pr-10 text-lg font-medium text-gray-700 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-200"
-                aria-describedby="country-select-desc"
-              >
-                <option value="">Select a country...</option>
-                {availableCountries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" 
-                aria-hidden="true"
-              />
-              <div id="country-select-desc" className="sr-only">
-                Use arrow keys to navigate through {availableCountries.length} available countries
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Quiz Loading State */}
         {quizState === 'loading' && currentCountry && (
@@ -771,30 +523,22 @@ const CulturalExplorer = () => {
             <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
-            <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden">
+            <div className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden">
               {/* Loading header */}
-              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-orange-200 to-amber-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 id="quiz-loading-heading" className="text-2xl font-bold">{currentCountry} Quiz</h2>
-                <p className="opacity-75 mt-1">Generating your personalized quiz...</p>
+                <h2 id="quiz-loading-heading" className="text-2xl font-bold text-orange-800">{currentCountry} Quiz</h2>
+                <p className="opacity-75 mt-1 text-orange-700">Preparing your questions...</p>
               </div>
 
-              {/* Loading body */}
-              <div className="p-8" role="status" aria-live="polite">
-                <div className="min-h-[140px] flex flex-col items-center justify-center">
-                  <div className="text-6xl mb-4 animate-bounce" aria-hidden="true">🧠</div>
-                  <p className="text-lg text-gray-700 text-center mb-4">
-                    Creating quiz questions based on the facts you&apos;ve learned...
-                  </p>
-                  <div className="flex space-x-1" aria-hidden="true">
-                    <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse delay-75"></div>
-                    <div className="w-2 h-2 bg-[#6b3f2a] rounded-full animate-pulse delay-150"></div>
-                  </div>
-                  <span className="sr-only">Quiz is being generated, please wait</span>
-                </div>
+              {/* Loading animation */}
+              <div className="p-8 bg-white flex flex-col items-center justify-center min-h-[200px]">
+                <div className="animate-spin w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+                <p className="text-orange-600 text-center">
+                  Creating personalized quiz questions about {currentCountry}...
+                </p>
               </div>
             </div>
           </section>
@@ -802,192 +546,228 @@ const CulturalExplorer = () => {
 
         {/* Quiz Active State */}
         {quizState === 'active' && quizData.length > 0 && (
-          <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-question-heading">
+          <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-heading">
             <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
-              key={`quiz-${cardKey}`}
-              className={`relative bg-white rounded-2xl shadow-2xl border-4 border-[#f7dac0] overflow-hidden transition-all duration-200 ${
-                cardVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              }`}
+              className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
             >
               {/* Quiz header */}
-              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
+              <div className="bg-gradient-to-r from-orange-200 to-amber-200 text-white p-6 text-center">
                 <div className="mb-2 flex items-center justify-center">
                   {renderFlag(currentCountry)}
                 </div>
-                <h2 id="quiz-question-heading" className="text-2xl font-bold">{currentCountry} Quiz</h2>
-                <p className="opacity-75 mt-1" aria-live="polite">
+                <h2 id="quiz-heading" className="text-2xl font-bold text-orange-800">{currentCountry} Quiz</h2>
+                <p className="opacity-75 mt-1 text-orange-700">
                   Question {currentQuizIndex + 1} of {quizData.length}
                 </p>
               </div>
 
-              {/* Quiz body */}
-              <div className="p-8">
+              {/* Quiz content */}
+              <div className="p-8 bg-white">
                 <div className="mb-6">
-                  <p className="text-lg text-gray-700 leading-relaxed text-center font-medium" id="question-text">
-                    {quizData[currentQuizIndex]?.question}
-                  </p>
+                  <h3 className="text-lg font-semibold text-orange-800 mb-4" id={`quiz-question-${currentQuizIndex}`}>
+                    {quizData[currentQuizIndex].question}
+                  </h3>
+                  
+                  <fieldset className="space-y-3" aria-labelledby={`quiz-question-${currentQuizIndex}`}>
+                    <legend className="sr-only">Choose your answer from the following options</legend>
+                    {Object.entries(quizData[currentQuizIndex].options).map(([key, value], index) => (
+                      <label
+                        key={key}
+                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 focus-within:ring-2 focus-within:ring-amber-500 focus-within:ring-offset-2 ${
+                          selectedAnswer === key
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-orange-200 hover:border-amber-300 hover:bg-amber-25'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="quiz-answer"
+                          value={key}
+                          checked={selectedAnswer === key}
+                          onChange={(e) => setSelectedAnswer(e.target.value as 'A' | 'B' | 'C' | 'D')}
+                          className="sr-only"
+                          aria-describedby={`option-${key}-description`}
+                        />
+                        <div 
+                          className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                            selectedAnswer === key ? 'border-amber-500 bg-amber-500' : 'border-orange-300'
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {selectedAnswer === key && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                        </div>
+                        <span className="text-orange-700" id={`option-${key}-description`}>
+                          <span className="font-medium">{key}.</span> {value}
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
                 </div>
 
-                <fieldset className="space-y-3" aria-labelledby="question-text">
-                  <legend className="sr-only">Multiple choice answers</legend>
-                  {['A', 'B', 'C', 'D'].map((option) => {
-                    const isSelected = selectedAnswer === option;
-                    const isCorrect = option === quizData[currentQuizIndex]?.answer;
-                    const showResult = showExplanation;
-                    
-                    let buttonClass = 'w-full p-4 text-left border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/50 ';
-                    let ariaLabel = `Option ${option}: ${quizData[currentQuizIndex]?.options[option as keyof typeof quizData[0]['options']]}`;
-                    
-                    if (!showResult) {
-                      buttonClass += isSelected 
-                        ? 'border-[#6b3f2a] bg-[#f7dac0] text-[#6b3f2a]' 
-                        : 'border-gray-300 hover:border-[#6b3f2a] hover:bg-[#fdf6f0]';
-                    } else {
-                      if (isCorrect) {
-                        buttonClass += 'border-green-500 bg-green-100 text-green-800';
-                        ariaLabel += isSelected ? ' - Your answer, correct!' : ' - Correct answer';
-                      } else if (isSelected && !isCorrect) {
-                        buttonClass += 'border-red-500 bg-red-100 text-red-800';
-                        ariaLabel += ' - Your answer, incorrect';
-                      } else {
-                        buttonClass += 'border-gray-300 bg-gray-50 text-gray-600';
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => selectAnswer(option as 'A' | 'B' | 'C' | 'D')}
-                        disabled={showExplanation}
-                        className={buttonClass}
-                        aria-label={ariaLabel}
-                        aria-pressed={isSelected}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>
-                            <strong>{option}.</strong> {quizData[currentQuizIndex]?.options[option as keyof typeof quizData[0]['options']]}
-                          </span>
-                          {showResult && isCorrect && (
-                            <Check className="w-5 h-5 text-green-600" aria-hidden="true" />
-                          )}
-                          {showResult && isSelected && !isCorrect && (
-                            <X className="w-5 h-5 text-red-600" aria-hidden="true" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </fieldset>
-
                 {showExplanation && (
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" role="region" aria-labelledby="explanation-heading">
-                    <h3 id="explanation-heading" className="sr-only">Explanation</h3>
-                    <p className="text-sm text-blue-800">
-                      <strong>Explanation:</strong> {quizData[currentQuizIndex]?.explanation}
+                  <div 
+                    className={`p-4 rounded-lg mb-6 ${
+                      quizResults[quizResults.length - 1]?.isCorrect 
+                        ? 'bg-green-100 border border-green-300' 
+                        : 'bg-red-100 border border-red-300'
+                    }`}
+                    role="alert"
+                    aria-live="polite"
+                    aria-labelledby="quiz-result-status"
+                  >
+                    <div className="flex items-center mb-2">
+                      {quizResults[quizResults.length - 1]?.isCorrect ? (
+                        <Check className="w-5 h-5 text-green-600 mr-2" aria-hidden="true" />
+                      ) : (
+                        <X className="w-5 h-5 text-red-600 mr-2" aria-hidden="true" />
+                      )}
+                      <span 
+                        id="quiz-result-status"
+                        className={`font-semibold ${
+                          quizResults[quizResults.length - 1]?.isCorrect ? 'text-green-800' : 'text-red-800'
+                        }`}
+                      >
+                        {quizResults[quizResults.length - 1]?.isCorrect ? 'Correct!' : 'Incorrect'}
+                      </span>
+                    </div>
+                    <p className={`text-sm ${
+                      quizResults[quizResults.length - 1]?.isCorrect ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      {quizData[currentQuizIndex].explanation}
                     </p>
                   </div>
                 )}
-              </div>
 
-              {/* Quiz actions */}
-              <div className="p-6 bg-gray-50 border-t">
-                <div className="flex justify-center gap-4">
-                  {showExplanation && (
-                    <button
-                      onClick={nextQuestion}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-500/50 transition-all duration-200 shadow-lg"
-                    >
-                      {currentQuizIndex < quizData.length - 1 ? 'Next Question' : 'Finish Quiz'}
-                    </button>
+                {/* Quiz actions */}
+                <div className="flex justify-center space-x-4" role="group" aria-label="Quiz actions">
+                  {!showExplanation ? (
+                    <>
+                      <button
+                        onClick={submitAnswer}
+                        disabled={!selectedAnswer}
+                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                          selectedAnswer
+                            ? 'bg-amber-500 text-white hover:bg-amber-600 hover:scale-105'
+                            : 'bg-orange-300 text-orange-500 cursor-not-allowed'
+                        }`}
+                        aria-describedby={!selectedAnswer ? "submit-help-text" : undefined}
+                      >
+                        Submit Answer
+                      </button>
+                      {!selectedAnswer && (
+                        <div id="submit-help-text" className="sr-only">
+                          Please select an answer before submitting
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedAnswer(null);
+                          restartQuiz();
+                        }}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        aria-label="Exit quiz and return to cultural facts"
+                      >
+                        Exit Quiz
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={nextQuestion}
+                        className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                        aria-label={currentQuizIndex < quizData.length - 1 ? `Continue to question ${currentQuizIndex + 2} of ${quizData.length}` : 'Complete quiz and view results'}
+                      >
+                        {currentQuizIndex < quizData.length - 1 ? 'Next Question' : 'Finish Quiz'}
+                      </button>
+                      <button
+                        onClick={restartQuiz}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        aria-label="Exit quiz and return to cultural facts"
+                      >
+                        Exit Quiz
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={restartQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
-                  >
-                    Back to Facts
-                  </button>
                 </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* Quiz Completed State */}
-        {quizState === 'completed' && (
+        {/* Quiz Results */}
+        {quizState === 'complete' && (
           <section className="relative max-w-lg mx-auto" aria-labelledby="quiz-results-heading">
             <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
             <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
 
             <div
-              key={`results-${cardKey}`}
-              className={`relative bg-white rounded-2xl shadow-2xl border-4 border-[#f7dac0] overflow-hidden transition-all duration-200 ${
-                cardVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              }`}
+              className="relative bg-white rounded-2xl shadow-2xl border-4 border-orange-200 overflow-hidden transition-all duration-200 opacity-100 scale-100"
             >
               {/* Results header */}
-              <div className="bg-gradient-to-r from-violet-200 to-pink-200 text-white p-6 text-center">
-                <div className="mb-2 flex items-center justify-center">
-                  {renderFlag(currentCountry)}
-                </div>
+              <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 text-center">
+                <Trophy className="w-12 h-12 mx-auto mb-2 text-yellow-100" aria-hidden="true" />
                 <h2 id="quiz-results-heading" className="text-2xl font-bold">Quiz Complete!</h2>
-                <p className="opacity-75 mt-1">Here&apos;s how you did</p>
+                <p className="opacity-75 mt-1" aria-live="polite">
+                  Score: {quizResults.filter(r => r.isCorrect).length} out of {quizResults.length} correct
+                  ({Math.round((quizResults.filter(r => r.isCorrect).length / quizResults.length) * 100)}%)
+                </p>
               </div>
 
-              {/* Results body */}
-              <div className="p-8">
-                <div className="text-center mb-6" role="region" aria-live="polite" aria-labelledby="final-score">
-                  <div className="text-6xl mb-4" aria-hidden="true">
-                    <Trophy className="w-16 h-16 mx-auto text-[#6b3f2a]" />
-                  </div>
-                  <div id="final-score" data-testid="final-score" className="text-3xl font-bold text-gray-800 mb-2">
-                    {quizResults.filter(r => r.isCorrect).length} out of {quizResults.length} correct
-                  </div>
-                  <p className="text-lg text-gray-600">
-                    {quizResults.filter(r => r.isCorrect).length === quizResults.length
-                      ? 'Perfect score! You really know your facts!'
-                      : quizResults.filter(r => r.isCorrect).length >= quizResults.length / 2
-                      ? 'Great job! You learned a lot about ' + currentCountry + '!'
-                      : 'Good try! Why not read more facts and try again?'}
-                  </p>
-                </div>
-
-                <div className="space-y-3" role="list" aria-label="Question results">
+              {/* Results content */}
+              <div className="p-8 bg-white">
+                <div className="space-y-4 mb-6" role="list" aria-label="Quiz question results">
                   {quizResults.map((result, index) => (
                     <div
                       key={index}
                       role="listitem"
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        result.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      className={`p-4 rounded-lg border ${
+                        result.isCorrect 
+                          ? 'border-green-300 bg-green-50' 
+                          : 'border-red-300 bg-red-50'
                       }`}
-                      aria-label={`Question ${index + 1}: ${result.isCorrect ? 'Correct' : 'Incorrect'}`}
+                      aria-labelledby={`result-${index}-status`}
                     >
-                      <span className="font-medium">Question {index + 1}</span>
-                      {result.isCorrect ? (
-                        <Check className="w-5 h-5" aria-label="Correct" />
-                      ) : (
-                        <X className="w-5 h-5" aria-label="Incorrect" />
-                      )}
+                      <div className="flex items-center mb-2">
+                        {result.isCorrect ? (
+                          <Check className="w-5 h-5 text-green-600 mr-2" aria-hidden="true" />
+                        ) : (
+                          <X className="w-5 h-5 text-red-600 mr-2" aria-hidden="true" />
+                        )}
+                        <span id={`result-${index}-status`} className="font-medium text-orange-800">
+                          Question {index + 1}: {result.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-orange-600 mb-1">{result.question}</p>
+                      <div className="text-sm">
+                        <p>
+                          <span className="font-medium">Your answer:</span> {result.userAnswer}
+                        </p>
+                        <p>
+                          <span className="font-medium">Correct answer:</span> {result.correctAnswer}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Results actions */}
-              <div className="p-6 bg-gray-50 border-t">
-                <div className="flex justify-center gap-4">
+                <div className="flex justify-center space-x-4" role="group" aria-label="Quiz completion actions">
                   <button
-                    onClick={generateQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-sm font-bold text-lg hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-500/50 transition-all duration-200 shadow-lg"
+                    onClick={() => {
+                      restartQuiz();
+                      generateQuiz();
+                    }}
+                    className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                    aria-label="Start a new quiz with different questions"
                   >
-                    <Brain className="w-5 h-5" aria-hidden="true" />
                     Try Again
                   </button>
                   <button
                     onClick={restartQuiz}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
+                    className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    aria-label="Return to cultural facts without retaking quiz"
                   >
                     Back to Facts
                   </button>
@@ -995,125 +775,254 @@ const CulturalExplorer = () => {
               </div>
             </div>
           </section>
-        )}
+        )}        {/* Facts Carousel Display */}
+        {matchedCountries.length > 0 && quizState === 'idle' && (
+          <section className="max-w-6xl mx-auto mb-12" aria-labelledby="facts-carousel-heading">
+            {/* Country Carousel Rows */}
+            <div className="space-y-12">
+              {matchedCountries.map((country) => {
+                const facts = countryFacts[country] || [];
+                const currentIndex = carouselIndices[country] || 0;
+                const currentFact = facts[currentIndex];
+                
+                return (
+                  <article key={country} className="bg-white rounded-2xl shadow-xl border border-orange-200 overflow-hidden" aria-labelledby={`country-${country.replace(/\s+/g, '-').toLowerCase()}-heading`}>
+                    {/* Country Header */}
+                    <header className="bg-gradient-to-r from-orange-500 to-amber-600 text-white p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center justify-center">
+                            {renderFlag(country)}
+                          </div>
+                          <div>
+                            <h3 id={`country-${country.replace(/\s+/g, '-').toLowerCase()}-heading`} className="text-2xl font-bold">{country}</h3>
+                            <p className="text-blue-100" aria-live="polite">
+                              {facts.length > 0 ? `${facts.length} fascinating facts available` : 'Loading facts...'}
+                            </p>
+                            {/* Pen Pal Information */}
+                            {countryPenPals[country] && countryPenPals[country].length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-blue-200 text-sm">
+                                  <Users className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                                  {countryPenPals[country].length} pen pal{countryPenPals[country].length !== 1 ? 's' : ''} from this country:
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1" role="list" aria-label={`Pen pals from ${country}`}>
+                                  {(expandedPenPals[country] ? countryPenPals[country] : countryPenPals[country].slice(0, 4)).map((penPal, index) => (
+                                    <span
+                                      key={penPal.user_id}
+                                      role="listitem"
+                                      className="inline-block bg-white/20 text-white text-xs px-2 py-1 rounded-full"
+                                    >
+                                      @{penPal.anonymous_handle}
+                                    </span>
+                                  ))}
+                                  {countryPenPals[country].length > 4 && !expandedPenPals[country] && (
+                                    <button
+                                      onClick={() => setExpandedPenPals(prev => ({ ...prev, [country]: true }))}
+                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                                      aria-label={`Show ${countryPenPals[country].length - 4} more pen pals from ${country}`}
+                                    >
+                                      +{countryPenPals[country].length - 4} more
+                                    </button>
+                                  )}
+                                  {expandedPenPals[country] && countryPenPals[country].length > 4 && (
+                                    <button
+                                      onClick={() => setExpandedPenPals(prev => ({ ...prev, [country]: false }))}
+                                      className="inline-block bg-white/30 hover:bg-white/40 text-white text-xs px-2 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                                      aria-label={`Show fewer pen pals from ${country}`}
+                                    >
+                                      show less
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2" role="group" aria-label={`Actions for ${country}`}>
+                          <button
+                            onClick={() => refreshFactsForCountry(country)}
+                            disabled={facts.length === 0}
+                            className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                            aria-label={`Refresh facts for ${country}`}
+                            title={`Refresh facts for ${country}`}
+                          >
+                            <RefreshCw className="w-5 h-5" aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              generateQuiz(country);
+                            }}
+                            disabled={facts.length === 0}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-amber-600"
+                            aria-label={`Start quiz about ${country}`}
+                          >
+                            <Brain className="w-4 h-4" aria-hidden="true" />
+                            Quiz
+                          </button>
+                        </div>
+                      </div>
+                    </header>
 
-        {/* Card Stack */}
-        {currentCountry && quizState === 'idle' && (
-          <section className="relative max-w-lg mx-auto" aria-labelledby="facts-card-heading">
-            <div className="absolute inset-0 bg-white rounded-2xl transform rotate-2 shadow-lg" aria-hidden="true" />
-            <div className="absolute inset-0 bg-white rounded-2xl transform -rotate-1 shadow-lg" aria-hidden="true" />
+                    {/* Facts Carousel */}
+                    {facts.length > 0 ? (
+                      <div className="p-6">
+                        <div className="relative">
+                          {/* Three Cards Layout */}
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {facts.slice(currentIndex, currentIndex + 3).map((fact, index) => {
+                              const cardIndex = currentIndex + index;
+                              return (
+                                <div
+                                  key={cardIndex}
+                                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 min-h-[200px] flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow duration-200"
+                                >
+                                  <div className="text-center">
+                                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm mx-auto mb-3">
+                                      {cardIndex + 1}
+                                    </div>
+                                    <p className="text-gray-800 text-sm leading-relaxed line-clamp-6">
+                                      {fact}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Fill empty slots if less than 3 facts remaining */}
+                            {facts.slice(currentIndex, currentIndex + 3).length < 3 &&
+                              Array.from({ length: 3 - facts.slice(currentIndex, currentIndex + 3).length }).map((_, index) => (
+                                <div
+                                  key={`empty-${index}`}
+                                  className="bg-orange-100 rounded-xl p-6 min-h-[200px] flex items-center justify-center opacity-50"
+                                >
+                                  <div className="text-orange-400 text-center">
+                                    <div className="w-8 h-8 bg-orange-300 rounded-full flex items-center justify-center text-orange-500 font-bold text-sm mx-auto mb-3">
+                                      {currentIndex + facts.slice(currentIndex, currentIndex + 3).length + index + 1}
+                                    </div>
+                                    <p className="text-sm">No more facts</p>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
 
-            <div
-              key={cardKey}
-              className={`relative bg-white rounded-2xl shadow-2xl border-4 border-gray-200 overflow-hidden transition-all duration-200 ${
-                cardVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              }`}
-            >
-              {/* Card header */}
-              <div className="bg-gradient-to-r from-teal-400 to-yellow-200 text-white p-6 text-center">
-                <div className="mb-2 flex items-center justify-center">
-                  {renderFlag(currentCountry)}
-                </div>
-                <h2 id="facts-card-heading" className="text-2xl font-bold">{currentCountry}</h2>
-                <p className="opacity-75 mt-1" aria-live="polite">
-                  Card {currentFactIndex + 1} of {currentFacts.length}
-                </p>
-              </div>
+                          {/* Navigation Arrows */}
+                          {facts.length > 3 && (
+                            <>
+                              <button
+                                onClick={() => navigateCarousel(country, 'prev')}
+                                disabled={currentIndex === 0}
+                                className={`absolute left-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                                  currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'
+                                }`}
+                                aria-label={`Show previous 3 facts for ${country} (currently showing ${currentIndex + 1}-${Math.min(currentIndex + 3, facts.length)} of ${facts.length})`}
+                              >
+                                <ChevronLeft className="w-6 h-6 text-orange-600" aria-hidden="true" />
+                              </button>
+                              <button
+                                onClick={() => navigateCarousel(country, 'next')}
+                                disabled={currentIndex + 3 >= facts.length}
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white shadow-lg rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                                  currentIndex + 3 >= facts.length ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'
+                                }`}
+                                aria-label={`Show next 3 facts for ${country} (currently showing ${currentIndex + 1}-${Math.min(currentIndex + 3, facts.length)} of ${facts.length})`}
+                              >
+                                <ChevronRight className="w-6 h-6 text-orange-600" aria-hidden="true" />
+                              </button>
+                            </>
+                          )}
+                        </div>
 
-              {/* Card body */}
-              <div className="p-8">
-                <div className="min-h-[140px] flex items-center justify-center">
-                  <p
-                    className={`text-lg text-gray-700 leading-relaxed text-center transition-opacity duration-200 ${
-                      isFlipping ? 'opacity-0' : 'opacity-100'
-                    }`}
-                    aria-live="polite"
-                    role="region"
-                    aria-label="Cultural fact"
-                  >
-                    {currentFact}
-                  </p>
-                </div>
-              </div>
-
-              {/* Card actions */}
-              <div className="p-6 bg-gray-50 border-t">
-                <div className="flex justify-center gap-3 flex-wrap" role="group" aria-label="Card actions">
-                  <button
-                    onClick={flipCard}
-                    disabled={isFlipping || currentFacts.length === 0}
-                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-teal-500/50 ${
-                      isFlipping
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-teal-400 to-yellow-200 rounded-sm text-white hover:scale-105 shadow-lg'
-                    }`}
-                    aria-describedby={isFlipping ? undefined : "next-fact-desc"}
-                  >
-                    <RotateCw className={`w-5 h-5 ${isFlipping ? 'animate-spin' : ''}`} aria-hidden="true" />
-                    {isFlipping ? 'Flipping...' : 'Next Fact'}
-                  </button>
-                  {!isFlipping && (
-                    <div id="next-fact-desc" className="sr-only">
-                      Show the next cultural fact about {currentCountry}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={generateQuiz}
-                    disabled={!currentFacts.length}
-                    className={`flex items-center gap-2 px-6 py-3 font-bold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-pink-500/50 ${
-                      !currentFacts.length
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-pink-500 to-rose-500 rounded-sm text-white hover:scale-105 shadow-lg'
-                    }`}
-                    aria-describedby="take-quiz-desc"
-                  >
-                    <Brain className="w-5 h-5" aria-hidden="true" />
-                    Take Quiz
-                  </button>
-                  <div id="take-quiz-desc" className="sr-only">
-                    Test your knowledge about {currentCountry} with an interactive quiz
-                  </div>
-
-                  {selectedDeck === 'random' && (
-                    <button
-                      onClick={shuffleDeck}
-                      className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-sm font-bold text-lg hover:bg-gray-600 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500/50 transition-all duration-200 shadow-lg"
-                      aria-describedby="shuffle-desc"
-                    >
-                      <Shuffle className="w-5 h-5" aria-hidden="true" />
-                      Shuffle
-                    </button>
-                  )}
-                  {selectedDeck === 'random' && (
-                    <div id="shuffle-desc" className="sr-only">
-                      Get facts for a different random country
-                    </div>
-                  )}
-                </div>
-              </div>
+                        {/* Carousel Dots */}
+                        {facts.length > 3 && (
+                          <nav className="flex justify-center space-x-2 mt-6" role="tablist" aria-label={`${country} facts navigation`}>
+                            {Array.from({ length: Math.ceil(facts.length / 3) }).map((_, index) => {
+                              const isActive = Math.floor(currentIndex / 3) === index;
+                              const startFact = index * 3 + 1;
+                              const endFact = Math.min((index + 1) * 3, facts.length);
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => setCarouselIndices(prev => ({ ...prev, [country]: index * 3 }))}
+                                  className={`w-3 h-3 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                                    isActive
+                                      ? 'bg-amber-500 scale-125'
+                                      : 'bg-orange-300 hover:bg-orange-400'
+                                  }`}
+                                  role="tab"
+                                  aria-selected={isActive}
+                                  aria-label={`Go to ${country} facts ${startFact}-${endFact} of ${facts.length}`}
+                                />
+                              );
+                            })}
+                          </nav>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-orange-600">Loading fascinating facts about {country}...</p>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
             </div>
 
-            {/* Deck info */}
+            {/* Global Actions */}
+            <section className="flex justify-center gap-4 mt-8" aria-label="Global actions">
+              <button
+                onClick={generateAllRandomFacts}
+                disabled={matchedCountries.length === 0}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                  matchedCountries.length === 0
+                    ? 'bg-orange-300 text-orange-500 cursor-not-allowed'
+                    : 'bg-amber-500 text-white hover:bg-amber-600 hover:scale-105 shadow-lg'
+                }`}
+                aria-label={`Refresh facts for all ${matchedCountries.length} countries`}
+                aria-describedby="refresh-help-text"
+              >
+                <RefreshCw className="w-5 h-5" aria-hidden="true" />
+                Refresh All Facts
+              </button>
+              {matchedCountries.length === 0 && (
+                <div id="refresh-help-text" className="sr-only">
+                  No countries available to refresh. Connect with pen pals to see their countries.
+                </div>
+              )}
+            </section>
+
+            {/* Summary Info */}
             <div className="mt-8 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-gray-600" role="status">
-                <Globe className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">{availableCountries.length} countries available</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-orange-600" role="status" aria-live="polite">
+                <Heart className="w-4 h-4 text-pink-500" aria-hidden="true" />
+                <span className="font-medium">
+                  {matchedCountries.length} pen pal countr{matchedCountries.length !== 1 ? 'ies' : 'y'}, {Object.values(countryPenPals).reduce((total, pals) => total + pals.length, 0)} pen pals, {Object.values(countryFacts).reduce((total, facts) => total + facts.length, 0)} facts available
+                </span>
               </div>
             </div>
           </section>
         )}
 
-        {/* No selection state */}
-        {!currentCountry && selectedDeck === 'select-country' && (
-          <section className="text-center py-16" aria-labelledby="no-selection-heading">
-            <div className="text-8xl mb-6" aria-hidden="true">🎴</div>
-            <h3 id="no-selection-heading" className="text-2xl font-bold text-gray-600 mb-2">Select a Country</h3>
-            <p className="text-gray-500">Choose a country from the dropdown to start exploring facts!</p>
+        {/* No matches state */}
+        {matchedCountries.length === 0 && !isLoadingMatches && (
+          <section className="text-center py-16" aria-labelledby="no-matches-heading" role="region">
+            <div className="text-8xl mb-6" aria-hidden="true">💌</div>
+            <h3 id="no-matches-heading" className="text-2xl font-bold text-orange-600 mb-2">No Pen Pal Countries Yet</h3>
+            <p className="text-orange-500 mb-4" id="no-matches-description">
+              {matchedUsersCount === 0 
+                ? "Start connecting with pen pals to unlock their countries and explore fascinating cultural facts!" 
+                : "Your pen pals haven't shared their countries yet. Facts will appear once they update their profiles."
+              }
+            </p>
+            <div className="inline-flex items-center px-6 py-3 bg-orange-100 text-orange-600 rounded-lg" role="note" aria-describedby="no-matches-description">
+              <Heart className="w-5 h-5 mr-2" aria-hidden="true" />
+              <span>Match with pen pals to explore their cultures</span>
+            </div>
           </section>
         )}
 
-        <div id="main-content"></div>
+        <div id="main-content" tabIndex={-1}></div>
       </main>
     </div>
   );
