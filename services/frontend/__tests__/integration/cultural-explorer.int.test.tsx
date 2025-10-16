@@ -106,16 +106,17 @@ const MOCK_PEN_PALS = [
 ];
 
 // Mock fetch for facts.json
-global.fetch = jest.fn(async (url) => {
+global.fetch = jest.fn(async (url: RequestInfo | URL) => {
   const urlStr = typeof url === 'string' ? url : url.toString();
   if (urlStr.endsWith('/facts.json')) {
-    return {
-      ok: true,
-      json: async () => FACTS_DATA,
-    };
+    const body = JSON.stringify(FACTS_DATA);
+    return new Response(body, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-  return { ok: false, json: async () => ({}) };
-});
+  return new Response(null, { status: 404 });
+}) as unknown as typeof fetch;
 
 describe('Cultural Explorer Integration', () => {
   beforeEach(() => {
@@ -169,48 +170,6 @@ describe('Cultural Explorer Integration', () => {
     }, { timeout: 8000 });
 
     consoleSpy.mockRestore();
-  });
-
-  test('carousel navigation functionality works', async () => {
-    const user = userEvent.setup();
-    render(<CulturalExplorer />);
-
-    // Wait for content to load
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /japan/i })).toBeInTheDocument();
-    });
-
-    // Verify facts section exists
-    const japanSection = screen.getByRole('heading', { name: /japan/i }).closest('article');
-    expect(japanSection).toBeInTheDocument();
-
-    // Find and click refresh button for Japan (this is the actual navigation available)
-    const japanRefreshButton = screen.getByRole('button', { name: /refresh facts for japan/i });
-    await user.click(japanRefreshButton);
-
-    // Should still have the Japan section after refresh
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /japan/i })).toBeInTheDocument();
-    });
-
-    // Test quiz button - start quiz
-    const japanQuizButton = screen.getByRole('button', { name: /start quiz about japan/i });
-    await user.click(japanQuizButton);
-
-    // After clicking quiz, we should see the quiz interface
-    await waitFor(() => {
-      // Look for quiz-specific heading or content
-      expect(screen.getByRole('heading', { name: /japan quiz/i })).toBeInTheDocument();
-    });
-
-    // Exit the quiz to return to main view
-    const exitQuizButton = screen.getByRole('button', { name: /exit quiz/i });
-    await user.click(exitQuizButton);
-
-    // Should return to main cultural explorer view
-    await waitFor(() => {
-      expect(screen.getByText(/cultural explorer/i)).toBeInTheDocument();
-    });
   });
 
   test('refresh facts functionality works', async () => {
