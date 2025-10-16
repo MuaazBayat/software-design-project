@@ -56,7 +56,7 @@ jobs:
         run: |
           pytest -q tests/matchmaking \
             --maxfail=1 \
-            --cov=services/matchmaking \
+            --cov=services.matchmaking.main \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \
