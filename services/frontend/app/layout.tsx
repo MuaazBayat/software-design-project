@@ -7,6 +7,7 @@ import { ConversationUserProvider } from "@/lib/context/ConversationUserContext"
 import { ProfileProvider } from "@/lib/context/ProfileContext";
 import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
 import { Toaster } from "sonner";
+import { OnboardingGuard } from "@/components/OnboardingGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,13 +25,14 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/globe.png", sizes: "32x32", type: "image/png" },
-      { url: "/globe.png", sizes: "192x192", type: "image/png" }, // Android homescreen
-      { url: "/globe.png", sizes: "512x512", type: "image/png" }, // PWA
+      { url: "/globe.png", sizes: "192x192", type: "image/png" },
+      { url: "/globe.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/globe.png", // iOS Safari pinned tab
+    apple: "/globe.png",
   },
 };
 
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -52,9 +54,11 @@ export default function RootLayout({
           >
             <ProfileProvider>
               <ConversationUserProvider>
-                <Header />
-                {children}
-                <Toaster richColors position="top-center" />
+                <OnboardingGuard>
+                  <Header />
+                  {children}
+                  <Toaster richColors position="top-center" />
+                </OnboardingGuard>
               </ConversationUserProvider>
             </ProfileProvider>
           </FpjsProvider>

@@ -25,6 +25,10 @@ export default function Header() {
     setIsLoaded(true);  // Make sure the component is fully loaded
   }, [pathname]);
 
+  if (pathname === "/onboarding") {
+    return null;
+  }
+  
   return (
     <header className="relative flex flex-wrap p-4 gap-4 h-16 bg-black items-center justify-between z-50">
       {/* Logo */}

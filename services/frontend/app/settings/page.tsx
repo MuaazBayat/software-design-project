@@ -23,18 +23,20 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { User2, MessageSquareHeart, ArrowLeft } from "lucide-react";
+import { User2, MessageSquareHeart, ArrowLeft, MapPin, Heart } from "lucide-react";
 
 // ===== Types that match your FastAPI models =====
 export type ProfileModel = {
   anonymous_handle?: string | null;
-  age_range?: string | null; // DB expects hyphen buckets, e.g. "26-35"
-  primary_language?: string | null; // DB expects ISO code, e.g. "fr"
-  secondary_languages?: string[] | null; // array of ISO codes
+  age_range?: string | null;
+  primary_language?: string | null;
+  secondary_languages?: string[] | null;
   time_zone?: string | null;
-  country_code?: string | null; // ISO-3166 alpha‑2
+  country_code?: string | null;
   bio?: string | null;
   interests?: string[] | null;
+  favorite_local_fact?: string | null;
+  preferred_correspondence_type?: "long-term" | "one-time" | "either";
 };
 
 // ----- helpers -----
@@ -102,8 +104,7 @@ function Chip({ text, onRemove }: { text: string; onRemove: () => void }) {
 }
 
 // ===== API wiring =====
-// CHANGE 1: read the env var that your UI message mentions
-const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || ""; // set in .env.local
+const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || "";
 
 async function apiGetProfile(
   clerkId: string,
@@ -119,7 +120,7 @@ async function apiGetProfile(
       ...(token && { "Authorization": `Bearer ${token}` }),
     },
   });
-  if (res.status === 404) return null; // no profile yet
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GET failed: ${res.status}`);
   return (await res.json()) as ProfileModel;
 }
@@ -149,7 +150,7 @@ async function apiUpdateProfile(
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
-// Direct select values — EXACTLY what the DB expects (per your enum)
+// Direct select values
 const AGE_BUCKETS = [
   "18-25",
   "26-35",
@@ -167,7 +168,47 @@ const LANG = [
   { code: "zh", label: "Chinese" },
 ] as const;
 
-// ===== Page Component (no props; use Clerk) =====
+const CORRESPONDENCE_TYPES = [
+  { value: "long-term", label: "Long term" },
+  { value: "one-time", label: "One Time" },
+  { value: "either", label: "Either" },
+] as const;
+
+// Extended country list
+const COUNTRIES = [
+  { code: "ZA", name: "South Africa" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "NG", name: "Nigeria" },
+  { code: "IN", name: "India" },
+  { code: "JP", name: "Japan" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "CN", name: "China" },
+  { code: "RU", name: "Russia" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "KR", name: "South Korea" },
+  { code: "MX", name: "Mexico" },
+  { code: "ID", name: "Indonesia" },
+  { code: "TR", name: "Turkey" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "AR", name: "Argentina" },
+  { code: "EG", name: "Egypt" },
+  { code: "PK", name: "Pakistan" },
+  { code: "BD", name: "Bangladesh" },
+  { code: "KE", name: "Kenya" },
+  { code: "ET", name: "Ethiopia" },
+  { code: "PH", name: "Philippines" },
+  { code: "VN", name: "Vietnam" },
+  { code: "TH", name: "Thailand" },
+  { code: "MY", name: "Malaysia" },
+] as const;
+
+// ===== Page Component =====
 export default function Page() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { getToken } = useAuth();
@@ -180,12 +221,15 @@ export default function Page() {
   const [bio, setBio] = React.useState<string>("");
   const [interests, setInterests] = React.useState<string[]>([]);
   const [interestInput, setInterestInput] = React.useState("");
+  const [favoriteLocalFact, setFavoriteLocalFact] = React.useState("");
+  const [preferredCorrespondenceType, setPreferredCorrespondenceType] = React.useState<'long-term' | 'one-time' | 'either'>('either');
 
-  const [primaryLanguage, setPrimaryLanguage] = React.useState<string | undefined>(); // ISO code
-  const [secondaryLanguages, setSecondaryLanguages] = React.useState<string[]>([]); // ISO codes
-  const [secondaryLangInput, setSecondaryLangInput] = React.useState(""); // expects ISO code
+  const [primaryLanguage, setPrimaryLanguage] = React.useState<string | undefined>();
+  const [secondaryLanguages, setSecondaryLanguages] = React.useState<string[]>([]);
+  const [secondaryLangInput, setSecondaryLangInput] = React.useState("");
   const [timeZone, setTimeZone] = React.useState<string | undefined>();
   const PREFER_NOT = "prefer-not" as const;
+
   // fetch state
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -211,6 +255,8 @@ export default function Page() {
             country_code: null,
             bio: "",
             interests: [],
+            favorite_local_fact: null,
+            preferred_correspondence_type: 'either',
           };
           return;
         }
@@ -223,6 +269,8 @@ export default function Page() {
           country_code: data.country_code ?? null,
           bio: data.bio ?? "",
           interests: data.interests ?? [],
+          favorite_local_fact: data.favorite_local_fact ?? null,
+          preferred_correspondence_type: data.preferred_correspondence_type ?? 'either',
         };
         originalRef.current = model;
         setHandle((model.anonymous_handle ?? "") as string);
@@ -233,6 +281,8 @@ export default function Page() {
         setCountryCode(model.country_code ?? undefined);
         setBio((model.bio ?? "") as string);
         setInterests(model.interests ?? []);
+        setFavoriteLocalFact((model.favorite_local_fact ?? "") as string);
+        setPreferredCorrespondenceType(model.preferred_correspondence_type ?? 'either');
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
@@ -241,40 +291,6 @@ export default function Page() {
     };
   }, [isLoaded, isSignedIn, clerkId, getToken]);
 
-  // Keep buildPatch (useful if you want to switch back later)
-  function buildPatch(): Partial<ProfileModel> {
-    const orig = (originalRef.current ?? {}) as ProfileModel;
-    const patch: Partial<ProfileModel> = {};
-
-    const curr: ProfileModel = {
-      anonymous_handle: handle || null,
-      age_range: ageRange ?? null,
-      primary_language: primaryLanguage ?? null,
-      secondary_languages: secondaryLanguages,
-      time_zone: timeZone ?? null,
-      country_code: countryCode ?? null,
-      bio: bio || null,
-      interests,
-    };
-
-    const isEqual = <T,>(a: T, b: T) =>
-      Array.isArray(a) && Array.isArray(b)
-        ? a.length === b.length && a.every((v, i) => v === b[i])
-        : a === b;
-
-    const setIfChanged = <K extends keyof ProfileModel>(key: K) => {
-      const a = curr[key];
-      const b = orig[key];
-      if (!isEqual(a, b)) {
-        patch[key] = a; // type-safe
-      }
-    };
-
-    (Object.keys(curr) as (keyof ProfileModel)[]).forEach((k) => setIfChanged(k));
-    return patch;
-  }
-
-  // CHANGE 2: add a builder that always sends ALL current values
   function buildFull(): ProfileModel {
     return {
       anonymous_handle: (handle || null) as string | null,
@@ -285,6 +301,8 @@ export default function Page() {
       country_code: countryCode ?? null,
       bio: (bio || null) as string | null,
       interests,
+      favorite_local_fact: favoriteLocalFact || null,
+      preferred_correspondence_type: preferredCorrespondenceType,
     };
   }
 
@@ -298,7 +316,6 @@ export default function Page() {
       return;
     }
 
-    // CHANGE 3: send FULL body instead of diff
     const body = buildFull();
 
     setSaving(true);
@@ -314,10 +331,11 @@ export default function Page() {
         country_code: updated.country_code ?? null,
         bio: updated.bio ?? "",
         interests: updated.interests ?? [],
+        favorite_local_fact: updated.favorite_local_fact ?? null,
+        preferred_correspondence_type: updated.preferred_correspondence_type ?? 'either',
       };
       toast.success("Settings saved successfully!");
       
-      // Announce success to screen readers
       const announcement = document.createElement('div');
       announcement.setAttribute('aria-live', 'assertive');
       announcement.setAttribute('aria-atomic', 'true');
@@ -333,10 +351,8 @@ export default function Page() {
     }
   }
 
-  // UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
-      {/* Skip to main content link for screen readers */}
       <a 
         href="#main-content" 
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-black focus:text-white focus:rounded"
@@ -399,7 +415,7 @@ export default function Page() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-stone-800">Profile</CardTitle>
-                <CardDescription>Handle, country, age, bio, interests.</CardDescription>
+                <CardDescription>Handle, country, age, bio, interests, and local facts.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} aria-label="Profile settings form">
@@ -432,16 +448,12 @@ export default function Page() {
                           <SelectTrigger className="bg-white" aria-label="Select your country">
                             <SelectValue placeholder="Select country" />
                           </SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            <SelectItem value="ZA">South Africa (ZA)</SelectItem>
-                            <SelectItem value="US">United States (US)</SelectItem>
-                            <SelectItem value="GB">United Kingdom (GB)</SelectItem>
-                            <SelectItem value="DE">Germany (DE)</SelectItem>
-                            <SelectItem value="FR">France (FR)</SelectItem>
-                            <SelectItem value="NG">Nigeria (NG)</SelectItem>
-                            <SelectItem value="IN">India (IN)</SelectItem>
-                            <SelectItem value="JP">Japan (JP)</SelectItem>
-                            <SelectItem value="BR">Brazil (BR)</SelectItem>
+                          <SelectContent className="max-h-64 overflow-y-auto">
+                            {COUNTRIES.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.name} ({country.code})
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FieldRow>
@@ -470,6 +482,23 @@ export default function Page() {
                         className="bg-white min-h-[90px]"
                         aria-label="Your bio"
                       />
+                    </FieldRow>
+
+                    <FieldRow 
+                      label="Favorite Local Fact" 
+                      hint="Share an interesting fact about your country or culture (max 200 characters)."
+                    >
+                      <Textarea
+                        value={favoriteLocalFact}
+                        onChange={(e) => setFavoriteLocalFact(e.target.value)}
+                        placeholder="Did you know that in my country we have a tradition where..."
+                        className="bg-white min-h-[80px]"
+                        maxLength={200}
+                        aria-label="Your favorite local fact"
+                      />
+                      <p className="text-xs text-stone-500 mt-1">
+                        {favoriteLocalFact.length}/200 characters
+                      </p>
                     </FieldRow>
 
                     <FieldRow label="Interests" hint="Type and press Enter to add.">
@@ -542,8 +571,8 @@ export default function Page() {
           <TabsContent value="language" className="mt-4" role="tabpanel" id="language-panel">
             <Card>
               <CardHeader>
-                <CardTitle className="text-stone-800">Languages & Time</CardTitle>
-                <CardDescription>Primary/secondary languages and your time zone.</CardDescription>
+                <CardTitle className="text-stone-800">Languages & Communication</CardTitle>
+                <CardDescription>Primary/secondary languages, time zone, and correspondence preferences.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} aria-label="Language and timezone settings form">
@@ -582,13 +611,33 @@ export default function Page() {
                         </Select>
                       </FieldRow>
                     </div>
+
+                    <FieldRow 
+                      label="Preferred Correspondence Type" 
+                      hint="How would you prefer to communicate with your pen pals?"
+                    >
+                      <Select 
+                        value={preferredCorrespondenceType} 
+                        onValueChange={(value: 'long-term' | 'one-time' | 'either') => setPreferredCorrespondenceType(value)}
+                      >
+                        <SelectTrigger className="bg-white" aria-label="Select preferred correspondence type">
+                          <SelectValue placeholder="Select communication preference" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CORRESPONDENCE_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
                     
                     <FieldRow
                       label="Secondary languages"
                       hint="Pick from the same list as primary; you can add multiple."
                     >
                       <div className="grid gap-2">
-                        {/* Selected chips */}
                         {secondaryLanguages.length > 0 && (
                           <div className="flex flex-wrap gap-2" role="list" aria-label="Your secondary languages">
                             {secondaryLanguages.map((code) => (
@@ -604,16 +653,13 @@ export default function Page() {
                           </div>
                         )}
 
-                        {/* Add-more dropdown (multi via repeated selection) */}
                         <Select
-                          // Remount the Select whenever the selection changes → placeholder resets
                           key={secondaryLanguages.join(",") || "empty"}
                           onValueChange={(code) => {
                             setSecondaryLanguages((prev) =>
                               prev.includes(code) ? prev : [...prev, code]
                             )
                           }}
-                          // Disable when nothing left to add
                           disabled={
                             LANG.filter(
                               ({ code }) => code !== primaryLanguage && !secondaryLanguages.includes(code)
@@ -635,7 +681,6 @@ export default function Page() {
                             />
                           </SelectTrigger>
 
-                          {/* Match trigger width; ensure it overlays */}
                           <SelectContent
                             position="popper"
                             className="z-50 w-[var(--radix-select-trigger-width)] max-h-64 overflow-auto"
