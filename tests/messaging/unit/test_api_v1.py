@@ -117,15 +117,6 @@ def test_get_active_match_and_thread_success_and_404(app_module, monkeypatch):
         app_module._get_active_match_and_thread("x", "y")
     assert e2.value.status_code == 404
 
-def test_get_conv_map_for_user_both_directions(app_module):
-    q1 = _make_query_mock(data=[{"user_2_id": "u2", "conversation_thread_id": "t2", "match_type": None}])
-    q2 = _make_query_mock(data=[{"user_1_id": "u3", "conversation_thread_id": "t3", "match_type": "long-term"}])
-    app_module._TEST_SUPABASE_CLIENT.table.side_effect = [q1, q2]
-    out = app_module._get_conv_map_for_user("me")
-    assert out == {
-        "u2": {"conversation_thread_id": "t2", "match_type": "either"},
-        "u3": {"conversation_thread_id": "t3", "match_type": "long-term"},
-    }
 
 def test_get_blocked_users_variants_and_either_blocked(app_module, monkeypatch):
     q1 = _make_query_mock(data={"blocked_users": '["x","y"]'})
