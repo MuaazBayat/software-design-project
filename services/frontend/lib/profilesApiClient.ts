@@ -44,7 +44,7 @@ export class ProfilesApiClient {
   private getToken: (() => Promise<string | null>) | null;
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_CORE_SERVICE_URL || 'http://localhost:8000',
+    baseUrl: string = process.env.NEXT_PUBLIC_CORE_URL || 'http://localhost:8000',
     getToken?: () => Promise<string | null>
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
@@ -105,40 +105,6 @@ export class ProfilesApiClient {
   async getProfileByUserId(userId: string): Promise<ExtendedUserProfile> {
     return this.makeRequest<ExtendedUserProfile>(`/profiles/by-user-id/${userId}`, {
       method: 'GET',
-    });
-  }
-
-  /**
-   * Get the current user's profile
-   * @returns Promise with the current user's profile
-   */
-  async getCurrentProfile(): Promise<ExtendedUserProfile> {
-    return this.makeRequest<ExtendedUserProfile>('/profiles/me', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a new profile
-   * @param profileData - The profile data to create
-   * @returns Promise with the created profile
-   */
-  async createProfile(profileData: ProfileCreateRequest): Promise<ExtendedUserProfile> {
-    return this.makeRequest<ExtendedUserProfile>('/profiles', {
-      method: 'POST',
-      body: JSON.stringify(profileData),
-    });
-  }
-
-  /**
-   * Update the current user's profile
-   * @param profileData - The profile data to update
-   * @returns Promise with the updated profile
-   */
-  async updateProfile(profileData: ProfileUpdateRequest): Promise<ExtendedUserProfile> {
-    return this.makeRequest<ExtendedUserProfile>('/profiles', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
     });
   }
 }

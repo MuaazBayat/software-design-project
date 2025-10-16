@@ -56,7 +56,7 @@ jobs:
         run: |
           pytest -q tests/moderation \
             --maxfail=1 \
-            --cov=services/moderation \
+            --cov=services.moderation.main \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \

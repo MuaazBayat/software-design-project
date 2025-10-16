@@ -339,6 +339,7 @@ const LetterInbox = () => {
                         formatMessagePreview={(t, n) => formatMessagePreview(t, n)}
                         formatTimeAgo={formatTimeAgo}
                         getDeliveryStatusBadge={getDeliveryStatusBadge}
+                        // showHobbies={false}
                         onClick={() => handleConversationClick(conversation)}
                         tabIndex={0}
                         role="button"
