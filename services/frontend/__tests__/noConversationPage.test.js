@@ -102,7 +102,7 @@ describe('NoConversationPage - Simple Tests', () => {
       render(<NoConversationPage />);
 
       expect(screen.getByText(/Your letter will be delivered in 12 hours/)).toBeInTheDocument();
-      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText('Start Writing')).toBeInTheDocument();
     });
 
     it('shows the tips section with letter ideas', () => {
@@ -121,7 +121,7 @@ describe('NoConversationPage - Simple Tests', () => {
       // Default mock has currentConversationUser: null
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Start Writting');
+      const writeButton = screen.getByText('Start Writing');
       fireEvent.click(writeButton);
       
       // Should not navigate if no current user
@@ -141,7 +141,7 @@ describe('NoConversationPage - Simple Tests', () => {
 
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Start Writting');
+      const writeButton = screen.getByText('Start Writing');
       fireEvent.click(writeButton);
       
       expect(mockPush).toHaveBeenCalledWith('/compose-letter/user123');
@@ -169,7 +169,7 @@ describe('NoConversationPage - Simple Tests', () => {
 
       render(<NoConversationPage />);
       
-      const writeButton = screen.getByText('Start Writting');
+      const writeButton = screen.getByText('Start Writing');
       const backButton = screen.getByText('Back to Inbox');
       
       fireEvent.click(writeButton);
@@ -223,8 +223,8 @@ describe('NoConversationPage - Simple Tests', () => {
     it('has proper heading structure', () => {
       render(<NoConversationPage />);
 
-      // Check that the main heading exists
-      const mainHeading = screen.getByRole('heading', { level: 2 });
+      // Check that the main heading exists (now h1)
+      const mainHeading = screen.getByRole('heading', { level: 1 });
       expect(mainHeading).toHaveTextContent(/Your Letter Adventure.*Begins!/s);
 
       // Check for sub-headings (h3 elements for the cards)
@@ -238,8 +238,8 @@ describe('NoConversationPage - Simple Tests', () => {
     it('contains all required instructional text', () => {
       render(<NoConversationPage />);
       
-      // Key instructional content
-      expect(screen.getByText(/12 hours/)).toBeInTheDocument();
+      // Key instructional content - use getAllByText for duplicate content
+      expect(screen.getAllByText(/12 hours/)).toHaveLength(2); // Now appears twice due to sr-only text
       expect(screen.getByText(/authentic postal feel/)).toBeInTheDocument();
       expect(screen.getByText(/pen pal is waiting/)).toBeInTheDocument();
     });
@@ -272,11 +272,11 @@ describe('NoConversationPage - Simple Tests', () => {
     it('maintains consistent content across re-renders', () => {
       const { rerender } = render(<NoConversationPage />);
       
-      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText('Start Writing')).toBeInTheDocument();
       
       rerender(<NoConversationPage />);
       
-      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText('Start Writing')).toBeInTheDocument();
       expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
       expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
@@ -289,7 +289,7 @@ describe('NoConversationPage - Simple Tests', () => {
       render(<NoConversationPage />);
       
       // Should still render all content
-      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText('Start Writing')).toBeInTheDocument();
       expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
       expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });
@@ -308,7 +308,7 @@ describe('NoConversationPage - Simple Tests', () => {
       render(<NoConversationPage />);
       
       // Should render the same content regardless of current user
-      expect(screen.getByText('Start Writting')).toBeInTheDocument();
+      expect(screen.getByText('Start Writing')).toBeInTheDocument();
       expect(screen.getByText(/Your Letter Adventure/)).toBeInTheDocument();
       expect(screen.getByText(/Begins!/)).toBeInTheDocument();
     });

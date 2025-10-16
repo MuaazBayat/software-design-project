@@ -328,7 +328,7 @@ const PreferenceProfileSelector = () => {
   };
 
   const InterestTag: React.FC<{ interest: string }> = ({ interest }) => (
-    <span className="px-3 py-1.5 bg-white/70 text-stone-600 rounded-full text-xs border border-stone-200">
+    <span className="px-3 py-1.5 bg-white/70 text-stone-600 rounded-full text-xs border border-stone-200" role="listitem">
       {interest}
     </span>
   );
@@ -339,20 +339,31 @@ const PreferenceProfileSelector = () => {
       : "Unknown";
 
     return (
-      <div
+      <article
         className={`bg-stone-50/80 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 cursor-pointer hover:shadow-lg ${
           profile.selected
             ? "border-stone-400 shadow-md"
             : "border-stone-200 hover:border-stone-300"
-        }`}
+        } focus-within:ring-2 focus-within:ring-stone-600`}
+        tabIndex={0}
+        aria-label={`Profile for ${profile.anonymous_handle}`}
+        role="listitem"
         onClick={() => toggleSelection(profile.user_id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleSelection(profile.user_id);
+          }
+        }}
       >
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h3 className="text-2xl font-light text-stone-700 mb-1">
+            <h2 className="text-2xl font-light text-stone-700 mb-1" tabIndex={0} id={`profile-${profile.user_id}-name`}>
               {profile.anonymous_handle}
-            </h3>
-            <p className="text-stone-500 text-sm">{countryName}</p>
+            </h2>
+            <p className="text-stone-500 text-sm" id={`profile-${profile.user_id}-country`}>
+              {countryName}
+            </p>
             {profile.is_real !== undefined && (
               <span
                 className={`text-xs px-2 py-1 rounded-full ${
@@ -360,6 +371,7 @@ const PreferenceProfileSelector = () => {
                     ? "bg-green-100 text-green-800"
                     : "bg-blue-100 text-blue-800"
                 }`}
+                aria-label={profile.is_real ? "Real User" : "Example Profile"}
               >
                 {profile.is_real ? "Real User" : "Example Profile"}
               </span>
@@ -371,12 +383,17 @@ const PreferenceProfileSelector = () => {
                 ? "bg-stone-600 border-stone-600"
                 : "border-stone-300"
             }`}
+            aria-checked={profile.selected}
+            role="checkbox"
+            tabIndex={-1}
+            aria-label={profile.selected ? "Selected" : "Not selected"}
           >
             {profile.selected && (
               <svg
                 className="w-3 h-3 text-white"
                 fill="currentColor"
                 viewBox="0 0 20 20"
+                aria-hidden="true"
               >
                 <path
                   fillRule="evenodd"
@@ -388,13 +405,13 @@ const PreferenceProfileSelector = () => {
           </div>
         </div>
 
-        <p className="text-stone-600 text-sm leading-relaxed mb-4">
+        <p className="text-stone-600 text-sm leading-relaxed mb-4" id={`profile-${profile.user_id}-bio`}>
           {profile.bio || "No bio provided yet."}
         </p>
 
         {profile.favorite_local_fact && (
           <div className="mb-4">
-            <h4 className="text-stone-600 font-medium mb-2">Local Fact</h4>
+            <h3 className="text-stone-600 font-medium mb-2">Local Fact</h3>
             <p className="text-stone-500 text-sm italic">
               &ldquo;{profile.favorite_local_fact}&rdquo;
             </p>
@@ -402,8 +419,8 @@ const PreferenceProfileSelector = () => {
         )}
 
         <div>
-          <h4 className="text-stone-600 font-medium mb-3">Interests</h4>
-          <div className="flex flex-wrap gap-2">
+          <h3 className="text-stone-600 font-medium mb-3">Interests</h3>
+          <div className="flex flex-wrap gap-2" role="list" aria-label="Interests">
             {profile.interests && profile.interests.length > 0 ? (
               profile.interests
                 .slice(0, 5)
@@ -417,7 +434,7 @@ const PreferenceProfileSelector = () => {
             )}
           </div>
         </div>
-      </div>
+      </article>
     );
   };
 
@@ -451,50 +468,59 @@ const PreferenceProfileSelector = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
       <Toaster richColors position="top-center" />
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        <h2 className="text-4xl font-light text-stone-700 text-center mb-6 tracking-wide">
+      <main className="max-w-6xl mx-auto px-6 py-12" role="main" aria-label="Preference Profile Selection">
+        <h1 className="text-4xl font-light text-stone-700 text-center mb-6 tracking-wide" tabIndex={0}>
           Select Your Preference Profile
-        </h2>
+        </h1>
 
-        <p className="text-stone-600 text-center max-w-2xl mx-auto mb-8">
+        <p className="text-stone-600 text-center max-w-2xl mx-auto mb-8" id="profile-desc">
           Choose a profile that matches your interests to help our algorithm
           find better matches for you. You can switch between real community
           members and example profiles.
         </p>
 
-        <div className="flex justify-center mb-8">
-          <div className="bg-white/80 rounded-lg p-1 border border-stone-200">
+        <nav className="flex justify-center mb-8" aria-label="Profile Type Toggle">
+          <div className="bg-white/80 rounded-lg p-1 border border-stone-200" role="radiogroup" aria-labelledby="profile-type-label">
+            <span id="profile-type-label" className="sr-only">Profile Type</span>
             <button
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-600 focus-visible:ring-offset-2 ${
                 showRealUsers ? "bg-stone-600 text-white" : "text-stone-600"
               }`}
               onClick={handleProfileTypeToggle}
+              aria-pressed={showRealUsers}
+              type="button"
+              tabIndex={0}
             >
               Real Community Members
             </button>
             <button
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-600 focus-visible:ring-offset-2 ${
                 !showRealUsers ? "bg-stone-600 text-white" : "text-stone-600"
               }`}
               onClick={handleProfileTypeToggle}
+              aria-pressed={!showRealUsers}
+              type="button"
+              tabIndex={0}
             >
               Example Profiles
             </button>
           </div>
-        </div>
+        </nav>
 
         {/* Profile Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12" aria-label="Profile Options" role="list">
           {profiles.map((profile) => (
             <ProfileCard key={profile.user_id} profile={profile} />
           ))}
-        </div>
+        </section>
 
         {/* CTA Button */}
         <div className="text-center">
           <button
             onClick={handleSubmit}
-            className="px-8 py-4 bg-white/80 text-stone-700 border border-stone-300 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 text-lg font-light"
+            className="px-8 py-4 bg-white/80 text-stone-700 border border-stone-300 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 text-lg font-light focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-600 focus-visible:ring-offset-2"
+            aria-label="Continue with Selected Preferences"
+            type="button"
           >
             Continue with Selected Preferences
           </button>

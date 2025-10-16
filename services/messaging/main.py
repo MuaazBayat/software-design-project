@@ -125,7 +125,7 @@ def _search_active_profiles_fts(user_ids: Iterable[str], qtext: Optional[str]) -
 
     base = (
         supabase.table("user_profiles")
-        .select("user_id,anonymous_handle,account_status,country_code")
+        .select("user_id,anonymous_handle,account_status,country_code,age_range,bio,interests")
         .in_("user_id", user_ids)
         .eq("account_status", "active")
     )

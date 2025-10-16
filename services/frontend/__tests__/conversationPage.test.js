@@ -2,9 +2,21 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useParams, useRouter } from 'next/navigation';
-import ConversationPage from '../app/conversation/[conversation_thread_id]/page';
 
-// --- Mocks that must match EXACT import strings used in the component --- //
+// Mock the conversation page component
+const ConversationPage = require('../app/conversation/[conversation_thread_id]/page').default;
+
+// --- Context mocks ---
+let mockProfileState = { profile: null, synced: true, loading: false };
+let mockConversationUserState = { currentConversationUser: null };
+
+jest.mock('../lib/context/ProfileContext', () => ({
+  useSyncProfile: () => mockProfileState,
+}));
+
+jest.mock('../lib/context/ConversationUserContext', () => ({
+  useConversationUser: () => mockConversationUserState,
+}));
 
 // Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -20,16 +32,12 @@ jest.mock('../lib/MessagingApiClient', () => {
   }));
 });
 
-// ProfileContext (component imports from '../../../lib/context/ProfileContext')
-const mockUseSyncProfile = jest.fn();
-jest.mock('../lib/context/ProfileContext', () => ({
-  useSyncProfile: () => mockUseSyncProfile(),
-}));
-
-// ConversationUserContext (component imports from '../../../lib/context/ConversationUserContext')
-const mockUseConversationUser = jest.fn();
-jest.mock('../lib/context/ConversationUserContext', () => ({
-  useConversationUser: () => mockUseConversationUser(),
+// Moderation API client
+jest.mock('../lib/moderationApiClient', () => ({
+  moderationApi: {
+    reportUser: jest.fn(),
+    blockUser: jest.fn(),
+  },
 }));
 
 // UI components (component imports via '@/components/ui/*')
@@ -103,6 +111,7 @@ jest.mock('lucide-react', () => ({
   Flag: () => <div data-testid="flag-icon" />,
   Ban: () => <div data-testid="ban-icon" />,
   MoreVertical: () => <div data-testid="more-vertical-icon" />,
+  User: () => <div data-testid="user-icon" />,
 }));
 
 // Optionally silence Toaster; it's harmless but reduces noise
@@ -153,8 +162,8 @@ beforeEach(() => {
   useParams.mockReturnValue({ conversation_thread_id: 'thread-123' });
   useRouter.mockReturnValue(mockRouter);
 
-  mockUseSyncProfile.mockReturnValue({ profile: baseProfile, synced: true, loading: false });
-  mockUseConversationUser.mockReturnValue({ currentConversationUser: baseConversationUser });
+  mockProfileState = { profile: baseProfile, synced: true, loading: false };
+  mockConversationUserState = { currentConversationUser: baseConversationUser };
 
   mockPageLetters.mockResolvedValue(baseApiResponse);
 });
@@ -221,7 +230,7 @@ beforeEach(() => {
     render(<ConversationPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Conversation with TestPenPal')).toBeInTheDocument();
+      expect(screen.getByText('TestPenPal')).toBeInTheDocument();
       expect(screen.getByText('US')).toBeInTheDocument();
       expect(screen.getByTestId('map-pin-icon')).toBeInTheDocument();
     });
@@ -229,12 +238,12 @@ beforeEach(() => {
 
 test('User Information Display: handles missing user information gracefully', async () => {
   // Make sure EVERY invocation in this test returns undefined for the conversation user
-  mockUseConversationUser.mockReturnValue({ currentConversationUser: undefined });
+  mockConversationUserState = { currentConversationUser: undefined };
 
   render(<ConversationPage />);
 
   await waitFor(() => {
-    expect(screen.getByText('Conversation with Unknown User')).toBeInTheDocument();
+    expect(screen.getByText('Unknown User')).toBeInTheDocument();
     expect(screen.queryByTestId('map-pin-icon')).not.toBeInTheDocument();
   });
 });
@@ -242,13 +251,13 @@ test('User Information Display: handles missing user information gracefully', as
 
 test('User Information Display: handles missing currentUser gracefully', async () => {
   // Ensure ALL calls in this test return "no profile"
-  mockUseSyncProfile.mockReturnValue({ profile: undefined, synced: true, loading: false });
+  mockProfileState = { profile: undefined, synced: true, loading: false };
 
   render(<ConversationPage />);
 
   // Header is based on conversation user, so it should still render TestPenPal
   await waitFor(() => {
-    expect(screen.getByText('Conversation with TestPenPal')).toBeInTheDocument();
+    expect(screen.getByText('TestPenPal')).toBeInTheDocument();
   });
 
   // Letters still render
@@ -540,7 +549,7 @@ test('Component Lifecycle: reloads messages when conversation thread ID changes'
   });
 test('Initial gating: shows syncing UI when profile is not yet synced', async () => {
 // Arrange: profile exists but synced=false should render the "Syncing your profile..." screen
-mockUseSyncProfile.mockReturnValueOnce({ profile: baseProfile, synced: false, loading: true });
+mockProfileState = { profile: baseProfile, synced: false, loading: true };
 render(<ConversationPage />);
 
 
@@ -589,7 +598,7 @@ last_message_id: 'msg-2',
 }
 async function openReportUserDialog() {
 // Wait for page to finish loading
-await screen.findByText(/Conversation with/i);
+await screen.findByText(/TestPenPal/i);
 // Open the menu then the dialog
 const menuItem = screen.getByRole('menuitem', { name: /Report User/i });
 fireEvent.click(menuItem);
@@ -599,7 +608,7 @@ await screen.findByRole('button', { name: /Report User/i });
 
 
 async function openBlockUserDialog() {
-await screen.findByText(/Conversation with/i);
+await screen.findByText(/TestPenPal/i);
 const menuItem = screen.getByRole('menuitem', { name: /Block User/i });
 fireEvent.click(menuItem);
 await screen.findByRole('button', { name: /Block User/i });

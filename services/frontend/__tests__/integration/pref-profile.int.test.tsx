@@ -59,7 +59,7 @@ async function selectCardByHandle(handle: RegExp | string) {
     return;
   }
   // fallback to heading (card title)
-  const heading = await screen.findByRole("heading", { name: handle, level: 3 });
+  const heading = await screen.findByRole("heading", { name: handle, level: 2 });
   const clickable = heading.closest("button") ?? heading;
   await userEvent.click(clickable as HTMLElement);
 }
@@ -112,8 +112,8 @@ describe("PreferenceProfileSelector (integration)", () => {
     expect(screen.getByText(/loading profiles/i)).toBeInTheDocument();
     await waitForElementToBeRemoved(() => screen.queryByText(/loading profiles/i));
 
-    await screen.findByRole("heading", { name: /Alice/i, level: 3 });
-    await screen.findByRole("heading", { name: /Bob/i, level: 3 });
+    await screen.findByRole("heading", { name: /Alice/i, level: 2 });
+    await screen.findByRole("heading", { name: /Bob/i, level: 2 });
 
     expect(
       screen.getByRole("button", { name: /continue with selected preferences/i })
@@ -142,13 +142,13 @@ describe("PreferenceProfileSelector (integration)", () => {
     render(<Page />);
 
     await waitForElementToBeRemoved(() => screen.queryByText(/loading profiles/i));
-    await screen.findByRole("heading", { name: /RealOne/i, level: 3 });
+    await screen.findByRole("heading", { name: /RealOne/i, level: 2 });
 
     // Switch to Example Profiles
     await userEvent.click(screen.getByRole("button", { name: /example profiles/i }));
 
     // Fake list contains "Elara" in mocks/handlers
-    await screen.findByRole("heading", { name: /Elara/i, level: 3 });
+    await screen.findByRole("heading", { name: /Elara/i, level: 2 });
     expect(screen.getAllByText(/example profile/i).length).toBeGreaterThan(0);
   });
 
@@ -201,7 +201,7 @@ describe("PreferenceProfileSelector (integration)", () => {
       render(<Page />);
 
       await waitForElementToBeRemoved(() => screen.queryByText(/loading profiles/i));
-      await screen.findByRole("heading", { name: /Sarah/i, level: 3 });
+      await screen.findByRole("heading", { name: /Sarah/i, level: 2 });
 
       // select Sarah (make sure CTA becomes enabled)
       await selectCardByHandle(/Sarah/i);
@@ -261,7 +261,7 @@ describe("PreferenceProfileSelector (integration)", () => {
       render(<Page />);
 
       await waitForElementToBeRemoved(() => screen.queryByText(/loading profiles/i));
-      await screen.findByRole("heading", { name: /One/i, level: 3 });
+      await screen.findByRole("heading", { name: /One/i, level: 2 });
 
       const cta = screen.getByRole("button", {
         name: /continue with selected preferences/i,
@@ -320,7 +320,7 @@ describe("PreferenceProfileSelector (integration)", () => {
     render(<Page />);
 
     await waitForElementToBeRemoved(() => screen.queryByText(/loading profiles/i));
-    await screen.findByRole("heading", { name: /ErrUser/i, level: 3 });
+    await screen.findByRole("heading", { name: /ErrUser/i, level: 2 });
 
     await selectCardByHandle(/ErrUser/i);
     const cta = screen.getByRole("button", { name: /continue with selected preferences/i });
