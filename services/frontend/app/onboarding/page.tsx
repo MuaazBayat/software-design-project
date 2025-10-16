@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User2, Languages, MapPin, Heart, Settings } from "lucide-react";
+import { User2, Languages, MapPin, Heart, Settings, Mail, Mailbox } from "lucide-react";
 
 // Reuse types and API from settings
 type ProfileModel = {
@@ -28,6 +28,8 @@ type ProfileModel = {
   country_code?: string | null;
   bio?: string | null;
   interests?: string[] | null;
+  favorite_local_fact?: string | null;
+  preferred_correspondence_type: "long-term" | "one-time" | "either";
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || "http://0.0.0.0:8000";
@@ -57,6 +59,47 @@ const TIMEZONES = [
   "America/New_York", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata"
 ] as const;
 
+
+const CORRESPONDENCE_TYPES = [
+  { value: "long-term", label: "long-term", icon: Mailbox },
+  { value: "one-time", label: "one-time", icon: Mail },
+  { value: "either", label: "either", icon: User2 },
+] as const;
+
+// Extended country list matching settings page
+const COUNTRIES = [
+  { code: "ZA", name: "South Africa" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "NG", name: "Nigeria" },
+  { code: "IN", name: "India" },
+  { code: "JP", name: "Japan" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "CN", name: "China" },
+  { code: "RU", name: "Russia" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "KR", name: "South Korea" },
+  { code: "MX", name: "Mexico" },
+  { code: "ID", name: "Indonesia" },
+  { code: "TR", name: "Turkey" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "AR", name: "Argentina" },
+  { code: "EG", name: "Egypt" },
+  { code: "PK", name: "Pakistan" },
+  { code: "BD", name: "Bangladesh" },
+  { code: "KE", name: "Kenya" },
+  { code: "ET", name: "Ethiopia" },
+  { code: "PH", name: "Philippines" },
+  { code: "VN", name: "Vietnam" },
+  { code: "TH", name: "Thailand" },
+  { code: "MY", name: "Malaysia" },
+] as const;
+
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export default function OnboardingPage() {
@@ -73,6 +116,8 @@ export default function OnboardingPage() {
   const [bio, setBio] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [interestInput, setInterestInput] = useState("");
+  const [favoriteLocalFact, setFavoriteLocalFact] = useState("");
+  const [preferredCorrespondenceType, setPreferredCorrespondenceType] = useState<'long-term' | 'one-time' | 'either'>('either');
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,14 +144,14 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
-    const isValid = handle !== "" && HANDLE_RE.test(handle);
+    const isValid = handle !== "" && HANDLE_RE.test(handle) && countryCode !== "" && ageRange !== "";
     updateStepValidity(1, isValid);
-  }, [handle]);
+  }, [handle, countryCode, ageRange]);
 
   useEffect(() => {
-    const isValid = primaryLanguage !== "" && timeZone !== "";
+    const isValid = primaryLanguage !== "" && timeZone !== "" ;
     updateStepValidity(2, isValid);
-  }, [primaryLanguage, timeZone]);
+  }, [primaryLanguage, timeZone,]);
 
   useEffect(() => {
     updateStepValidity(3, true); // About You - optional
@@ -137,6 +182,8 @@ export default function OnboardingPage() {
     country_code: countryCode || null,
     bio: bio || null,
     interests: interests.length > 0 ? interests : null,
+    favorite_local_fact: favoriteLocalFact || null,
+    preferred_correspondence_type: preferredCorrespondenceType,
   });
 
   const handleStepChange = (step: number) => {
@@ -151,7 +198,7 @@ export default function OnboardingPage() {
     }
 
     if (!primaryLanguage || !timeZone) {
-      setError("Primary language and timezone are required.");
+      setError("Primary language, and timezone are required.");
       return;
     }
 
@@ -183,7 +230,7 @@ export default function OnboardingPage() {
 
   // Conditional return MUST be at the very end, after all hooks
   if (!isLoaded || !isSignedIn || !user) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">Loading...</div>;
   }
 
   return (
@@ -197,12 +244,12 @@ export default function OnboardingPage() {
         <div className="w-full max-w-2xl">
           <Stepper
             initialStep={1}
-            onStepChange={handleStepChange} // Add this to track current step
+            onStepChange={handleStepChange}
             onFinalStepCompleted={handleCompleteOnboarding}
             backButtonText="Back"
             nextButtonText="Next"
             nextButtonProps={{ disabled: isSaving }}
-            isStepValid={currentStepIsValid} // Now this validates the current step
+            isStepValid={currentStepIsValid}
             stepCircleContainerClassName="bg-white/20 backdrop-blur-md border border-white/30 rounded-4xl"
             contentClassName="bg-transparent"
             footerClassName="bg-transparent"
@@ -210,7 +257,7 @@ export default function OnboardingPage() {
             <Step>
               <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader className="text-center">
-                  <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
                     <User2 className="h-8 w-8 text-rose-600" />
                   </div>
                   <CardTitle>Welcome, {user.firstName || 'friend'}! 👋</CardTitle>
@@ -243,7 +290,7 @@ export default function OnboardingPage() {
                       Anonymous Handle <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative max-w-md">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" aria-hidden="true">
                         @
                       </span>
                       <Input
@@ -260,10 +307,12 @@ export default function OnboardingPage() {
                         placeholder="Choose a unique handle"
                         className="pl-7"
                         required
+                        aria-required="true"
+                        aria-describedby={handle && !HANDLE_RE.test(handle) ? "handle-error" : undefined}
                       />
                     </div>
                     {handle && !HANDLE_RE.test(handle) && (
-                      <p className="text-xs text-red-600">
+                      <p id="handle-error" className="text-xs text-red-600" role="alert">
                         3-20 chars: lowercase letters, numbers, underscores only
                       </p>
                     )}
@@ -271,29 +320,28 @@ export default function OnboardingPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
+                      <Label htmlFor="country">Country <span className="text-red-500">*</span></Label>
                       <Select
                         value={countryCode}
                         onValueChange={setCountryCode}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger aria-label="Select your country">
                           <SelectValue placeholder="Select country" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="US">United States</SelectItem>
-                          <SelectItem value="GB">United Kingdom</SelectItem>
-                          <SelectItem value="ZA">South Africa</SelectItem>
-                          <SelectItem value="NG">Nigeria</SelectItem>
-                          <SelectItem value="IN">India</SelectItem>
-                          <SelectItem value="BR">Brazil</SelectItem>
+                        <SelectContent className="max-h-64 overflow-y-auto">
+                          {COUNTRIES.map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              {country.name} ({country.code})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="age">Age Range</Label>
+                      <Label htmlFor="age">Age Range <span className="text-red-500">*</span></Label>
                       <Select value={ageRange} onValueChange={setAgeRange}>
-                        <SelectTrigger>
+                        <SelectTrigger aria-label="Select your age range">
                           <SelectValue placeholder="Select age" />
                         </SelectTrigger>
                         <SelectContent>
@@ -314,8 +362,8 @@ export default function OnboardingPage() {
               <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Languages className="h-5 w-5" />
-                    Language & Time
+                    <Languages className="h-5 w-5" aria-hidden="true" />
+                    Language & Communication
                   </CardTitle>
                   <CardDescription>
                     Help us match you with compatible conversation partners
@@ -323,12 +371,14 @@ export default function OnboardingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="language">Primary Language *</Label>
+                    <Label htmlFor="language" className="text-[0.9rem] text-stone-800">
+                      Primary Language <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       value={primaryLanguage}
                       onValueChange={setPrimaryLanguage}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Select your primary language">
                         <SelectValue placeholder="Select your main language" />
                       </SelectTrigger>
                       <SelectContent>
@@ -342,15 +392,12 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="timezone"
-                      className="flex items-center gap-2"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      Time Zone *
+                    <Label htmlFor="timezone" className="text-[0.9rem] text-stone-800 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" aria-hidden="true" />
+                      Time Zone <span className="text-red-500">*</span>
                     </Label>
                     <Select value={timeZone} onValueChange={setTimeZone}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Select your time zone">
                         <SelectValue placeholder="Select your time zone" />
                       </SelectTrigger>
                       <SelectContent>
@@ -363,9 +410,38 @@ export default function OnboardingPage() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="correspondenceType" className="text-[0.9rem] text-stone-800">
+                      Preferred Correspondence Type <span className="text-red-500">*</span>
+                    </Label>
+                    <Select 
+                      value={preferredCorrespondenceType} 
+                      onValueChange={(value: 'long-term' | 'one-time' | 'either') => setPreferredCorrespondenceType(value)}
+                    >
+                      <SelectTrigger aria-label="Select your preferred correspondence type">
+                        <SelectValue placeholder="Select how you'd like to communicate" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CORRESPONDENCE_TYPES.map((type) => {
+                          const IconComponent = type.icon;
+                          return (
+                            <SelectItem key={type.value} value={type.value}>
+                              <div className="flex items-center gap-2">
+                                <IconComponent className="h-4 w-4" aria-hidden="true" />
+                                {type.label}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-stone-500">
+                      This helps us match you with compatible pen pals
+                    </p>
+                  </div>
+
                   <p className="text-xs text-stone-500">
-                    💡 You can add secondary languages and more detailed
-                    preferences in Settings later
+                    💡 You can add secondary languages and more detailed preferences in Settings later
                   </p>
                 </CardContent>
               </Card>
@@ -375,8 +451,8 @@ export default function OnboardingPage() {
               <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Heart className="h-5 w-5" />
-                    About You
+                    <Heart className="h-5 w-5" aria-hidden="true" />
+                    About You & Culture
                   </CardTitle>
                   <CardDescription>
                     What makes you unique? (Optional but recommended)
@@ -391,7 +467,24 @@ export default function OnboardingPage() {
                       onChange={(e) => setBio(e.target.value)}
                       placeholder="Tell others a bit about yourself..."
                       className="min-h-[100px]"
+                      aria-label="Your short bio"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="favoriteLocalFact">Favorite Local Fact</Label>
+                    <Textarea
+                      id="favoriteLocalFact"
+                      value={favoriteLocalFact}
+                      onChange={(e) => setFavoriteLocalFact(e.target.value)}
+                      placeholder="Share an interesting fact about your country or culture..."
+                      className="min-h-[80px]"
+                      maxLength={200}
+                      aria-label="Your favorite local fact"
+                    />
+                    <p className="text-xs text-stone-500">
+                      {favoriteLocalFact.length}/200 characters
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -406,21 +499,24 @@ export default function OnboardingPage() {
                           (e.preventDefault(), addInterest())
                         }
                         placeholder="e.g., hiking, music, tech"
+                        aria-label="Add interests"
                       />
                       <Button
                         type="button"
                         onClick={addInterest}
                         variant="outline"
+                        aria-label="Add interest to list"
                       >
                         Add
                       </Button>
                     </div>
                     {interests.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Your interests">
                         {interests.map((interest, index) => (
                           <span
                             key={index}
                             className="bg-rose-100 text-rose-800 px-2 py-1 rounded-full text-sm"
+                            role="listitem"
                           >
                             {interest}
                             <button
@@ -431,6 +527,7 @@ export default function OnboardingPage() {
                                 )
                               }
                               className="ml-1 hover:text-rose-900"
+                              aria-label={`Remove ${interest} from interests`}
                             >
                               ×
                             </button>
@@ -446,31 +543,29 @@ export default function OnboardingPage() {
             <Step>
               <Card className="border-0 shadow-none bg-transparent text-center">
                 <CardHeader>
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
                     <Settings className="h-8 w-8 text-green-600" />
                   </div>
                   <CardTitle>You&apos;re All Set! 🎉</CardTitle>
                   <CardDescription>
-                    Your profile is ready to go. You can always fine-tune these
-                    settings later.
+                    Your profile is ready to go. You can always fine-tune these settings later.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-sm text-stone-600 space-y-2">
                     <p className="mt-4">
-                      Visit <strong>Settings</strong> anytime to adjust
-                      your profile.
+                      Visit <strong>Settings</strong> anytime to adjust your profile.
                     </p>
                   </div>
 
                   {error && (
-                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
+                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded" role="alert" aria-live="assertive">
                       {error}
                     </div>
                   )}
 
                   {isSaving && (
-                    <div className="text-stone-600 text-sm">
+                    <div className="text-stone-600 text-sm" aria-live="polite" aria-label="Saving your profile">
                       Saving your profile...
                     </div>
                   )}
