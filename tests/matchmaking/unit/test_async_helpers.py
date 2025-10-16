@@ -130,3 +130,4 @@ async def test_get_user_by_clerk_id_with_complete_profile():
         assert len(result["interests"]) == 3
         assert result["cultural_completeness_score"] == 0.9
 
+
