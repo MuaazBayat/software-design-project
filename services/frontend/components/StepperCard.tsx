@@ -21,8 +21,7 @@ interface StepperProps extends HTMLAttributes<HTMLDivElement> {
     currentStep: number;
     onStepClick: (clicked: number) => void;
   }) => ReactNode;
-  // Add this new prop
-  isStepValid?: boolean; // Whether current step is valid
+  isStepValid?: boolean;
 }
 
 export default function Stepper({
@@ -38,9 +37,9 @@ export default function Stepper({
   nextButtonProps = {},
   backButtonText = 'Back',
   nextButtonText = 'Continue',
-  disableStepIndicators = false,
+  disableStepIndicators = true,
   renderStepIndicator,
-  isStepValid = true, // Default to true for backward compatibility
+  isStepValid = true,
   ...rest
 }: StepperProps) {
   const [currentStep, setCurrentStep] = useState<number>(initialStep);
@@ -67,18 +66,20 @@ export default function Stepper({
   };
 
   const handleNext = () => {
-    if (!isLastStep) {
+    if (!isLastStep && isStepValid) { // Add validation check here
       setDirection(1);
       updateStep(currentStep + 1);
     }
   };
 
   const handleComplete = () => {
-    setDirection(1);
-    updateStep(totalSteps + 1);
+    if (isStepValid) { // Add validation check here
+      setDirection(1);
+      updateStep(totalSteps + 1);
+    }
   };
 
-return (
+  return (
     <div
       className="flex min-h-full flex-1 flex-col items-center justify-center p-4 sm:aspect-[4/3] md:aspect-[2/1]"
       {...rest}
@@ -128,37 +129,37 @@ return (
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
 
- {!isCompleted && (
-        <div className={`px-8 pb-8 ${footerClassName}`}>
-          <div className={`mt-10 flex ${currentStep !== 1 ? 'justify-between' : 'justify-end'}`}>
-            {currentStep !== 1 && (
+        {!isCompleted && (
+          <div className={`px-8 pb-8 ${footerClassName}`}>
+            <div className={`mt-10 flex ${currentStep !== 1 ? 'justify-between' : 'justify-end'}`}>
+              {currentStep !== 1 && (
+                <button
+                  onClick={handleBack}
+                  className={`duration-350 rounded px-2 py-1 transition ${
+                    currentStep === 1
+                      ? 'pointer-events-none opacity-50 text-neutral-400'
+                      : 'text-neutral-400 hover:text-neutral-700'
+                  }`}
+                  {...backButtonProps}
+                >
+                  {backButtonText}
+                </button>
+              )}
               <button
-                onClick={handleBack}
-                className={`duration-350 rounded px-2 py-1 transition ${
-                  currentStep === 1
-                    ? 'pointer-events-none opacity-50 text-neutral-400'
-                    : 'text-neutral-400 hover:text-neutral-700'
+                onClick={isLastStep ? handleComplete : handleNext}
+                disabled={!isStepValid}
+                className={`duration-350 flex items-center justify-center rounded-full py-1.5 px-3.5 font-medium tracking-tight text-white transition ${
+                  isStepValid 
+                    ? 'bg-green-500 hover:bg-green-600 active:bg-green-700 cursor-pointer' 
+                    : 'bg-gray-400 cursor-not-allowed pointer-events-none'
                 }`}
-                {...backButtonProps}
+                {...nextButtonProps}
               >
-                {backButtonText}
+                {isLastStep ? 'Complete' : nextButtonText}
               </button>
-            )}
-            <button
-              onClick={isLastStep ? handleComplete : handleNext}
-              disabled={!isStepValid} // Add disabled state
-              className={`duration-350 flex items-center justify-center rounded-full py-1.5 px-3.5 font-medium tracking-tight text-white transition ${
-                isStepValid 
-                  ? 'bg-green-500 hover:bg-green-600 active:bg-green-700' 
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
-              {...nextButtonProps}
-            >
-              {isLastStep ? 'Complete' : nextButtonText}
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
