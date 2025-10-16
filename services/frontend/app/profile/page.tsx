@@ -47,7 +47,7 @@ export default function ProfilePage() {
         
         // Create profiles client with auth token
         const profilesClient = new ProfilesApiClient(
-          process.env.NEXT_PUBLIC_CORE_SERVICE_URL || "http://localhost:8000",
+          process.env.NEXT_PUBLIC_CORE_URL || "http://localhost:8000",
           getToken
         );
         
