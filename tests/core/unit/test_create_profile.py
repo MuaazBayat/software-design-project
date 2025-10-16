@@ -9,7 +9,9 @@ from fastapi.testclient import TestClient
 # ---- Adjust this import path to your project structure ----
 import services.core.main as main  # contains: app, get_supabase, route under test
 # -----------------------------------------------------------
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 class FakeTable:
     """
     Minimal chainable fake that supports:

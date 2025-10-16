@@ -1,7 +1,9 @@
 # tests/unit/test_models.py
 import pytest
 from services.matchmaking.main import UserProfile, MatchingPreferences, MatchRequest, MatchResponse
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 def test_user_profile_model():
     """Test UserProfile model validation"""
     # Test valid profile

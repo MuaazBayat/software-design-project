@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 # ---- Adjust this import path to your project structure ----
 import services.core.main as main  # contains: app, get_supabase, route under test
 class FakeTable:

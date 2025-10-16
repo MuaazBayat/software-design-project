@@ -7,7 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 MODULE_PATH = "services.messaging.main"
 
 

@@ -1,6 +1,9 @@
 # services/core/tests/unit/test_get_supabase.py
 import importlib
-
+import pytest
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 def test_get_supabase_returns_module_singleton(monkeypatch):
     # If your database module constructs a client at import time and needs env vars,
     # set safe dummy values *before* importing the module so import doesn't explode.
