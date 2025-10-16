@@ -161,14 +161,20 @@ const getTimeSinceActive = (lastActive?: string) => {
 const InterestTag: React.FC<{ interest: string }> = ({ interest }) => {
   const getIcon = (interest: string) => {
     const lowerInterest = interest.toLowerCase();
-    if (lowerInterest.includes("read")) return <Book className="w-3 h-3" aria-hidden="true" />;
-    if (lowerInterest.includes("photo")) return <Camera className="w-3 h-3" aria-hidden="true" />;
-    if (lowerInterest.includes("hik")) return <Mountain className="w-3 h-3" aria-hidden="true" />;
+    if (lowerInterest.includes("read"))
+      return <Book className="w-3 h-3" aria-hidden="true" />;
+    if (lowerInterest.includes("photo"))
+      return <Camera className="w-3 h-3" aria-hidden="true" />;
+    if (lowerInterest.includes("hik"))
+      return <Mountain className="w-3 h-3" aria-hidden="true" />;
     return <Star className="w-3 h-3" aria-hidden="true" />;
   };
 
   return (
-    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 rounded-full text-xs text-amber-700 border border-amber-200" role="listitem">
+    <span
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 rounded-full text-xs text-amber-700 border border-amber-200"
+      role="listitem"
+    >
       {getIcon(interest)}
       <span className="font-medium">{interest}</span>
     </span>
@@ -181,6 +187,7 @@ interface FilterModalProps {
   setShowFilters: (show: boolean) => void;
   matchingPreferences: MatchingPreferences;
   setMatchingPreferences: (prefs: MatchingPreferences) => void;
+  onApply: () => void; // Add this
 }
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -188,6 +195,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   setShowFilters,
   matchingPreferences,
   setMatchingPreferences,
+  onApply, // Add this
 }) => {
   const overlayClasses = `fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 transition-opacity ${
     showFilters ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -198,10 +206,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
   }`;
 
   return (
-    <div className={overlayClasses} role="dialog" aria-modal="true" aria-labelledby="filter-modal-title">
+    <div
+      className={overlayClasses}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="filter-modal-title"
+    >
       <div className={modalClasses}>
         <div className="flex justify-between items-center mb-6">
-          <h3 id="filter-modal-title" className="text-2xl font-semibold text-stone-800">
+          <h3
+            id="filter-modal-title"
+            className="text-2xl font-semibold text-stone-800"
+          >
             Find Your Perfect Match
           </h3>
           <button
@@ -214,12 +230,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </button>
         </div>
 
-        <form className="space-y-6" role="form" aria-label="Matching preferences">
+        <form
+          className="space-y-6"
+          role="form"
+          aria-label="Matching preferences"
+        >
           <fieldset>
             <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Correspondence Type
             </legend>
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="correspondence-type-legend">
+            <div
+              className="grid grid-cols-3 gap-2"
+              role="radiogroup"
+              aria-labelledby="correspondence-type-legend"
+            >
               {[
                 {
                   value: "long-term" as const,
@@ -266,7 +290,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
             <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Age Range
             </legend>
-            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="age-range-legend">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-labelledby="age-range-legend"
+            >
               {["18-25", "26-35", "36-45", "46+"].map((range) => (
                 <button
                   key={range}
@@ -302,7 +330,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
             <legend className="block text-sm font-semibold text-stone-700 mb-3">
               Languages
             </legend>
-            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="languages-legend">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-labelledby="languages-legend"
+            >
               {[
                 { code: "en", name: "🇺🇸 English" },
                 { code: "es", name: "🇪🇸 Spanish" },
@@ -311,6 +343,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 { code: "ja", name: "🇯🇵 Japanese" },
                 { code: "ko", name: "🇰🇷 Korean" },
                 { code: "zh", name: "🇨🇳 Chinese" },
+                { code: "pt", name: "🇵🇹 Portuguese" },
+                { code: "it", name: "🇮🇹 Italian" },
+                { code: "ru", name: "🇷🇺 Russian" },
+                { code: "ar", name: "🇸🇦 Arabic" },
+                { code: "hi", name: "🇮🇳 Hindi" },
               ].map((lang) => (
                 <button
                   key={lang.code}
@@ -333,7 +370,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       languages: newLangs,
                     });
                   }}
-                  aria-pressed={matchingPreferences.languages.includes(lang.code)}
+                  aria-pressed={matchingPreferences.languages.includes(
+                    lang.code
+                  )}
                   aria-label={lang.name}
                 >
                   {lang.name}
@@ -341,34 +380,26 @@ const FilterModal: React.FC<FilterModalProps> = ({
               ))}
             </div>
           </fieldset>
-
-          <div>
-            <label className="flex items-center gap-3 p-4 bg-stone-50 rounded-xl">
-              <input
-                type="checkbox"
-                checked={matchingPreferences.exclude_previous}
-                onChange={(e) =>
-                  setMatchingPreferences({
-                    ...matchingPreferences,
-                    exclude_previous: e.target.checked,
-                  })
-                }
-                className="w-5 h-5 text-amber-500 rounded focus:ring-amber-500 focus:ring-2"
-                aria-describedby="exclude-previous-desc"
-              />
-              <div>
-                <span className="text-sm font-medium text-stone-700">
-                  Exclude previous matches
-                </span>
-                <p id="exclude-previous-desc" className="text-xs text-stone-500">
-                  Don&apos;t show people I&apos;ve already connected with
-                </p>
-              </div>
-            </label>
-          </div>
-
           <button
-            onClick={() => setShowFilters(false)}
+            onClick={() => {
+              setMatchingPreferences({
+                match_type: "either",
+                languages: [],
+                age_ranges: [],
+                country_codes: [],
+                interests: [],
+                exclude_previous: true,
+                max_timezone_difference: 6,
+              });
+            }}
+            className="w-full py-3 bg-stone-100 text-stone-700 rounded-2xl font-semibold text-base hover:bg-stone-200 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2"
+            type="button"
+            aria-label="Clear all filters"
+          >
+            Clear All Filters
+          </button>
+          <button
+            onClick={onApply} // Changed from () => setShowFilters(false)
             className="w-full py-4 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
             type="button"
             aria-label="Apply filters and close modal"
@@ -403,7 +434,7 @@ const MatchScreen: React.FC = () => {
 
   // Helper to get token only if auth is enabled
   const getAuthToken = useCallback(async () => {
-    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
     return authDisabled ? null : await getToken();
   }, [getToken]);
 
@@ -411,16 +442,21 @@ const MatchScreen: React.FC = () => {
   const currentProfile = profileQueue[0] || null;
 
   // Keyboard event handler for action buttons
-  const handleKeyDown = (event: React.KeyboardEvent, action: 'like' | 'pass') => {
-    if (event.key === 'Enter' || event.key === ' ') {
+  const handleKeyDown = (
+    event: React.KeyboardEvent,
+    action: "like" | "pass"
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (action === 'like') {
+      if (action === "like") {
         handleLike();
       } else {
         handlePass();
       }
     }
   };
+  const [currentUserProfile, setCurrentUserProfile] =
+    useState<UserProfile | null>(null);
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -428,13 +464,13 @@ const MatchScreen: React.FC = () => {
       const token = await getAuthToken();
       const response = await fetch(`${API_BASE_URL}/user/profile/${user.id}`, {
         headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       });
       if (response.ok) {
         const data = await response.json();
-        // We can store this if needed later
+        setCurrentUserProfile(data.profile); // Store the profile
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -447,8 +483,8 @@ const MatchScreen: React.FC = () => {
       const token = await getAuthToken();
       const response = await fetch(`${API_BASE_URL}/user/stats/${user.id}`, {
         headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       });
       if (response.ok) {
@@ -485,8 +521,8 @@ const MatchScreen: React.FC = () => {
         `${API_BASE_URL}/profiles/suggestions/${user.id}?${params.toString()}`,
         {
           headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
         }
       );
@@ -518,6 +554,35 @@ const MatchScreen: React.FC = () => {
     }
   }, [profileQueue.length, fetchNextProfile]);
 
+  const [tempPreferences, setTempPreferences] = useState<MatchingPreferences>({
+    match_type: "either",
+    languages: [],
+    age_ranges: [],
+    country_codes: [],
+    interests: [],
+    exclude_previous: true,
+    max_timezone_difference: 6,
+  });
+
+  const handleOpenFilters = () => {
+    setTempPreferences(matchingPreferences); // Sync temp with current
+    setShowFilters(true);
+  };
+
+  const handleApplyFilters = () => {
+    setMatchingPreferences(tempPreferences); // Apply temp to actual
+    setShowFilters(false);
+  };
+
+  <button
+    onClick={handleOpenFilters} // Changed from () => setShowFilters(true)
+    className="p-3 bg-white rounded-full shadow-xl flex items-center justify-center border-2 border-stone-200 hover:border-stone-300 hover:shadow-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+    aria-label="Open matching preferences filters"
+    type="button"
+  >
+    <UserSearch className="w-5 h-5" aria-hidden="true" />
+  </button>;
+
   // Handle pass - instant UI update, background API calls
   const handlePass = useCallback(async () => {
     if (!user || !currentProfile || actionLoading) return;
@@ -535,7 +600,7 @@ const MatchScreen: React.FC = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             clerk_id: user.id,
@@ -573,7 +638,7 @@ const MatchScreen: React.FC = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             clerk_id: user.id,
@@ -665,14 +730,21 @@ const MatchScreen: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
       {/* Main Content */}
       <Toaster position="top-center" richColors />
-      <main className="max-w-md mx-auto px-6 py-8" role="main" aria-label="Matchmaking Interface">
+      <main
+        className="max-w-md mx-auto px-6 py-8"
+        role="main"
+        aria-label="Matchmaking Interface"
+      >
         {/* User Stats Card */}
         <header className="mb-8" role="banner">
           <div className="bg-white/70 backdrop-blur-sm rounded-sm p-6 border border-white/20">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-stone-800 mb-1">
-                  Hi, {user.firstName || user.username || "User"} 👋
+                  Hi,{" "}
+                  {currentUserProfile?.anonymous_handle ||
+                    "User"}{" "}
+                  👋
                 </h1>
                 <p className="text-stone-600">
                   Find your next conversation partner
@@ -707,7 +779,7 @@ const MatchScreen: React.FC = () => {
         </header>
 
         {/* Profile Card */}
-        <section 
+        <section
           className="relative"
           aria-labelledby="profile-section-heading"
           role="region"
@@ -716,7 +788,7 @@ const MatchScreen: React.FC = () => {
             Profile Matching Interface
           </h2>
           {actionLoading && (
-            <div 
+            <div
               className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center"
               role="status"
               aria-live="polite"
@@ -729,13 +801,16 @@ const MatchScreen: React.FC = () => {
           )}
 
           {showLoadingState ? (
-            <div 
+            <div
               className="bg-white/70 backdrop-blur-sm rounded-xl p-12 text-center border border-white/20 shadow-lg"
               role="status"
               aria-live="polite"
             >
               <div className="w-24 h-24 bg-gradient-to-r from-stone-200 to-stone-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Globe className="w-12 h-12 text-stone-500" aria-hidden="true" />
+                <Globe
+                  className="w-12 h-12 text-stone-500"
+                  aria-hidden="true"
+                />
               </div>
               <h3 className="text-xl font-semibold text-stone-700 mb-2">
                 {isLoadingProfiles
@@ -749,19 +824,24 @@ const MatchScreen: React.FC = () => {
               </p>
             </div>
           ) : currentProfile ? (
-            <article 
+            <article
               className="relative bg-white rounded-xl shadow-2xl overflow-hidden mb-8 border border-white/20"
               role="article"
               aria-labelledby="profile-name"
             >
               {/* Profile Header with Country Flag */}
               <header className="relative h-48 bg-gradient-to-br from-violet-200 to-pink-200 flex items-center justify-center">
-                <div className="absolute inset-0 bg-black/10" aria-hidden="true"></div>
+                <div
+                  className="absolute inset-0 bg-black/10"
+                  aria-hidden="true"
+                ></div>
                 <div className="relative text-center text-white">
-                  <div 
+                  <div
                     className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl mb-3 mx-auto"
                     role="img"
-                    aria-label={`Flag representing ${getLocationDisplay(currentProfile)}`}
+                    aria-label={`Flag representing ${getLocationDisplay(
+                      currentProfile
+                    )}`}
                   >
                     {/* Country Flags */}
                     {currentProfile.country_code === "US" && "🇺🇸"}{" "}
@@ -881,10 +961,15 @@ const MatchScreen: React.FC = () => {
 
               {/* Profile Info */}
               <section className="p-6" aria-labelledby="profile-details">
-                <h3 id="profile-details" className="sr-only">Profile Details</h3>
+                <h3 id="profile-details" className="sr-only">
+                  Profile Details
+                </h3>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h2 id="profile-name" className="text-2xl font-bold text-stone-800 mb-2">
+                    <h2
+                      id="profile-name"
+                      className="text-2xl font-bold text-stone-800 mb-2"
+                    >
                       {currentProfile.anonymous_handle}
                     </h2>
                     <div className="flex items-center gap-4 mb-3">
@@ -943,7 +1028,10 @@ const MatchScreen: React.FC = () => {
 
                 {(currentProfile.interests || []).length > 0 && (
                   <section className="mb-6" aria-labelledby="interests-heading">
-                    <h4 id="interests-heading" className="text-sm font-semibold text-stone-700 mb-3">
+                    <h4
+                      id="interests-heading"
+                      className="text-sm font-semibold text-stone-700 mb-3"
+                    >
                       Interests
                     </h4>
                     <ul className="flex flex-wrap gap-2" role="list">
@@ -989,7 +1077,7 @@ const MatchScreen: React.FC = () => {
 
         {/* Action Buttons */}
         {currentProfile && (
-          <section 
+          <section
             className="flex justify-center gap-6 mb-8"
             aria-labelledby="action-buttons-heading"
             role="group"
@@ -998,9 +1086,11 @@ const MatchScreen: React.FC = () => {
               Profile Actions
             </h3>
             <button
-              aria-label={`Pass on ${currentProfile.anonymous_handle || 'this profile'}`}
+              aria-label={`Pass on ${
+                currentProfile.anonymous_handle || "this profile"
+              }`}
               onClick={handlePass}
-              onKeyDown={(e) => handleKeyDown(e, 'pass')}
+              onKeyDown={(e) => handleKeyDown(e, "pass")}
               disabled={
                 actionLoading ||
                 Boolean(dailyStats && dailyStats.matches_remaining <= 0)
@@ -1011,23 +1101,29 @@ const MatchScreen: React.FC = () => {
             </button>
 
             <button
-              aria-label={`Like ${currentProfile.anonymous_handle || 'this profile'}`}
+              aria-label={`Like ${
+                currentProfile.anonymous_handle || "this profile"
+              }`}
               onClick={handleLike}
-              onKeyDown={(e) => handleKeyDown(e, 'like')}
+              onKeyDown={(e) => handleKeyDown(e, "like")}
               disabled={
                 actionLoading ||
                 Boolean(dailyStats && dailyStats.matches_remaining <= 0)
               }
               className="w-16 h-16 bg-rose-500 rounded-full shadow-xl flex items-center justify-center hover:shadow-2xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-rose-300 focus:bg-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Heart className="w-8 h-8 text-white" fill="currentColor" aria-hidden="true" />
+              <Heart
+                className="w-8 h-8 text-white"
+                fill="currentColor"
+                aria-hidden="true"
+              />
             </button>
           </section>
         )}
 
         {/* Status Messages */}
         {dailyStats && dailyStats.matches_remaining <= 0 && (
-          <section 
+          <section
             className="text-center bg-gradient-to-r from-amber-50 to-orange-50 rounded-sm p-6 border border-amber-200"
             role="alert"
             aria-labelledby="daily-limit-heading"
@@ -1035,7 +1131,10 @@ const MatchScreen: React.FC = () => {
             <div className="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
               <Clock className="w-8 h-8 text-white" aria-hidden="true" />
             </div>
-            <h3 id="daily-limit-heading" className="text-lg font-semibold text-amber-800 mb-2">
+            <h3
+              id="daily-limit-heading"
+              className="text-lg font-semibold text-amber-800 mb-2"
+            >
               Daily limit reached!
             </h3>
             <p className="text-amber-700 text-sm">
@@ -1051,8 +1150,9 @@ const MatchScreen: React.FC = () => {
       <FilterModal
         showFilters={showFilters}
         setShowFilters={setShowFilters}
-        matchingPreferences={matchingPreferences}
-        setMatchingPreferences={setMatchingPreferences}
+        matchingPreferences={tempPreferences}
+        setMatchingPreferences={setTempPreferences}
+        onApply={handleApplyFilters}
       />
     </div>
   );
