@@ -621,5 +621,3 @@ def get_image(object_path: str, token: str = Depends(verify_token)):
     if object_path not in signed_map:
         raise HTTPException(status_code=404, detail="Image not found or failed to sign URL")
     return {"signed_url": signed_map[object_path]}
-
-
