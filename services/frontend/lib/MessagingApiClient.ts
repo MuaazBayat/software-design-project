@@ -1,3 +1,4 @@
+// lib/MessagingApiClient.ts
 export type UUID = string;
 
 export interface LetterStyles {
@@ -9,11 +10,12 @@ export interface SendLetterRequest {
   sender_id: UUID;
   recipient_id: UUID;
   message_content: string;
-  letter_url?: string; // optional if not attaching
+  // optional if you’re not attaching (server supports null)
+  letter_url?: string;
 }
 
 export interface UploadImageResponse {
-  object_path: string; // pass this as letter_url in SendLetterRequest
+  object_path: string;        // pass this back as SendLetterRequest.letter_url
   data: { path: string };
 }
 
@@ -57,7 +59,7 @@ export interface PageLettersRequest {
   conversation_thread_id: UUID;
   page_size?: number;
   last_message_id?: UUID;
-  viewer_user_id: UUID;
+  viewer_user_id: UUID;     // <-- required by /api/v1/messages/page
 }
 
 export interface MessageRow {
@@ -122,6 +124,7 @@ export default class MessagingApiClient {
     if (!fromEnv) {
       throw new Error("NEXT_PUBLIC_MESSAGING_URL is not set. Add it to .env.local");
     }
+    // “baseUrl rule”: accept any URL, strip trailing slashes once
     try {
       const u = new URL(fromEnv);
       this.baseUrl = u.toString().replace(/\/+$/, "");
@@ -134,10 +137,12 @@ export default class MessagingApiClient {
 
   // ---------- public methods ----------
   async sendLetter(body: SendLetterRequest): Promise<SendLetterResponse> {
+    // server: POST /api/v1/messages
     return this.post<SendLetterResponse>("/api/v1/messages", body);
   }
 
   async uploadImage(file: File): Promise<UploadImageResponse> {
+    // server: POST /api/v1/upload-image (multipart)
     const url = `${this.baseUrl}/api/v1/upload-image`;
     const formData = new FormData();
     formData.append("file", file);
@@ -177,6 +182,7 @@ export default class MessagingApiClient {
   }
 
   async pageLetters(params: PageLettersRequest): Promise<PageLettersResponse> {
+    // server: GET /api/v1/messages/page with query params
     const query = new URLSearchParams({
       conversation_thread_id: params.conversation_thread_id,
       viewer_user_id: params.viewer_user_id,
@@ -187,6 +193,7 @@ export default class MessagingApiClient {
   }
 
   async searchUsers(params: SearchUsersRequest): Promise<SearchUsersResponse> {
+    // server: GET /api/v1/search with query params
     const query = new URLSearchParams({
       my_user_id: params.my_user_id,
       anonymous_handle: params.anonymous_handle ?? "",
@@ -197,7 +204,7 @@ export default class MessagingApiClient {
   }
 
   async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
-    // new path-based version: PATCH /api/v1/conversations/{thread}/read
+    // server: PATCH /api/v1/conversations/{thread}/read with { my_user_id }
     return this.patch<MarkReadResponse>(`/api/v1/conversations/${body.conversation_thread_id}/read`, {
       my_user_id: body.my_user_id,
     });
