@@ -298,8 +298,10 @@ test('User Information Display: handles missing currentUser gracefully', async (
     await waitFor(() => {
       expect(mockPageLetters).toHaveBeenLastCalledWith({
         conversation_thread_id: 'thread-123',
+        viewer_user_id: 'me-456',
         page_size: 50,
         last_message_id: 'msg-2', // from last of initial items
+
       });
     });
   });
@@ -420,6 +422,7 @@ test('Component Lifecycle: reloads messages when conversation thread ID changes'
       // The code uses messages[messages.length - 1]?.message_id, which is 'msg-2'
       expect(mockPageLetters).toHaveBeenLastCalledWith({
         conversation_thread_id: 'thread-123',
+        viewer_user_id: 'me-456',
         page_size: 50,
         last_message_id: 'msg-2',
       });
@@ -542,6 +545,7 @@ test('Component Lifecycle: reloads messages when conversation thread ID changes'
       // The code uses messages[messages.length - 1]?.message_id, which is 'msg-2'
       expect(mockPageLetters).toHaveBeenLastCalledWith({
         conversation_thread_id: 'thread-123',
+        viewer_user_id: 'me-456',
         page_size: 50,
         last_message_id: 'msg-2',
       });

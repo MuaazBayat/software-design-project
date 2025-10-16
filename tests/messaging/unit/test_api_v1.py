@@ -117,7 +117,6 @@ def test_get_active_match_and_thread_success_and_404(app_module, monkeypatch):
         app_module._get_active_match_and_thread("x", "y")
     assert e2.value.status_code == 404
 
-
 def test_get_blocked_users_variants_and_either_blocked(app_module, monkeypatch):
     q1 = _make_query_mock(data={"blocked_users": '["x","y"]'})
     app_module._TEST_SUPABASE_CLIENT.table.return_value = q1
