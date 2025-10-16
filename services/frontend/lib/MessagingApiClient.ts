@@ -1,3 +1,4 @@
+// lib/MessagingApiClient.ts
 export type UUID = string;
 
 export interface LetterStyles {
@@ -5,15 +6,16 @@ export interface LetterStyles {
   font_family: string;
 }
 
-export interface SendLetterRequest {//
+export interface SendLetterRequest {
   sender_id: UUID;
   recipient_id: UUID;
   message_content: string;
-  letter_url: string; //the url with object path
+  // optional if you’re not attaching (server supports null)
+  letter_url?: string;
 }
 
 export interface UploadImageResponse {
-  object_path: string; //my response, pass in as letter_url line 12
+  object_path: string;        // pass this back as SendLetterRequest.letter_url
   data: { path: string };
 }
 
@@ -42,7 +44,6 @@ export interface MarkReadResponse {
   updated: number;
 }
 
-
 export interface SendLetterResponse {
   message_id: UUID;
   conversation_thread_id: UUID;
@@ -58,6 +59,7 @@ export interface PageLettersRequest {
   conversation_thread_id: UUID;
   page_size?: number;
   last_message_id?: UUID;
+  viewer_user_id: UUID;     // <-- required by /api/v1/messages/page
 }
 
 export interface MessageRow {
@@ -120,10 +122,9 @@ export default class MessagingApiClient {
   constructor(opts?: { timeoutMs?: number; getToken?: () => Promise<string | null> }) {
     const fromEnv = process.env.NEXT_PUBLIC_MESSAGING_URL;
     if (!fromEnv) {
-      throw new Error(
-        "NEXT_PUBLIC_MESSAGING_URL is not set. Add it to .env.local"
-      );
+      throw new Error("NEXT_PUBLIC_MESSAGING_URL is not set. Add it to .env.local");
     }
+    // “baseUrl rule”: accept any URL, strip trailing slashes once
     try {
       const u = new URL(fromEnv);
       this.baseUrl = u.toString().replace(/\/+$/, "");
@@ -134,90 +135,97 @@ export default class MessagingApiClient {
     this.getToken = opts?.getToken ?? null;
   }
 
-  // --- public methods ---
+  // ---------- public methods ----------
   async sendLetter(body: SendLetterRequest): Promise<SendLetterResponse> {
-    return this.post<SendLetterResponse>("/messages", body);
+    // server: POST /api/v1/messages
+    return this.post<SendLetterResponse>("/api/v1/messages", body);
   }
 
-async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
-  return this.post<MarkReadResponse>("/messages/mark-read", body);
-}
+  async uploadImage(file: File): Promise<UploadImageResponse> {
+    // server: POST /api/v1/upload-image (multipart)
+    const url = `${this.baseUrl}/api/v1/upload-image`;
+    const formData = new FormData();
+    formData.append("file", file);
 
-  async pageLetters(body: PageLettersRequest): Promise<PageLettersResponse> {
-    return this.post<PageLettersResponse>("/messages/page", body);
-  }
-
-  async searchUsers(body: SearchUsersRequest): Promise<SearchUsersResponse> {
-    return this.post<SearchUsersResponse>("/search", body);
-  }
-
-  async uploadImage(file: File): Promise<UploadImageResponse> { //the image
-  const url = `${this.baseUrl}/upload-image`;//3 seconds
-  const formData = new FormData();
-  formData.append("file", file);
-
-  // Get auth token if available and auth is enabled
-  const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
-  const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        ...(token && { "Authorization": `Bearer ${token}` }),
-      },
-      body: formData,
-      signal: controller.signal,
-    });
-
-    const text = await res.text();
-    const maybeJson: unknown = text ? safeJsonParse(text) : null;
-
-    if (!res.ok) {
-      const msg = hasDetail(maybeJson)
-        ? `Request failed: ${JSON.stringify(maybeJson.detail)}`
-        : `Request failed with status ${res.status}`;
-      throw new ApiError(msg, res.status, maybeJson);
-    }
-
-    return (maybeJson as UploadImageResponse) ?? ({} as UploadImageResponse);
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw new ApiError("Request timed out", 408);
-    }
-    if (err instanceof ApiError) throw err;
-    if (err instanceof Error) {
-      throw new ApiError(err.message, 500);
-    }
-    throw new ApiError("Unknown error", 500);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-
-  // --- core request helper ---
-  private async post<T>(path: string, body: unknown): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    // Get auth token if available and auth is enabled
-    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
     const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` }),
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-        body: JSON.stringify(body),
+        body: formData,
+        signal: controller.signal,
+      });
+      const text = await res.text();
+      const maybeJson: unknown = text ? safeJsonParse(text) : null;
+
+      if (!res.ok) {
+        const msg = hasDetail(maybeJson)
+          ? `Request failed: ${JSON.stringify(maybeJson.detail)}`
+          : `Request failed with status ${res.status}`;
+        throw new ApiError(msg, res.status, maybeJson);
+      }
+      return (maybeJson as UploadImageResponse) ?? ({} as UploadImageResponse);
+    } catch (err: unknown) {
+      if (isAbortError(err)) throw new ApiError("Request timed out", 408);
+      if (err instanceof ApiError) throw err;
+      if (err instanceof Error) throw new ApiError(err.message, 500);
+      throw new ApiError("Unknown error", 500);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async pageLetters(params: PageLettersRequest): Promise<PageLettersResponse> {
+    // server: GET /api/v1/messages/page with query params
+    const query = new URLSearchParams({
+      conversation_thread_id: params.conversation_thread_id,
+      viewer_user_id: params.viewer_user_id,
+      ...(params.page_size ? { page_size: String(params.page_size) } : {}),
+      ...(params.last_message_id ? { last_message_id: params.last_message_id } : {}),
+    });
+    return this.get<PageLettersResponse>(`/api/v1/messages/page?${query.toString()}`);
+  }
+
+  async searchUsers(params: SearchUsersRequest): Promise<SearchUsersResponse> {
+    // server: GET /api/v1/search with query params
+    const query = new URLSearchParams({
+      my_user_id: params.my_user_id,
+      anonymous_handle: params.anonymous_handle ?? "",
+      ...(params.limit !== undefined ? { limit: String(params.limit) } : {}),
+      ...(params.offset !== undefined ? { offset: String(params.offset) } : {}),
+    });
+    return this.get<SearchUsersResponse>(`/api/v1/search?${query.toString()}`);
+  }
+
+  async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
+    // server: PATCH /api/v1/conversations/{thread}/read with { my_user_id }
+    return this.patch<MarkReadResponse>(`/api/v1/conversations/${body.conversation_thread_id}/read`, {
+      my_user_id: body.my_user_id,
+    });
+  }
+
+  // ---------- core request helpers ----------
+  private async get<T>(path: string): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+    const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
+
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         cache: "no-store",
         signal: controller.signal,
       });
@@ -231,16 +239,60 @@ async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
           : `Request failed with status ${res.status}`;
         throw new ApiError(msg, res.status, maybeJson);
       }
-
       return (maybeJson as T) ?? ({} as T);
     } catch (err: unknown) {
-      if (isAbortError(err)) {
-        throw new ApiError("Request timed out", 408);
-      }
+      if (isAbortError(err)) throw new ApiError("Request timed out", 408);
       if (err instanceof ApiError) throw err;
-      if (err instanceof Error) {
-        throw new ApiError(err.message, 500);
+      if (err instanceof Error) throw new ApiError(err.message, 500);
+      throw new ApiError("Unknown error", 500);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    return this._write<T>("POST", path, body);
+  }
+
+  private async patch<T>(path: string, body: unknown): Promise<T> {
+    return this._write<T>("PATCH", path, body);
+  }
+
+  private async _write<T>(method: "POST" | "PATCH", path: string, body: unknown): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+    const token = (!authDisabled && this.getToken) ? await this.getToken() : null;
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(body ?? {}),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      const text = await res.text();
+      const maybeJson: unknown = text ? safeJsonParse(text) : null;
+
+      if (!res.ok) {
+        const msg = hasDetail(maybeJson)
+          ? `Request failed: ${JSON.stringify(maybeJson.detail)}`
+          : `Request failed with status ${res.status}`;
+        throw new ApiError(msg, res.status, maybeJson);
       }
+      return (maybeJson as T) ?? ({} as T);
+    } catch (err: unknown) {
+      if (isAbortError(err)) throw new ApiError("Request timed out", 408);
+      if (err instanceof ApiError) throw err;
+      if (err instanceof Error) throw new ApiError(err.message, 500);
       throw new ApiError("Unknown error", 500);
     } finally {
       clearTimeout(timer);
@@ -248,7 +300,7 @@ async markRead(body: MarkReadRequest): Promise<MarkReadResponse> {
   }
 }
 
-// ---------- tiny helpers (typed, no-any) ----------
+// ---------- tiny helpers ----------
 function safeJsonParse(s: string): unknown {
   try {
     return JSON.parse(s);
@@ -256,14 +308,11 @@ function safeJsonParse(s: string): unknown {
     return null;
   }
 }
-
 function hasDetail(x: unknown): x is { detail: unknown } {
   return typeof x === "object" && x !== null && "detail" in x;
 }
-
 function isAbortError(e: unknown): boolean {
   if (typeof e !== "object" || e === null) return false;
   const maybeName = (e as { name?: unknown }).name;
   return typeof maybeName === "string" && maybeName === "AbortError";
 }
-

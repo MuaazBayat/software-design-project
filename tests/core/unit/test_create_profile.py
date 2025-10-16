@@ -109,8 +109,11 @@ def test_create_profile_happy_path():
     resp = client.post("/profiles/", json=payload)
     assert resp.status_code == 201
     assert resp.json() == created_row
-    # Ensure we inserted exactly what the endpoint built
-    assert fake.last_insert_payload == payload
+    # Ensure we inserted data with fingerprint converted to list
+    expected_insert_payload = payload.copy()
+    expected_insert_payload["fingerprint"] = ["fp_123"]  # Should be converted to list
+    assert fake.last_insert_payload == expected_insert_payload
+
 def test_create_profile_duplicate_200():
     # 1) SELECT returns a row -> endpoint should 200 and return that row
     fake = FakeSupabaseClient(results=[[{"clerk_id": "user_123", "fingerprint": []}]])

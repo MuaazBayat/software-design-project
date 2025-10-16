@@ -56,7 +56,7 @@ jobs:
         run: |
           pytest -q tests/messaging \
             --maxfail=1 \
-            --cov=services/messaging \
+            --cov=services.messaging.main \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \

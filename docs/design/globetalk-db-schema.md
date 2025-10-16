@@ -35,30 +35,35 @@ user_preference_selections (Onboarding Data)
 
 ```sql
 CREATE TABLE public.user_profiles (
-  user_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  anonymous_handle varchar NOT NULL UNIQUE,
-  last_active timestamptz,
+  user_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  anonymous_handle character varying NOT NULL UNIQUE,
+  last_active timestamp with time zone,
   age_range USER-DEFINED,
   primary_language USER-DEFINED,
   secondary_languages ARRAY,
-  time_zone varchar,
-  country_code char,
+  time_zone character varying,
+  country_code character,
   bio text CHECK (char_length(bio) <= 500),
   interests ARRAY CHECK (array_length(interests, 1) <= 10),
   favorite_local_fact text CHECK (char_length(favorite_local_fact) <= 200),
   preferred_correspondence_type USER-DEFINED DEFAULT 'either'::correspondence_enum,
-  max_active_conversations int DEFAULT 3 CHECK (max_active_conversations <= 10),
-  preferred_time_zone_distance int DEFAULT 6,
+  max_active_conversations integer DEFAULT 3 CHECK (max_active_conversations <= 10),
+  preferred_time_zone_distance integer DEFAULT 6,
   account_status USER-DEFINED DEFAULT 'active'::status_enum,
   privacy_level USER-DEFINED DEFAULT 'standard'::privacy_enum,
   blocked_users ARRAY,
-  reported_count int DEFAULT 0,
+  reported_count integer DEFAULT 0,
   match_eligibility_score numeric DEFAULT 1.0,
   cultural_completeness_score numeric,
-  clerk_id text DEFAULT 'NULL'::text UNIQUE
+  clerk_id text DEFAULT 'NULL'::text UNIQUE,
+  reported_users ARRAY,
+  fingerprint ARRAY,
+  moderator boolean DEFAULT false,
+  CONSTRAINT user_profiles_pkey PRIMARY KEY (user_id)
 );
+
 ```
 
 **Key Features**:
@@ -72,24 +77,27 @@ CREATE TABLE public.user_profiles (
 
 ```sql
 CREATE TABLE public.match_records (
-  match_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  user_1_id uuid NOT NULL REFERENCES user_profiles(user_id),
-  user_2_id uuid NOT NULL REFERENCES user_profiles(user_id),
+  match_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  user_1_id uuid NOT NULL,
+  user_2_id uuid NOT NULL,
   match_type USER-DEFINED NOT NULL,
   match_source USER-DEFINED DEFAULT 'random'::match_source_enum,
   compatibility_score numeric,
-  time_zone_difference int,
+  time_zone_difference integer,
   status USER-DEFINED DEFAULT 'active'::match_status_enum,
   conversation_thread_id uuid,
-  first_message_sent_at timestamptz,
-  last_message_sent_at timestamptz,
-  total_messages_exchanged int DEFAULT 0,
+  first_message_sent_at timestamp with time zone,
+  last_message_sent_at timestamp with time zone,
+  total_messages_exchanged integer DEFAULT 0,
   completion_reason USER-DEFINED,
-  completed_at timestamptz,
-  user_1_rating int CHECK (user_1_rating >= 1 AND user_1_rating <= 5),
-  user_2_rating int CHECK (user_2_rating >= 1 AND user_2_rating <= 5)
+  completed_at timestamp with time zone,
+  user_1_rating integer CHECK (user_1_rating >= 1 AND user_1_rating <= 5),
+  user_2_rating integer CHECK (user_2_rating >= 1 AND user_2_rating <= 5),
+  CONSTRAINT match_records_pkey PRIMARY KEY (match_id),
+  CONSTRAINT match_records_user_1_id_fkey FOREIGN KEY (user_1_id) REFERENCES public.user_profiles(user_id),
+  CONSTRAINT match_records_user_2_id_fkey FOREIGN KEY (user_2_id) REFERENCES public.user_profiles(user_id)
 );
 ```
 
@@ -104,27 +112,33 @@ CREATE TABLE public.match_records (
 
 ```sql
 CREATE TABLE public.messages (
-  message_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz DEFAULT now(),
-  match_id uuid NOT NULL REFERENCES match_records(match_id),
-  sender_id uuid NOT NULL REFERENCES user_profiles(user_id),
-  recipient_id uuid NOT NULL REFERENCES user_profiles(user_id),
-  conversation_thread_id uuid NOT NULL,
-  message_sequence int NOT NULL,
+  message_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  match_id uuid NOT NULL,
+  sender_id uuid NOT NULL,
+  recipient_id uuid NOT NULL,
+  conversation_thread_id uuid,
+  message_sequence integer NOT NULL,
   message_content text NOT NULL CHECK (char_length(message_content) >= 1 AND char_length(message_content) <= 5000),
-  message_length int DEFAULT char_length(message_content),
+  message_length integer DEFAULT char_length(message_content),
   contains_emoji boolean DEFAULT false,
   detected_language USER-DEFINED,
-  scheduled_delivery_at timestamptz NOT NULL,
-  read_at timestamptz,
+  scheduled_delivery_at timestamp with time zone NOT NULL,
+  read_at timestamp with time zone,
   delivery_status USER-DEFINED DEFAULT 'scheduled'::delivery_status_enum,
   moderation_status USER-DEFINED DEFAULT 'pending'::moderation_enum,
   moderation_flags ARRAY,
   moderator_id uuid,
-  moderated_at timestamptz,
-  client_timezone varchar,
-  estimated_read_time int,
-  letter_styles jsonb
+  moderated_at timestamp with time zone,
+  client_timezone character varying,
+  estimated_read_time integer,
+  letter_styles jsonb,
+  image_url text,
+  letter_url text,
+  CONSTRAINT messages_pkey PRIMARY KEY (message_id),
+  CONSTRAINT messages_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.match_records(match_id),
+  CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.user_profiles(user_id),
+  CONSTRAINT messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.user_profiles(user_id)
 );
 ```
 
@@ -140,26 +154,30 @@ CREATE TABLE public.messages (
 
 ```sql
 CREATE TABLE public.moderation_logs (
-  log_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz DEFAULT now(),
+  log_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
   target_type USER-DEFINED NOT NULL,
   target_id uuid NOT NULL,
-  reported_user_id uuid REFERENCES user_profiles(user_id),
-  reporting_user_id uuid REFERENCES user_profiles(user_id),
+  reported_user_id uuid,
+  reporting_user_id uuid,
   violation_type USER-DEFINED NOT NULL,
   violation_description text,
   severity_level USER-DEFINED DEFAULT 'low'::severity_enum,
   automated_detection boolean DEFAULT false,
   status USER-DEFINED DEFAULT 'open'::report_status_enum,
   moderator_id uuid,
-  reviewed_at timestamptz,
+  reviewed_at timestamp with time zone,
   resolution_action USER-DEFINED,
   resolution_notes text,
   appeal_status USER-DEFINED DEFAULT 'none'::appeal_status_enum,
   evidence_message_ids ARRAY,
   evidence_screenshots ARRAY,
-  system_context jsonb
+  system_context jsonb,
+  CONSTRAINT moderation_logs_pkey PRIMARY KEY (log_id),
+  CONSTRAINT moderation_logs_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.user_profiles(user_id),
+  CONSTRAINT moderation_logs_reporting_user_id_fkey FOREIGN KEY (reporting_user_id) REFERENCES public.user_profiles(user_id)
 );
+
 ```
 
 **Key Features**:
@@ -174,11 +192,13 @@ CREATE TABLE public.moderation_logs (
 
 ```sql
 CREATE TABLE public.external_users (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   api_key text NOT NULL UNIQUE,
-  usage_count int DEFAULT 0,
-  usage_limit int DEFAULT 1000,
-  group_name text
+  usage_count integer DEFAULT 0,
+  usage_limit integer DEFAULT 1000,
+  group_name text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT external_users_pkey PRIMARY KEY (id)
 );
 ```
 
@@ -192,10 +212,11 @@ CREATE TABLE public.external_users (
 
 ```sql
 CREATE TABLE public.passed_profiles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id text NOT NULL,
   passed_user_id text NOT NULL,
-  passed_at timestamptz DEFAULT now()
+  passed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT passed_profiles_pkey PRIMARY KEY (id)
 );
 ```
 
@@ -209,17 +230,38 @@ CREATE TABLE public.passed_profiles (
 
 ```sql
 CREATE TABLE public.user_preference_selections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE REFERENCES user_profiles(user_id),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
   selected_profile_id text NOT NULL,
-  selected_at timestamptz DEFAULT now(),
-  preference_type text NOT NULL
+  selected_at timestamp with time zone DEFAULT now(),
+  preference_type text NOT NULL,
+  CONSTRAINT user_preference_selections_pkey PRIMARY KEY (id),
+  CONSTRAINT user_preference_selections_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(user_id)
 );
 ```
 
 **Key Features**:
 - Captures initial user preferences
 - Enables personalization from first use
+
+### 8. banned_fingerprints
+**Purpose**: List of all the banned device fingerprints.
+
+```sql
+CREATE TABLE public.banned_fingerprints (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  fingerprint text NOT NULL,
+  banned_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT banned_fingerprints_pkey PRIMARY KEY (id),
+  CONSTRAINT banned_fingerprints_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.user_profiles(user_id)
+);
+```
+
+**Key Features**:
+- Prevents banned user fron creating new accounts
 
 ---
 
