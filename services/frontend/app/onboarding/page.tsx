@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/context/ProfileContext";
-import Stepper, { Step } from '@/components/StepperCard';
+import Stepper, { Step } from "@/components/StepperCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,22 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User2, Languages, MapPin, Heart, Settings, Mail, Mailbox } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  User2,
+  Languages,
+  MapPin,
+  Heart,
+  Settings,
+  Mail,
+  Mailbox,
+} from "lucide-react";
 
 // Reuse types and API from settings
 type ProfileModel = {
@@ -34,12 +48,18 @@ type ProfileModel = {
 
 const API_BASE = process.env.NEXT_PUBLIC_CORE_URL || "http://0.0.0.0:8000";
 
-async function apiUpdateProfile(clerkId: string, patch: Partial<ProfileModel>): Promise<ProfileModel> {
-  const res = await fetch(`${API_BASE}/profiles/${encodeURIComponent(clerkId)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
+async function apiUpdateProfile(
+  clerkId: string,
+  patch: Partial<ProfileModel>
+): Promise<ProfileModel> {
+  const res = await fetch(
+    `${API_BASE}/profiles/${encodeURIComponent(clerkId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }
+  );
   if (!res.ok) throw new Error(`PUT failed: ${res.status}`);
   return await res.json();
 }
@@ -48,17 +68,28 @@ async function apiUpdateProfile(clerkId: string, patch: Partial<ProfileModel>): 
 const AGE_BUCKETS = ["18-25", "26-35", "36-45", "46+", "prefer-not"] as const;
 const LANGUAGES = [
   { code: "en", label: "English" },
-  { code: "es", label: "Spanish" },
+  { code: "ar", label: "Arabic" },
+  { code: "zh", label: "Chinese" },
   { code: "fr", label: "French" },
   { code: "de", label: "German" },
+  { code: "hi", label: "Hindi" },
+  { code: "it", label: "Italian" },
   { code: "ja", label: "Japanese" },
-  { code: "zh", label: "Chinese" },
+  { code: "ko", label: "Korean" },
+  { code: "pt", label: "Portuguese" },
+  { code: "ru", label: "Russian" },
+  { code: "es", label: "Spanish" },
 ] as const;
 const TIMEZONES = [
-  "Africa/Johannesburg", "UTC", "Europe/London", "Europe/Paris",
-  "America/New_York", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata"
+  "Africa/Johannesburg",
+  "UTC",
+  "Europe/London",
+  "Europe/Paris",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Asia/Tokyo",
+  "Asia/Kolkata",
 ] as const;
-
 
 const CORRESPONDENCE_TYPES = [
   { value: "long-term", label: "long-term", icon: Mailbox },
@@ -69,35 +100,35 @@ const CORRESPONDENCE_TYPES = [
 // Extended country list matching settings page
 const COUNTRIES = [
   { code: "ZA", name: "South Africa" },
-  { code: "US", name: "United States" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "NG", name: "Nigeria" },
-  { code: "IN", name: "India" },
-  { code: "JP", name: "Japan" },
+  { code: "AR", name: "Argentina" },
+  { code: "AU", name: "Australia" },
+  { code: "BD", name: "Bangladesh" },
   { code: "BR", name: "Brazil" },
   { code: "CA", name: "Canada" },
-  { code: "AU", name: "Australia" },
   { code: "CN", name: "China" },
-  { code: "RU", name: "Russia" },
-  { code: "IT", name: "Italy" },
-  { code: "ES", name: "Spain" },
-  { code: "KR", name: "South Korea" },
-  { code: "MX", name: "Mexico" },
-  { code: "ID", name: "Indonesia" },
-  { code: "TR", name: "Turkey" },
-  { code: "SA", name: "Saudi Arabia" },
-  { code: "AR", name: "Argentina" },
   { code: "EG", name: "Egypt" },
-  { code: "PK", name: "Pakistan" },
-  { code: "BD", name: "Bangladesh" },
-  { code: "KE", name: "Kenya" },
   { code: "ET", name: "Ethiopia" },
-  { code: "PH", name: "Philippines" },
-  { code: "VN", name: "Vietnam" },
-  { code: "TH", name: "Thailand" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "IN", name: "India" },
+  { code: "ID", name: "Indonesia" },
+  { code: "IT", name: "Italy" },
+  { code: "JP", name: "Japan" },
+  { code: "KE", name: "Kenya" },
   { code: "MY", name: "Malaysia" },
+  { code: "MX", name: "Mexico" },
+  { code: "NG", name: "Nigeria" },
+  { code: "PK", name: "Pakistan" },
+  { code: "PH", name: "Philippines" },
+  { code: "RU", name: "Russia" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "KR", name: "South Korea" },
+  { code: "ES", name: "Spain" },
+  { code: "TH", name: "Thailand" },
+  { code: "TR", name: "Turkey" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+  { code: "VN", name: "Vietnam" },
 ] as const;
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
@@ -106,7 +137,7 @@ export default function OnboardingPage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const { syncProfile, isOnboardingComplete } = useProfile();
-  
+
   // Profile state
   const [handle, setHandle] = useState("");
   const [countryCode, setCountryCode] = useState("");
@@ -117,11 +148,18 @@ export default function OnboardingPage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [interestInput, setInterestInput] = useState("");
   const [favoriteLocalFact, setFavoriteLocalFact] = useState("");
-  const [preferredCorrespondenceType, setPreferredCorrespondenceType] = useState<'long-term' | 'one-time' | 'either'>('either');
-  
+  const [preferredCorrespondenceType, setPreferredCorrespondenceType] =
+    useState<"long-term" | "one-time" | "either">("either");
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stepValidity, setStepValidity] = useState<boolean[]>([true, false, false, true, true]);
+  const [stepValidity, setStepValidity] = useState<boolean[]>([
+    true,
+    false,
+    false,
+    true,
+    true,
+  ]);
   const [currentStep, setCurrentStep] = useState(1);
 
   // If already onboarded, redirect to home
@@ -144,14 +182,18 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
-    const isValid = handle !== "" && HANDLE_RE.test(handle) && countryCode !== "" && ageRange !== "";
+    const isValid =
+      handle !== "" &&
+      HANDLE_RE.test(handle) &&
+      countryCode !== "" &&
+      ageRange !== "";
     updateStepValidity(1, isValid);
   }, [handle, countryCode, ageRange]);
 
   useEffect(() => {
-    const isValid = primaryLanguage !== "" && timeZone !== "" ;
+    const isValid = primaryLanguage !== "" && timeZone !== "";
     updateStepValidity(2, isValid);
-  }, [primaryLanguage, timeZone,]);
+  }, [primaryLanguage, timeZone]);
 
   useEffect(() => {
     updateStepValidity(3, true); // About You - optional
@@ -163,7 +205,7 @@ export default function OnboardingPage() {
 
   // Helper functions - defined after hooks but before any conditional returns
   const updateStepValidity = (stepIndex: number, isValid: boolean) => {
-    setStepValidity(prev => {
+    setStepValidity((prev) => {
       const newValidity = [...prev];
       newValidity[stepIndex] = isValid;
       return newValidity;
@@ -193,7 +235,9 @@ export default function OnboardingPage() {
   const handleCompleteOnboarding = async () => {
     // Final validation before completing
     if (handle && !HANDLE_RE.test(handle)) {
-      setError("Handle must be 3-20 characters: lowercase letters, numbers, underscores only.");
+      setError(
+        "Handle must be 3-20 characters: lowercase letters, numbers, underscores only."
+      );
       return;
     }
 
@@ -207,10 +251,10 @@ export default function OnboardingPage() {
 
     try {
       await apiUpdateProfile(user!.id, buildProfileData());
-      
+
       // Refresh the profile in context to update onboarding status
       await syncProfile();
-      
+
       // Redirect to landing page
       router.push("/");
     } catch (err) {
@@ -230,14 +274,26 @@ export default function OnboardingPage() {
 
   // Conditional return MUST be at the very end, after all hooks
   if (!isLoaded || !isSignedIn || !user) {
-    return <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">Loading...</div>;
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        role="status"
+        aria-label="Loading"
+      >
+        Loading...
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 p-4">
       <div className="text-center pt-8 pb-4 relative z-10">
-        <h1 className="text-3xl font-bold text-stone-800 mb-2">Welcome to Our Community!</h1>
-        <p className="text-stone-600">Let&apos;s set up your profile in a few quick steps</p>
+        <h1 className="text-3xl font-bold text-stone-800 mb-2">
+          Welcome to Our Community!
+        </h1>
+        <p className="text-stone-600">
+          Let&apos;s set up your profile in a few quick steps
+        </p>
       </div>
 
       <div className="flex items-center justify-center min-h-[80vh] -mt-8">
@@ -257,17 +313,24 @@ export default function OnboardingPage() {
             <Step>
               <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader className="text-center">
-                  <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+                  <div
+                    className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                    aria-hidden="true"
+                  >
                     <User2 className="h-8 w-8 text-rose-600" />
                   </div>
-                  <CardTitle>Welcome, {user.firstName || 'friend'}! 👋</CardTitle>
+                  <CardTitle>
+                    Welcome, {user.firstName || "friend"}! 👋
+                  </CardTitle>
                   <CardDescription>
-                    We&apos;re excited to have you here. Let&apos;s get your profile set up so you can start connecting with others.
+                    We&apos;re excited to have you here. Let&apos;s get your
+                    profile set up so you can start connecting with others.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-stone-600 text-center">
-                    This will only take a minute. You can always adjust these settings later.
+                    This will only take a minute. You can always adjust these
+                    settings later.
                   </p>
                 </CardContent>
               </Card>
@@ -290,7 +353,10 @@ export default function OnboardingPage() {
                       Anonymous Handle <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative max-w-md">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" aria-hidden="true">
+                      <span
+                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                        aria-hidden="true"
+                      >
                         @
                       </span>
                       <Input
@@ -308,11 +374,19 @@ export default function OnboardingPage() {
                         className="pl-7"
                         required
                         aria-required="true"
-                        aria-describedby={handle && !HANDLE_RE.test(handle) ? "handle-error" : undefined}
+                        aria-describedby={
+                          handle && !HANDLE_RE.test(handle)
+                            ? "handle-error"
+                            : undefined
+                        }
                       />
                     </div>
                     {handle && !HANDLE_RE.test(handle) && (
-                      <p id="handle-error" className="text-xs text-red-600" role="alert">
+                      <p
+                        id="handle-error"
+                        className="text-xs text-red-600"
+                        role="alert"
+                      >
                         3-20 chars: lowercase letters, numbers, underscores only
                       </p>
                     )}
@@ -320,7 +394,9 @@ export default function OnboardingPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="country">Country <span className="text-red-500">*</span></Label>
+                      <Label htmlFor="country">
+                        Country <span className="text-red-500">*</span>
+                      </Label>
                       <Select
                         value={countryCode}
                         onValueChange={setCountryCode}
@@ -339,7 +415,9 @@ export default function OnboardingPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="age">Age Range <span className="text-red-500">*</span></Label>
+                      <Label htmlFor="age">
+                        Age Range <span className="text-red-500">*</span>
+                      </Label>
                       <Select value={ageRange} onValueChange={setAgeRange}>
                         <SelectTrigger aria-label="Select your age range">
                           <SelectValue placeholder="Select age" />
@@ -371,7 +449,10 @@ export default function OnboardingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="language" className="text-[0.9rem] text-stone-800">
+                    <Label
+                      htmlFor="language"
+                      className="text-[0.9rem] text-stone-800"
+                    >
                       Primary Language <span className="text-red-500">*</span>
                     </Label>
                     <Select
@@ -392,7 +473,10 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="timezone" className="text-[0.9rem] text-stone-800 flex items-center gap-2">
+                    <Label
+                      htmlFor="timezone"
+                      className="text-[0.9rem] text-stone-800 flex items-center gap-2"
+                    >
                       <MapPin className="h-4 w-4" aria-hidden="true" />
                       Time Zone <span className="text-red-500">*</span>
                     </Label>
@@ -411,12 +495,18 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="correspondenceType" className="text-[0.9rem] text-stone-800">
-                      Preferred Correspondence Type <span className="text-red-500">*</span>
+                    <Label
+                      htmlFor="correspondenceType"
+                      className="text-[0.9rem] text-stone-800"
+                    >
+                      Preferred Correspondence Type{" "}
+                      <span className="text-red-500">*</span>
                     </Label>
-                    <Select 
-                      value={preferredCorrespondenceType} 
-                      onValueChange={(value: 'long-term' | 'one-time' | 'either') => setPreferredCorrespondenceType(value)}
+                    <Select
+                      value={preferredCorrespondenceType}
+                      onValueChange={(
+                        value: "long-term" | "one-time" | "either"
+                      ) => setPreferredCorrespondenceType(value)}
                     >
                       <SelectTrigger aria-label="Select your preferred correspondence type">
                         <SelectValue placeholder="Select how you'd like to communicate" />
@@ -427,7 +517,10 @@ export default function OnboardingPage() {
                           return (
                             <SelectItem key={type.value} value={type.value}>
                               <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4" aria-hidden="true" />
+                                <IconComponent
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                                 {type.label}
                               </div>
                             </SelectItem>
@@ -441,7 +534,8 @@ export default function OnboardingPage() {
                   </div>
 
                   <p className="text-xs text-stone-500">
-                    💡 You can add secondary languages and more detailed preferences in Settings later
+                    💡 You can add secondary languages and more detailed
+                    preferences in Settings later
                   </p>
                 </CardContent>
               </Card>
@@ -472,7 +566,9 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="favoriteLocalFact">Favorite Local Fact</Label>
+                    <Label htmlFor="favoriteLocalFact">
+                      Favorite Local Fact
+                    </Label>
                     <Textarea
                       id="favoriteLocalFact"
                       value={favoriteLocalFact}
@@ -511,7 +607,11 @@ export default function OnboardingPage() {
                       </Button>
                     </div>
                     {interests.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Your interests">
+                      <div
+                        className="flex flex-wrap gap-2 mt-2"
+                        role="list"
+                        aria-label="Your interests"
+                      >
                         {interests.map((interest, index) => (
                           <span
                             key={index}
@@ -543,29 +643,42 @@ export default function OnboardingPage() {
             <Step>
               <Card className="border-0 shadow-none bg-transparent text-center">
                 <CardHeader>
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+                  <div
+                    className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                    aria-hidden="true"
+                  >
                     <Settings className="h-8 w-8 text-green-600" />
                   </div>
                   <CardTitle>You&apos;re All Set! 🎉</CardTitle>
                   <CardDescription>
-                    Your profile is ready to go. You can always fine-tune these settings later.
+                    Your profile is ready to go. You can always fine-tune these
+                    settings later.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-sm text-stone-600 space-y-2">
                     <p className="mt-4">
-                      Visit <strong>Settings</strong> anytime to adjust your profile.
+                      Visit <strong>Settings</strong> anytime to adjust your
+                      profile.
                     </p>
                   </div>
 
                   {error && (
-                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded" role="alert" aria-live="assertive">
+                    <div
+                      className="text-red-600 text-sm bg-red-50 p-3 rounded"
+                      role="alert"
+                      aria-live="assertive"
+                    >
                       {error}
                     </div>
                   )}
 
                   {isSaving && (
-                    <div className="text-stone-600 text-sm" aria-live="polite" aria-label="Saving your profile">
+                    <div
+                      className="text-stone-600 text-sm"
+                      aria-live="polite"
+                      aria-label="Saving your profile"
+                    >
                       Saving your profile...
                     </div>
                   )}
