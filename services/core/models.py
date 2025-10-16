@@ -1,13 +1,11 @@
 # models.py
-# This file contains the Pydantic data models for the API.
-# These models define the expected data structure for requests and responses,
-# ensuring data validation and generating documentation.
-
-
-from pydantic import BaseModel,Field
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Literal
 from uuid import UUID
 from datetime import datetime
+
+# Define the correspondence type enum to match your database
+CorrespondenceType = Literal['long-term', 'one-time', 'either']
 
 # --- Profile Models ---
 class ProfileBase(BaseModel):
@@ -19,6 +17,8 @@ class ProfileBase(BaseModel):
     country_code: Optional[str] = None
     bio: Optional[str] = None
     interests: Optional[List[str]] = Field(default_factory=list)
+    favorite_local_fact: Optional[str] = None
+    preferred_correspondence_type: Optional[CorrespondenceType] = 'either'
 
 class ProfileCreate(ProfileBase):
     """
@@ -43,6 +43,8 @@ class ProfileUpdate(ProfileBase):
     bio: Optional[str] = None
     interests: Optional[List[str]] = None
     anonymous_handle: Optional[str] = None
+    favorite_local_fact: Optional[str] = None
+    preferred_correspondence_type: Optional[CorrespondenceType] = None
 
 class Profile(ProfileBase):
     """
@@ -57,3 +59,4 @@ class Profile(ProfileBase):
     updated_at: datetime
     last_active: Optional[datetime]
     favorite_local_fact: Optional[str] = None
+    preferred_correspondence_type: CorrespondenceType = 'either'
