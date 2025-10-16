@@ -72,7 +72,51 @@ def override_db(fake_client):
 def make_client():
     return TestClient(main.app)
 
-#
+
+def test_create_profile_happy_path():
+    # 1) SELECT returns empty (no existing profile)
+    # 2) INSERT returns the created row (as a one-element list)
+    created_row = {
+        "age_range": "26-35",
+        "primary_language": "fr",
+        "secondary_languages": ["en"],
+        "time_zone": "Europe/Paris",
+        "country_code": "FR",
+        "bio": "A student of culture and history from France.",
+        "interests": ["history", "art", "travel"],
+        "clerk_id": "user_123",
+        "anonymous_handle": "globetrotter",
+        "fingerprint": ["fp_123"],
+        "favorite_local_fact": None,
+        "preferred_correspondence_type": "either"
+    }
+    fake = FakeSupabaseClient(results=[[], [created_row]])
+    override_db(fake)
+    client = make_client()
+ 
+    payload = {
+        "age_range": "26-35",
+        "primary_language": "fr",
+        "secondary_languages": ["en"],
+        "time_zone": "Europe/Paris",
+        "country_code": "FR",
+        "bio": "A student of culture and history from France.",
+        "interests": ["history", "art", "travel"],
+        "clerk_id": "user_123",
+        "anonymous_handle": "globetrotter",
+        "fingerprint": "fp_123",
+        "favorite_local_fact": None,
+        "preferred_correspondence_type": "either"
+    }
+
+    resp = client.post("/profiles/", json=payload)
+    assert resp.status_code == 201
+    assert resp.json() == created_row
+    # Ensure we inserted data with fingerprint converted to list
+    expected_insert_payload = payload.copy()
+    expected_insert_payload["fingerprint"] = ["fp_123"]  # Should be converted to list
+    assert fake.last_insert_payload == expected_insert_payload
+
 def test_create_profile_duplicate_200():
     # 1) SELECT returns a row -> endpoint should 200 and return that row
     fake = FakeSupabaseClient(results=[[{"clerk_id": "user_123", "fingerprint": []}]])
