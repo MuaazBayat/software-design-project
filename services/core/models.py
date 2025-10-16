@@ -24,10 +24,11 @@ class ProfileCreate(ProfileBase):
     """
     Model for creating a new profile.
     Requires a clerk_id and an anonymous_handle.
+    Note: fingerprint is provided as a string but stored as a list in the database.
     """
     clerk_id: str
     anonymous_handle: str
-    fingerprint: str
+    fingerprint: str  # Converted to list during insertion
 
 class ProfileUpdate(ProfileBase):
     """

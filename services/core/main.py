@@ -113,8 +113,12 @@ async def create_profile(
             content=existing_profile.data[0]
         )
 
+    # Prepare profile data for insertion, ensuring fingerprint is stored as a list
+    profile_dict = profile_data.model_dump()
+    profile_dict["fingerprint"] = [profile_data.fingerprint]  # Convert string to list
+    
     # Insert the new profile data into the Supabase table.
-    response = db.table("user_profiles").insert(profile_data.model_dump()).execute()
+    response = db.table("user_profiles").insert(profile_dict).execute()
     
     # Check if the database operation was successful.
     if not response.data:
