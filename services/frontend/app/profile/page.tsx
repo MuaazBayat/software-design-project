@@ -156,7 +156,7 @@ export default function ProfilePage() {
       </a>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-20">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center">
           <Button
             variant="ghost"
