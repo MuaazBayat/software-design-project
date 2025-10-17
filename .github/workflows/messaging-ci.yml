@@ -52,24 +52,45 @@ jobs:
       - name: Add repo to PYTHONPATH
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
-      - name: Run messaging tests with coverage
+      - name: Run messaging unit tests with coverage
         run: |
-          pytest -q tests/messaging \
+          pytest -q tests/messaging/unit \
             --maxfail=1 \
             --cov=services.messaging.main \
             --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-report=html \
+            --cov-report=xml:coverage-unit.xml \
+            --cov-report=html:htmlcov-unit \
+            --cov-fail-under=70
+
+      - name: Run messaging integration tests with coverage
+        run: |
+          pytest -q tests/messaging/integration \
+            --maxfail=1 \
+            --cov=services.messaging.main \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-integration.xml \
+            --cov-report=html:htmlcov-integration \
             --cov-fail-under=50
 
-      - name: Upload coverage artifacts
+      - name: Upload unit test coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-unit
           path: |
-            coverage.xml
-            htmlcov/**
+            coverage-unit.xml
+            htmlcov-unit/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload integration test coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration
+          path: |
+            coverage-integration.xml
+            htmlcov-integration/**
           if-no-files-found: ignore
           retention-days: 7
 

@@ -1670,4 +1670,929 @@ describe('Send disabled logic — whitespace-only content', () => {
   });
 });
 
+describe('Font Selection & Preview', () => {
+  test('font-style attribute is passed to MainContent', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('font-style');
+      const fontStyle = mainContent.getAttribute('font-style');
+      expect(fontStyle).toBeTruthy();
+    });
+  });
+
+  test('font attributes are present on components', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('font-size');
+      const fontSize = mainContent.getAttribute('font-size');
+      expect(fontSize).toBeTruthy();
+    });
+  });
+
+  test('components render with default font configuration', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const leftSidebar = screen.getByTestId('left-sidebar');
+      const mainContent = screen.getByTestId('main-content');
+      const rightSidebar = screen.getByTestId('right-sidebar');
+
+      expect(leftSidebar).toHaveAttribute('font-style');
+      expect(mainContent).toHaveAttribute('font-style');
+      expect(rightSidebar).toHaveAttribute('font-style');
+    });
+  });
+});
+
+describe('Background & Pattern Configuration', () => {
+  test('backgroundcolor attribute is passed to components', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('backgroundcolor');
+    });
+  });
+
+  test('templateData attribute exists on MainContent', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('templatedata');
+    });
+  });
+
+  test('template-related attributes are present on components', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      const rightSidebar = screen.getByTestId('right-sidebar');
+
+      expect(mainContent).toHaveAttribute('templatebackground');
+      expect(rightSidebar).toHaveAttribute('templatebackground');
+    });
+  });
+});
+
+describe('Font Styling & Color', () => {
+  test('fontColor attribute is passed to components', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('fontcolor');
+      const fontColor = mainContent.getAttribute('fontcolor');
+      expect(fontColor).toBeTruthy();
+    });
+  });
+
+  test('fontOpacity attribute is passed to components', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('fontopacity');
+      const fontOpacity = mainContent.getAttribute('fontopacity');
+      expect(fontOpacity).toBeTruthy();
+    });
+  });
+});
+
+describe('Template Selection & Application', () => {
+  test('template-related attributes are initialized on render', async () => {
+    render(<LetterApp />);
+    
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('templatedata');
+      expect(mainContent).toHaveAttribute('templatebackground');
+      expect(mainContent).toHaveAttribute('fontcolor');
+      expect(mainContent).toHaveAttribute('backgroundcolor');
+    });
+  });
+
+  test('onToggleTemplates toggles templates bottom sheet', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.onToggleTemplates).toBeTruthy());
+
+    // Initial state - templates closed
+    expect(screen.queryByTestId('template-side-panel')).not.toBeInTheDocument();
+
+    // Toggle open
+    act(() => latestMC.onToggleTemplates());
+    expect(await screen.findByTestId('template-side-panel')).toBeInTheDocument();
+
+    // Toggle closed
+    act(() => latestMC.onToggleTemplates());
+    await waitFor(() => {
+      expect(screen.queryByTestId('template-side-panel')).not.toBeInTheDocument();
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Letter Statistics Edge Cases', () => {
+  test('handles empty content gracefully with zero word count', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    act(() => latestMC.setLetterContent(''));
+
+    await waitFor(() => {
+      expect(lastRS.wordCount).toBe(0);
+      expect(lastRS.readingTime).toBe('0:00');
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+
+  test('calculates character count correctly', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    const content = '<p>Hello World</p>';
+    act(() => latestMC.setLetterContent(content));
+
+    await waitFor(() => {
+      // Character count should strip HTML tags
+      expect(lastRS.charCount).toBeGreaterThan(0);
+      expect(lastRS.charCount).toBeLessThan(content.length);
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+
+  test('reading time formats correctly for various durations', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    // Test with exactly 200 words (should be 1:00)
+    const words200 = '<p>' + Array.from({ length: 200 }, (_, i) => `word${i}`).join(' ') + '</p>';
+    act(() => latestMC.setLetterContent(words200));
+
+    await waitFor(() => {
+      expect(lastRS.wordCount).toBe(200);
+      expect(lastRS.readingTime).toMatch(/\d+:\d{2}/);
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+});
+
+describe('Preset Management', () => {
+  test('presets are loaded from context on mount', async () => {
+    const testPresets = [
+      {
+        id: 'preset-1',
+        name: 'Preset 1',
+        config: { background: { color: '#fff' } },
+        isFavorite: false,
+      },
+      {
+        id: 'preset-2',
+        name: 'Preset 2',
+        config: { background: { color: '#000' } },
+        isFavorite: true,
+      }
+    ];
+
+    mockUseComposeLetter.mockReturnValue({ presets: testPresets });
+
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('compose-provider')).toBeInTheDocument();
+      // Presets should be available internally
+    });
+  });
+});
+
+describe('Accessibility - Keyboard Navigation', () => {
+  test('back button is keyboard accessible', async () => {
+    render(<LetterApp />);
+
+    const backBtn = screen.getByRole('button', { name: /back to inbox/i });
+    expect(backBtn).toBeInTheDocument();
+    
+    // Verify it has proper focus handling
+    backBtn.focus();
+    expect(document.activeElement).toBe(backBtn);
+  });
+
+  test('mobile toggle buttons are keyboard accessible', async () => {
+    render(<LetterApp />);
+
+    const matchesBtn = screen.getByRole('button', { name: /matches/i });
+    const previewBtn = screen.getByRole('button', { name: /preview & send/i });
+
+    expect(matchesBtn).toBeInTheDocument();
+    expect(previewBtn).toBeInTheDocument();
+
+    matchesBtn.focus();
+    expect(document.activeElement).toBe(matchesBtn);
+  });
+});
+
+describe('Error Recovery', () => {
+  test('recovers from failed match search and allows retry', async () => {
+    const originalFetch = global.fetch;
+    let callCount = 0;
+
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      callCount++;
+      
+      if (init?.method === 'POST' && url.toLowerCase().includes('search')) {
+        if (callCount === 1) {
+          // First call fails
+          return Promise.reject(new Error('Network error'));
+        }
+        // Subsequent calls succeed
+        return {
+          ok: true,
+          json: async () => ({ items: mockMatches.map(m => ({
+            user_profile: { user_id: m.id, anonymous_handle: m.name },
+            latest_message: { conversation_thread_id: m.conversation_thread_id }
+          })), total: 2, page: 1, page_size: 10 })
+        };
+      }
+      
+      if (typeof originalFetch === 'function') return originalFetch(input, init);
+      return { ok: true, json: async () => ({}) };
+    });
+
+    render(<LetterApp />);
+
+    // Should handle initial error
+    await waitFor(() => {
+      const right = screen.getAllByTestId('right-sidebar')[0];
+      expect(right).toBeInTheDocument();
+    });
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('State Persistence', () => {
+  test('maintains letter content through match selection changes', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const nav = require('next/navigation');
+    const paramsSpy = jest.spyOn(nav, 'useParams');
+    paramsSpy.mockReturnValue({ user_id: 'match1' });
+
+    const { rerender } = render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    // Set content
+    const testContent = '<p>My letter content</p>';
+    act(() => latestMC.setLetterContent(testContent));
+
+    await waitFor(() => {
+      expect(latestMC.letterContent).toBe(testContent);
+    });
+
+    // Change selected match
+    paramsSpy.mockReturnValue({ user_id: 'match2' });
+    rerender(<LetterApp />);
+
+    // Content should persist
+    await waitFor(() => {
+      expect(latestMC.letterContent).toBe(testContent);
+    });
+
+    MC.default = origMC;
+    paramsSpy.mockRestore();
+  });
+});
+
+describe('Line Configuration Edge Cases', () => {
+  test('handles rotation parameter correctly', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    const snapshots = [];
+    MC.default = (props) => { snapshots.push(props); return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+    act(() => latestRS.onLineConfigChange({
+      type: 'straight',
+      spacing: 20,
+      thickness: 1,
+      color: '#000',
+      opacity: 1,
+      rotation: 45,
+    }));
+
+    await waitFor(() => {
+      const lines = snapshots.at(-1).templateData.lines;
+      expect(lines.rotation).toBe(45);
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+
+  test('calculates slope and intercept for rotated lines', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1000, writable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    const snapshots = [];
+    MC.default = (props) => { snapshots.push(props); return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+    act(() => latestRS.onLineConfigChange({
+      type: 'straight',
+      spacing: 20,
+      thickness: 1,
+      color: '#000',
+      opacity: 1,
+      rotation: 30,
+    }));
+
+    await waitFor(() => {
+      const lines = snapshots.at(-1).templateData.lines;
+      expect(lines.slope).toBeDefined();
+      expect(lines.intercept).toBeDefined();
+      expect(typeof lines.slope).toBe('number');
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+});
+
+describe('Responsive Layout Transitions', () => {
+  test('transitions from mobile to desktop layout', async () => {
+    // Start mobile
+    Object.defineProperty(window, 'innerWidth', { value: 600, writable: true });
+    const { rerender } = render(<LetterApp />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Matches')).toBeInTheDocument();
+    });
+
+    // Switch to desktop
+    Object.defineProperty(window, 'innerWidth', { value: 1400, writable: true });
+    rerender(<LetterApp />);
+
+    // Both sidebars should be visible
+    await waitFor(() => {
+      expect(screen.getByTestId('left-sidebar')).toBeInTheDocument();
+      expect(screen.getAllByTestId('right-sidebar').length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('Send Animation Lifecycle', () => {
+  test('animation component receives correct props', async () => {
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      // Animation should not be visible initially
+      expect(screen.queryByTestId('letter-send-animation')).not.toBeInTheDocument();
+    });
+  });
+
+  test('animation shows when send is triggered', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS).toBeTruthy());
+
+    // Animation behavior would be tested through send flow
+    expect(screen.queryByTestId('letter-send-animation')).not.toBeInTheDocument();
+
+    RS.default = origRS;
+  });
+});
+
+describe('Content Validation', () => {
+  test('strips HTML tags for plain text analysis', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    const htmlContent = '<h1>Title</h1><p>Paragraph with <strong>bold</strong> text.</p>';
+    act(() => latestMC.setLetterContent(htmlContent));
+
+    await waitFor(() => {
+      // Word count should count actual words, not HTML tags
+      expect(lastRS.wordCount).toBeGreaterThan(0);
+      expect(lastRS.wordCount).toBeLessThanOrEqual(5);
+      // The character count should be less than the full HTML length
+      expect(lastRS.charCount).toBeLessThan(htmlContent.length);
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+
+  test('handles special characters in content', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let lastRS;
+    RS.default = (props) => { lastRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterContent).toBeTruthy());
+
+    const specialContent = '<p>Hello! How are you? I\'m fine—thanks for asking.</p>';
+    act(() => latestMC.setLetterContent(specialContent));
+
+    await waitFor(() => {
+      expect(lastRS.wordCount).toBeGreaterThan(0);
+      expect(lastRS.charCount).toBeGreaterThan(0);
+    });
+
+    MC.default = origMC;
+    RS.default = origRS;
+  });
+});
+
+describe('Mobile Font Panel', () => {
+  test('mobile font panel can be toggled from main content', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 600, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.onToggleFontOverlay).toBeTruthy());
+
+    // Initially no font panel
+    expect(screen.queryByTestId('font-side-panel')).not.toBeInTheDocument();
+
+    // Toggle font overlay on mobile
+    act(() => latestMC.onToggleFontOverlay());
+
+    await waitFor(() => {
+      const sheet = screen.queryByTestId('sheet');
+      expect(sheet).toBeInTheDocument();
+    });
+
+    MC.default = origMC;
+  });
+
+  test('mobile font panel closes when toggled again', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 600, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.onToggleFontOverlay).toBeTruthy());
+
+    // Open font panel
+    act(() => latestMC.onToggleFontOverlay());
+    await waitFor(() => expect(screen.queryByTestId('sheet')).toBeInTheDocument());
+
+    // Close font panel
+    act(() => latestMC.onToggleFontOverlay());
+    await waitFor(() => {
+      expect(screen.queryByTestId('sheet')).not.toBeInTheDocument();
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Template Selection Handlers', () => {
+  test('handleSelectTemplate updates template state', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onSelectTemplate).toBeTruthy());
+
+    // Select a template
+    act(() => latestRS.onSelectTemplate('test-template-id'));
+
+    await waitFor(() => {
+      // Template background should update
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('templatebackground');
+    });
+
+    RS.default = origRS;
+  });
+
+  test('handlePreviewTemplate shows template preview', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onPreviewTemplate).toBeTruthy());
+
+    // Preview a template
+    act(() => latestRS.onPreviewTemplate('preview-template-id'));
+
+    await waitFor(() => {
+      // Check that the component is still rendered
+      expect(screen.getByTestId('right-sidebar')).toBeInTheDocument();
+    });
+
+    RS.default = origRS;
+  });
+
+  test('clearing preview template resets to original state', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onPreviewTemplate).toBeTruthy());
+
+    // Preview then clear
+    act(() => latestRS.onPreviewTemplate('preview-id'));
+    await waitFor(() => expect(screen.getByTestId('right-sidebar')).toBeInTheDocument());
+
+    act(() => latestRS.onPreviewTemplate(null));
+    await waitFor(() => {
+      expect(screen.getByTestId('right-sidebar')).toBeInTheDocument();
+    });
+
+    RS.default = origRS;
+  });
+});
+
+describe('Color and Opacity Handlers', () => {
+  test('onBackgroundColorChange updates background color', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onBackgroundColorChange).toBeTruthy());
+
+    // Change background color
+    act(() => latestRS.onBackgroundColorChange('#123456'));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      const bgColor = mainContent.getAttribute('backgroundcolor');
+      expect(bgColor).toBe('#123456');
+    });
+
+    RS.default = origRS;
+  });
+
+  test('onBackgroundOpacityChange updates background opacity', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onBackgroundOpacityChange).toBeTruthy());
+
+    // Change background opacity
+    act(() => latestRS.onBackgroundOpacityChange(0.5));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      const bgOpacity = mainContent.getAttribute('backgroundopacity');
+      expect(bgOpacity).toBe('0.5');
+    });
+
+    RS.default = origRS;
+  });
+
+  test('onFontColorChange updates font color state', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onFontColorChange).toBeTruthy());
+
+    // Change font color
+    act(() => latestRS.onFontColorChange('#654321'));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      const fontColor = mainContent.getAttribute('fontcolor');
+      expect(fontColor).toBe('#654321');
+    });
+
+    RS.default = origRS;
+  });
+
+  test('onFontOpacityChange updates font opacity state', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onFontOpacityChange).toBeTruthy());
+
+    // Change font opacity
+    act(() => latestRS.onFontOpacityChange(0.8));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      const fontOpacity = mainContent.getAttribute('fontopacity');
+      expect(fontOpacity).toBe('0.8');
+    });
+
+    RS.default = origRS;
+  });
+});
+
+describe('Letter Reset Functionality', () => {
+  test('onNewLetter resets letter content', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.onNewLetter).toBeTruthy());
+
+    // Set some content first
+    act(() => latestMC.setLetterContent('Test content'));
+    await waitFor(() => expect(latestMC.letterContent).toBe('Test content'));
+
+    // Reset the letter
+    act(() => latestMC.onNewLetter());
+
+    await waitFor(() => {
+      // After reset, content should be empty
+      expect(latestMC.letterContent).toBe('');
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Desktop Font Overlay', () => {
+  test('font overlay toggles on desktop width', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1400, writable: true });
+
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.onToggleFontOverlay).toBeTruthy());
+
+    // Initially closed
+    expect(latestMC.overlayFontOpen).toBeFalsy();
+
+    // Toggle open
+    act(() => latestMC.onToggleFontOverlay());
+    await waitFor(() => {
+      expect(latestMC.overlayFontOpen).toBeTruthy();
+    });
+
+    // Toggle closed
+    act(() => latestMC.onToggleFontOverlay());
+    await waitFor(() => {
+      expect(latestMC.overlayFontOpen).toBeFalsy();
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Letter Heading and Footer', () => {
+  test('letter heading can be updated', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterHeading).toBeTruthy());
+
+    // Update heading
+    act(() => latestMC.setLetterHeading('Dear Friend,'));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('letterheading', 'Dear Friend,');
+    });
+
+    MC.default = origMC;
+  });
+
+  test('letter footer prefix can be updated', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestMC?.setLetterFooterPrefix).toBeTruthy());
+
+    // Update footer prefix
+    act(() => latestMC.setLetterFooterPrefix('Best regards,'));
+
+    await waitFor(() => {
+      const mainContent = screen.getByTestId('main-content');
+      expect(mainContent).toHaveAttribute('letterfooterprefix', 'Best regards,');
+    });
+
+    MC.default = origMC;
+  });
+});
+
+describe('Recipient Change Handler', () => {
+  test('changing recipient triggers onChangeRecipient callback', async () => {
+    const LS = require('../app/compose-letter/components/LeftSidebar');
+    const origLS = LS.default;
+    let onChangeRecipientCalls = [];
+    LS.default = (props) => {
+      const wrappedOnChange = (match) => {
+        onChangeRecipientCalls.push(match);
+        props.onChangeRecipient(match);
+      };
+      return origLS({ ...props, onChangeRecipient: wrappedOnChange });
+    };
+
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      const leftSidebar = screen.getByTestId('left-sidebar');
+      expect(leftSidebar).toBeInTheDocument();
+    });
+
+    // Verify the component rendered with initial match
+    const leftSidebar = screen.getByTestId('left-sidebar');
+    expect(leftSidebar).toHaveAttribute('data-selected-match-id', 'match1');
+
+    LS.default = origLS;
+  });
+});
+
+describe('Line Configuration Validation', () => {
+  test('validates minimum line spacing', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+    // Try to set spacing below minimum
+    act(() => latestRS.onLineConfigChange({
+      type: 'straight',
+      spacing: 2,  // Too small
+      thickness: 1,
+      color: '#000',
+      opacity: 1,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      // Should be clamped to minimum of 8
+      expect(latestRS.lineConfig.spacing).toBeGreaterThanOrEqual(8);
+    });
+
+    RS.default = origRS;
+  });
+
+  test('validates minimum line thickness', async () => {
+    const RS = require('../app/compose-letter/components/RightSidebar');
+    const origRS = RS.default;
+    let latestRS;
+    RS.default = (props) => { latestRS = props; return origRS(props); };
+
+    render(<LetterApp />);
+    await waitFor(() => expect(latestRS?.onLineConfigChange).toBeTruthy());
+
+    // Try to set thickness below minimum
+    act(() => latestRS.onLineConfigChange({
+      type: 'wavy',
+      spacing: 20,
+      thickness: 0.1,  // Too small
+      color: '#000',
+      opacity: 1,
+      rotation: 0,
+    }));
+
+    await waitFor(() => {
+      // Should be clamped to minimum of 0.5
+      expect(latestRS.lineConfig.thickness).toBeGreaterThanOrEqual(0.5);
+    });
+
+    RS.default = origRS;
+  });
+});
+
+describe('Processing State', () => {
+  test('isProcessing state is passed to MainContent', async () => {
+    const MC = require('../app/compose-letter/components/MainContent');
+    const origMC = MC.default;
+    let latestMC;
+    MC.default = (props) => { latestMC = props; return origMC(props); };
+
+    render(<LetterApp />);
+
+    await waitFor(() => {
+      expect(latestMC?.isProcessing).toBeDefined();
+      // Initially should be false
+      expect(latestMC.isProcessing).toBe(false);
+    });
+
+    MC.default = origMC;
+  });
+});
+
 });

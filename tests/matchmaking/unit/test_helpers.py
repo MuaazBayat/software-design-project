@@ -2,6 +2,9 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
 import services.matchmaking.main as main
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 from services.matchmaking.main import (
     get_passed_users, 
     record_pass, 

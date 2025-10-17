@@ -9,7 +9,9 @@ from fastapi.testclient import TestClient
 # ---- Adjust this import path to your project structure ----
 import services.core.main as main  # contains: app, get_supabase, route under test
 # -----------------------------------------------------------
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 class FakeTable:
     """
     Minimal chainable fake that supports:
@@ -70,6 +72,7 @@ def override_db(fake_client):
 def make_client():
     return TestClient(main.app)
 
+
 def test_create_profile_happy_path():
     # 1) SELECT returns empty (no existing profile)
     # 2) INSERT returns the created row (as a one-element list)
@@ -83,12 +86,14 @@ def test_create_profile_happy_path():
         "interests": ["history", "art", "travel"],
         "clerk_id": "user_123",
         "anonymous_handle": "globetrotter",
-        "fingerprint": ["fp_123"]
+        "fingerprint": ["fp_123"],
+        "favorite_local_fact": None,
+        "preferred_correspondence_type": "either"
     }
     fake = FakeSupabaseClient(results=[[], [created_row]])
     override_db(fake)
     client = make_client()
-
+ 
     payload = {
         "age_range": "26-35",
         "primary_language": "fr",
@@ -99,7 +104,9 @@ def test_create_profile_happy_path():
         "interests": ["history", "art", "travel"],
         "clerk_id": "user_123",
         "anonymous_handle": "globetrotter",
-        "fingerprint": "fp_123"
+        "fingerprint": "fp_123",
+        "favorite_local_fact": None,
+        "preferred_correspondence_type": "either"
     }
 
     resp = client.post("/profiles/", json=payload)

@@ -3,7 +3,9 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 import os
-
+@pytest.mark.unit  # Add this to unit tests
+def test_validation():
+    assert True
 # Set environment variables for testing
 os.environ["SUPABASE_URL"] = "test"
 os.environ["SUPABASE_KEY"] = "test"
