@@ -160,25 +160,19 @@ const CulturalExplorer = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
-  // Fetch matched users and extract their countries
-  const fetchMatchedCountries = useCallback(async () => {
+  // Process matched users and extract their countries
+  const processMatches = useCallback(() => {
     if (!synced || !profile?.user_id) {
       return;
     }
 
     try {
       setIsLoadingMatches(true);
-      
-      // Fetch matches from profile context if not already loaded
-      if (matches.length === 0 && !matchesLoading) {
-        await fetchMatches();
-        return; // Let the effect handle the processing when matches are loaded
-      }
-      
       setMatchedUsersCount(matches.length);
 
       if (matches.length === 0) {
         setMatchedCountries([]);
+        setCountryPenPals({});
         return;
       }
 
@@ -213,21 +207,26 @@ const CulturalExplorer = () => {
       setMatchedCountries(countries.sort());
       setCountryPenPals(countryGroups);
     } catch (error) {
-      console.error('Error fetching matched countries:', error);
+      console.error('Error processing matched countries:', error);
       setMatchedCountries([]);
       setCountryPenPals({});
       setMatchedUsersCount(0);
     } finally {
       setIsLoadingMatches(false);
     }
-  }, [synced, profile?.user_id, matches, matchesLoading, fetchMatches]);
+  }, [synced, profile?.user_id, matches]);
+
+  // Fetch matches on component mount
+  useEffect(() => {
+    if (synced && profile?.user_id && matches.length === 0 && !matchesLoading) {
+      fetchMatches();
+    }
+  }, [synced, profile?.user_id, matches.length, matchesLoading, fetchMatches]);
 
   // Process matches when they change
   useEffect(() => {
-    if (matches.length > 0) {
-      fetchMatchedCountries();
-    }
-  }, [matches, fetchMatchedCountries]);
+    processMatches();
+  }, [processMatches]);
 
   useEffect(() => {
     const loadFacts = async () => {
@@ -262,11 +261,10 @@ const CulturalExplorer = () => {
       // First fetch matches if we haven't yet, then process countries
       if (matches.length === 0 && !matchesLoading) {
         fetchMatches();
-      } else if (matches.length > 0) {
-        fetchMatchedCountries();
       }
+      // processMatches is called automatically when matches change via its own effect
     }
-  }, [factsData, fetchMatchedCountries, matches, matchesLoading, fetchMatches]);
+  }, [factsData, matches, matchesLoading, fetchMatches]);
 
   const currentCountry = useMemo(() => {
     return selectedCountry || (matchedCountries.length > 0 ? matchedCountries[0] : '');
