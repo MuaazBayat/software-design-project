@@ -345,3 +345,4 @@ Read Replicas (Analytics)
 - API usage analytics
 
 ---
+![DatabaseUML](images/supabase-schema-kvoiazgvavwtkzloaaib(1).svg)
