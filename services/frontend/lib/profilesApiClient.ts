@@ -38,6 +38,33 @@ export interface ApiError {
   detail: string;
 }
 
+export interface MatchedUserProfile {
+  user_id: string;
+  anonymous_handle: string;
+  country_code?: string | null;
+  bio?: string;
+  age_range?: string;
+  interests?: string[];
+  primary_language?: string;
+  secondary_languages?: string[];
+  favorite_local_fact?: string;
+}
+
+export interface Match {
+  match_id: string;
+  conversation_thread_id?: string | null;
+  match_type?: string | null;
+  compatibility_score?: number | null;
+  status: string;
+  created_at: string;
+  penpal_profile: MatchedUserProfile;
+}
+
+export interface MatchesResponse {
+  matches: Match[];
+  total_count: number;
+}
+
 export class ProfilesApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
@@ -104,6 +131,17 @@ export class ProfilesApiClient {
    */
   async getProfileByUserId(userId: string): Promise<ExtendedUserProfile> {
     return this.makeRequest<ExtendedUserProfile>(`/profiles/by-user-id/${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get all matches for a user by their user ID
+   * @param userId - The user ID to fetch matches for
+   * @returns Promise with the user's matches
+   */
+  async getMatches(userId: string): Promise<MatchesResponse> {
+    return this.makeRequest<MatchesResponse>(`/profiles/matches/${userId}`, {
       method: 'GET',
     });
   }
