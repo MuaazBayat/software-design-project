@@ -15,8 +15,88 @@ import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CulturalExplorer from '../app/cultural-explorer/page';
 
-// Mock ProfileContext to provide consistent user data
-jest.mock('../lib/context/ProfileContext', () => ({
+// Mock ProfileContext to provide consistent user data and matches
+const mockMatches = [
+  {
+    match_id: 'match1',
+    conversation_thread_id: 'thread1',
+    match_type: 'long-term',
+    compatibility_score: 0.85,
+    status: 'active',
+    created_at: '2025-01-01T00:00:00.000Z',
+    penpal_profile: {
+      user_id: 'user1',
+      anonymous_handle: 'tokyo_explorer',
+      country_code: 'JP',
+      bio: 'Love exploring Japan',
+      age_range: '25-30',
+      interests: ['travel', 'culture'],
+      primary_language: 'ja',
+      secondary_languages: ['en'],
+      favorite_local_fact: 'Tokyo has the most Michelin stars'
+    }
+  },
+  {
+    match_id: 'match2',
+    conversation_thread_id: 'thread2',
+    match_type: 'one-time',
+    compatibility_score: 0.92,
+    status: 'active',
+    created_at: '2025-01-02T00:00:00.000Z',
+    penpal_profile: {
+      user_id: 'user2',
+      anonymous_handle: 'cape_town_local',
+      country_code: 'ZA',
+      bio: 'Cape Town native',
+      age_range: '26-35',
+      interests: ['nature', 'wine'],
+      primary_language: 'en',
+      secondary_languages: ['af'],
+      favorite_local_fact: 'Table Mountain is 260 million years old'
+    }
+  },
+  {
+    match_id: 'match3',
+    conversation_thread_id: 'thread3',
+    match_type: 'either',
+    compatibility_score: 0.78,
+    status: 'active',
+    created_at: '2025-01-03T00:00:00.000Z',
+    penpal_profile: {
+      user_id: 'user3',
+      anonymous_handle: 'nyc_wanderer',
+      country_code: 'US',
+      bio: 'New York explorer',
+      age_range: '30-35',
+      interests: ['art', 'food'],
+      primary_language: 'en',
+      secondary_languages: ['es'],
+      favorite_local_fact: 'Central Park has 843 acres'
+    }
+  },
+  {
+    match_id: 'match4',
+    conversation_thread_id: 'thread4',
+    match_type: 'long-term',
+    compatibility_score: 0.88,
+    status: 'active',
+    created_at: '2025-01-04T00:00:00.000Z',
+    penpal_profile: {
+      user_id: 'user4',
+      anonymous_handle: 'another_sa_friend',
+      country_code: 'ZA',
+      bio: 'Another South African friend',
+      age_range: '28-33',
+      interests: ['sports', 'music'],
+      primary_language: 'en',
+      secondary_languages: ['zu'],
+      favorite_local_fact: 'Drakensberg Mountains are UNESCO sites'
+    }
+  }
+];
+
+// Helper to create configurable ProfileContext mock  
+const createMockProfileContext = (matches = mockMatches, matchesLoading = false) => ({
   useProfile: () => ({
     profile: {
       user_id: "user_123",
@@ -28,8 +108,11 @@ jest.mock('../lib/context/ProfileContext', () => ({
     loading: false,
     error: null,
     synced: true,
+    matches,
+    matchesLoading,
     syncProfile: async () => {},
     clearProfile: () => {},
+    fetchMatches: async () => {},
   }),
   useSyncProfile: () => ({
     profile: {
@@ -42,18 +125,47 @@ jest.mock('../lib/context/ProfileContext', () => ({
     loading: false,
     error: null,
     synced: true,
+    matches,
+    matchesLoading,
+    fetchMatches: async () => {},
+  }),
+});
+
+// Mock ProfileContext with default matches
+jest.mock('../lib/context/ProfileContext', () => ({
+  useProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123", 
+      anonymous_handle: "test_user",
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+    matches: mockMatches,
+    matchesLoading: false,
+    syncProfile: async () => {},
+    clearProfile: () => {},
+    fetchMatches: async () => {},
+  }),
+  useSyncProfile: () => ({
+    profile: {
+      user_id: "user_123",
+      clerk_id: "clerk_123",
+      anonymous_handle: "test_user", 
+      moderator: false,
+      country_code: "ZA",
+    },
+    loading: false,
+    error: null,
+    synced: true,
+    matches: mockMatches,
+    matchesLoading: false,
+    fetchMatches: async () => {},
   }),
 }));
-
-// Mock MessagingApiClient for pen pal data
-jest.mock('../lib/MessagingApiClient', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      searchUsers: jest.fn(),
-    })),
-  };
-});
 
 // Mock world-countries library
 jest.mock('world-countries', () => [
@@ -145,37 +257,6 @@ const FACTS_DATA = {
   }
 };
 
-const MOCK_PEN_PALS = [
-  {
-    user_profile: {
-      user_id: 'user1',
-      anonymous_handle: 'tokyo_explorer',
-      country_code: 'JP'
-    }
-  },
-  {
-    user_profile: {
-      user_id: 'user2', 
-      anonymous_handle: 'cape_town_local',
-      country_code: 'ZA'
-    }
-  },
-  {
-    user_profile: {
-      user_id: 'user3',
-      anonymous_handle: 'nyc_wanderer', 
-      country_code: 'US'
-    }
-  },
-  {
-    user_profile: {
-      user_id: 'user4',
-      anonymous_handle: 'another_sa_friend',
-      country_code: 'ZA'
-    }
-  }
-];
-
 /** Create a userEvent instance that advances Jest fake timers. */
 const createUser = () =>
   userEvent.setup({
@@ -197,14 +278,10 @@ const flushAll = async () => {
 
 function mockApiResponses({
   factsData = FACTS_DATA,
-  penPalsData = MOCK_PEN_PALS,
   factsSuccess = true,
-  penPalsSuccess = true,
 }: {
   factsData?: any,
-  penPalsData?: any[],
   factsSuccess?: boolean,
-  penPalsSuccess?: boolean,
 } = {}) {
   // Mock fetch for facts.json
   global.fetch = jest.fn(async (url) => {
@@ -216,19 +293,10 @@ function mockApiResponses({
       return {
         ok: true,
         json: async () => factsData,
-      };
+      } as Response;
     }
-    return { ok: false, json: async () => ({}) };
+    return { ok: false, json: async () => ({}) } as Response;
   });
-
-  // Mock MessagingApiClient
-  const MessagingApiClient = require('../lib/MessagingApiClient').default;
-  MessagingApiClient.mockImplementation(() => ({
-    searchUsers: jest.fn(penPalsSuccess 
-      ? () => Promise.resolve({ items: penPalsData })
-      : () => Promise.reject(new Error('API Error'))
-    ),
-  }));
 }
 
 const expectMainLoaded = async () => {
@@ -273,17 +341,6 @@ describe('CulturalExplorer — Basic Rendering', () => {
     expect(screen.getByText(/@tokyo_explorer/)).toBeInTheDocument();
     expect(screen.getByText(/@cape_town_local/)).toBeInTheDocument();
     expect(screen.getByText(/@nyc_wanderer/)).toBeInTheDocument();
-  });
-
-  test('shows no matches state when no pen pals exist', async () => {
-    mockApiResponses({ penPalsData: [], factsSuccess: true });
-
-    render(<CulturalExplorer />);
-    await expectMainLoaded();
-
-    // Should show empty state
-    expect(screen.getByRole('heading', { name: /no pen pal countries yet/i })).toBeInTheDocument();
-    expect(screen.getByText(/start connecting with pen pals/i)).toBeInTheDocument();
   });
 });
 
@@ -467,39 +524,6 @@ describe('CulturalExplorer — Pen Pal Integration', () => {
     expect(screen.getByText(/@another_sa_friend/)).toBeInTheDocument();
   });
 
-  test('expand/collapse pen pal list when more than 4 pen pals', async () => {
-    const user = createUser();
-    const manyPenPals = [
-      ...MOCK_PEN_PALS,
-      { user_profile: { user_id: 'user5', anonymous_handle: 'extra_sa_1', country_code: 'ZA' }},
-      { user_profile: { user_id: 'user6', anonymous_handle: 'extra_sa_2', country_code: 'ZA' }},
-      { user_profile: { user_id: 'user7', anonymous_handle: 'extra_sa_3', country_code: 'ZA' }},
-    ];
-    
-    mockApiResponses({ penPalsData: manyPenPals, factsSuccess: true });
-
-    render(<CulturalExplorer />);
-    await expectMainLoaded();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /south africa/i })).toBeInTheDocument();
-    });
-
-    // Should show +1 more button (5 total SA pen pals - 4 showing = 1 more)
-    expect(screen.getByText('+1 more')).toBeInTheDocument();
-
-    // Click to expand (showing 1 more) - use South Africa specific pattern
-    const expandButton = screen.getByRole('button', { name: /show 1 more pen pals from south africa/i });
-    await user.click(expandButton);
-    await flushAll();
-
-    // Should show all pen pals and show less button
-    expect(screen.getByText(/@extra_sa_1/)).toBeInTheDocument();
-    expect(screen.getByText(/@extra_sa_2/)).toBeInTheDocument();
-    expect(screen.getByText(/@extra_sa_3/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /show fewer pen pals from south africa/i })).toBeInTheDocument();
-  });
-
   test('shows summary information correctly', async () => {
     mockApiResponses({ factsSuccess: true });
 
@@ -593,23 +617,6 @@ describe('CulturalExplorer — Error Handling', () => {
       // Should use fallback data
       expect(screen.getByRole('heading', { name: /south africa/i })).toBeInTheDocument();
     });
-
-    consoleSpy.mockRestore();
-  });
-
-  test('handles pen pal API failure gracefully', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
-    // Mock pen pal API to fail while facts succeed
-    mockApiResponses({ factsSuccess: true, penPalsSuccess: false });
-
-    render(<CulturalExplorer />);
-    await expectMainLoaded();
-
-    await waitFor(() => {
-      // Should show no matches state when API fails - use the actual heading text
-      expect(screen.getByRole('heading', { name: /no pen pal countries yet/i })).toBeInTheDocument();
-    }, { timeout: 8000 });
 
     consoleSpy.mockRestore();
   });

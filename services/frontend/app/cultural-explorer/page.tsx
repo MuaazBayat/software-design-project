@@ -5,7 +5,6 @@ import { ChevronDown, Shuffle, Globe, RotateCw, Brain, Check, X, Trophy, HelpCir
 import Image from 'next/image';
 import wc from 'world-countries';
 import { useSyncProfile } from '@/lib/context/ProfileContext';
-import MessagingApiClient, { SearchUsersResponse } from '@/lib/MessagingApiClient';
 
 // Screen reader only CSS utility
 const srOnlyStyles = {
@@ -140,7 +139,7 @@ const FlagImage: React.FC<{
 
 
 const CulturalExplorer = () => {
-  const { profile, synced } = useSyncProfile();
+  const { profile, synced, matches, matchesLoading, fetchMatches } = useSyncProfile();
 
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [countryFacts, setCountryFacts] = useState<Record<string, string[]>>({});
@@ -161,25 +160,19 @@ const CulturalExplorer = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
-  // Fetch matched users and extract their countries
-  const fetchMatchedCountries = useCallback(async () => {
+  // Process matched users and extract their countries
+  const processMatches = useCallback(() => {
     if (!synced || !profile?.user_id) {
       return;
     }
 
     try {
       setIsLoadingMatches(true);
-      const apiClient = new MessagingApiClient();
-      const response: SearchUsersResponse = await apiClient.searchUsers({
-        anonymous_handle: "", // Empty to act like inbox
-        my_user_id: profile.user_id,
-        limit: 100 // Get more matches to find countries
-      });
-      
-      setMatchedUsersCount(response.items.length);
+      setMatchedUsersCount(matches.length);
 
-      if (response.items.length === 0) {
+      if (matches.length === 0) {
         setMatchedCountries([]);
+        setCountryPenPals({});
         return;
       }
 
@@ -187,8 +180,8 @@ const CulturalExplorer = () => {
       const countryGroups: Record<string, Array<{ anonymous_handle: string; user_id: string }>> = {};
       const countries: string[] = [];
 
-      response.items.forEach(item => {
-        const countryCode = item.user_profile.country_code;
+      matches.forEach(match => {
+        const countryCode = match.penpal_profile.country_code;
         if (!countryCode) return;
         
         // Convert country code to country name using world-countries data
@@ -206,22 +199,34 @@ const CulturalExplorer = () => {
         }
         
         countryGroups[mappedCountryName].push({
-          anonymous_handle: item.user_profile.anonymous_handle,
-          user_id: item.user_profile.user_id
+          anonymous_handle: match.penpal_profile.anonymous_handle,
+          user_id: match.penpal_profile.user_id
         });
       });
 
       setMatchedCountries(countries.sort());
       setCountryPenPals(countryGroups);
     } catch (error) {
-      console.error('Error fetching matched countries:', error);
+      console.error('Error processing matched countries:', error);
       setMatchedCountries([]);
       setCountryPenPals({});
       setMatchedUsersCount(0);
     } finally {
       setIsLoadingMatches(false);
     }
-  }, [synced, profile?.user_id]);
+  }, [synced, profile?.user_id, matches]);
+
+  // Fetch matches on component mount
+  useEffect(() => {
+    if (synced && profile?.user_id && matches.length === 0 && !matchesLoading) {
+      fetchMatches();
+    }
+  }, [synced, profile?.user_id, matches.length, matchesLoading, fetchMatches]);
+
+  // Process matches when they change
+  useEffect(() => {
+    processMatches();
+  }, [processMatches]);
 
   useEffect(() => {
     const loadFacts = async () => {
@@ -253,9 +258,13 @@ const CulturalExplorer = () => {
 
   useEffect(() => {
     if (Object.keys(factsData).length > 0) {
-      fetchMatchedCountries();
+      // First fetch matches if we haven't yet, then process countries
+      if (matches.length === 0 && !matchesLoading) {
+        fetchMatches();
+      }
+      // processMatches is called automatically when matches change via its own effect
     }
-  }, [factsData, fetchMatchedCountries]);
+  }, [factsData, matches, matchesLoading, fetchMatches]);
 
   const currentCountry = useMemo(() => {
     return selectedCountry || (matchedCountries.length > 0 ? matchedCountries[0] : '');
@@ -1005,7 +1014,7 @@ const CulturalExplorer = () => {
         )}
 
         {/* No matches state */}
-        {matchedCountries.length === 0 && !isLoadingMatches && (
+        {matchedCountries.length === 0 && !isLoadingMatches && !matchesLoading && (
           <section className="text-center py-16" aria-labelledby="no-matches-heading" role="region">
             <div className="text-8xl mb-6" aria-hidden="true">💌</div>
             <h3 id="no-matches-heading" className="text-2xl font-bold text-orange-600 mb-2">No Pen Pal Countries Yet</h3>

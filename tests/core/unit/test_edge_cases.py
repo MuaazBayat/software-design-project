@@ -227,15 +227,16 @@ def test_create_profile_null_fingerprint_list():
 @pytest.mark.unit
 def test_profile_validation_errors():
     """Test various Pydantic validation errors"""
+    # Set up fake Supabase client for all requests in this test
+    fake = FakeSupabaseClient(results=[[], [{"clerk_id": "user_123"}]])
+    override_db(fake)
     client = make_client()
     
     # Missing required fields
     response = client.post("/profiles/", json={})
     assert response.status_code == 422
     
-    # Invalid data types
-    fake = FakeSupabaseClient(results=[[], [{"clerk_id": "user_123"}]])
-    override_db(fake)
+    # Invalid data types - keep the same fake client
     
     response = client.post("/profiles/", json={
         "clerk_id": "user_123",
