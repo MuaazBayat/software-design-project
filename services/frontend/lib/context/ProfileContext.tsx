@@ -4,11 +4,13 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import { moderationApi } from '@/lib/moderationApiClient';
+import { ProfilesApiClient, Match, MatchesResponse } from '@/lib/profilesApiClient';
 
 // Define the profile type based on your backend response
 export interface Profile {
@@ -35,6 +37,9 @@ interface ProfileContextType {
   synced: boolean;
   syncProfile: () => Promise<void>;
   clearProfile: () => void;
+  matches: Match[];
+  matchesLoading: boolean;
+  fetchMatches: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -52,8 +57,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
 
-  const syncProfile = async () => {
+  const syncProfile = useCallback(async () => {
     if (!isSignedIn || !user) return;
 
     // Wait until fingerprint is ready
@@ -119,13 +126,37 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isSignedIn, user, fpLoading, fpData?.visitorId]);
+
+  const fetchMatches = useCallback(async () => {
+    if (!isSignedIn || !user || !synced || !profile?.user_id) return;
+
+    setMatchesLoading(true);
+    try {
+      const coreUrl = process.env.NEXT_PUBLIC_CORE_URL;
+      if (!coreUrl) {
+        console.error("NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local");
+        return;
+      }
+
+      const profilesClient = new ProfilesApiClient(coreUrl);
+      const matchesResponse = await profilesClient.getMatches(profile.user_id);
+      setMatches(matchesResponse.matches);
+    } catch (err) {
+      console.error("Failed to fetch matches:", err);
+      setMatches([]); // Set empty array on error
+    } finally {
+      setMatchesLoading(false);
+    }
+  }, [isSignedIn, user, synced, profile?.user_id]);
 
   const clearProfile = () => {
     setProfile(null);
     setError(null);
     setSynced(false);
     setLoading(false);
+    setMatches([]);
+    setMatchesLoading(false);
   };
 
   // Auto-sync when user signs in and profile hasn't been synced yet
@@ -133,7 +164,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (isSignedIn && user && !synced && !loading && !fpLoading) {
       syncProfile();
     }
-  }, [isSignedIn, user, synced, loading, fpLoading]);
+  }, [isSignedIn, user, synced, loading, fpLoading, syncProfile]);
 
   // Clear profile when user signs out
   useEffect(() => {
@@ -152,6 +183,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         synced,
         syncProfile,
         clearProfile,
+        matches,
+        matchesLoading,
+        fetchMatches,
       }}
     >
       {children}
@@ -169,6 +203,6 @@ export function useProfile() {
 
 // Optional: Hook for backward compatibility with the old useSyncProfile
 export function useSyncProfile() {
-  const { profile, loading, error, synced } = useProfile();
-  return { profile, loading, error, synced };
+  const { profile, loading, error, synced, matches, matchesLoading, fetchMatches } = useProfile();
+  return { profile, loading, error, synced, matches, matchesLoading, fetchMatches };
 }

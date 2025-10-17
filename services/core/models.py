@@ -58,3 +58,34 @@ class Profile(ProfileBase):
     updated_at: datetime
     last_active: Optional[datetime]
     favorite_local_fact: Optional[str] = None
+
+
+# --- Match Models ---
+class MatchedUserProfile(BaseModel):
+    """Profile data for a matched user."""
+    user_id: str
+    anonymous_handle: str
+    country_code: Optional[str] = None
+    bio: Optional[str] = None
+    age_range: Optional[str] = None
+    interests: Optional[List[str]] = Field(default_factory=list)
+    primary_language: Optional[str] = None
+    secondary_languages: Optional[List[str]] = Field(default_factory=list)
+    favorite_local_fact: Optional[str] = None
+
+
+class Match(BaseModel):
+    """Match record with related user profile data."""
+    match_id: str
+    conversation_thread_id: Optional[str] = None
+    match_type: Optional[str] = None
+    compatibility_score: Optional[float] = None
+    status: str
+    created_at: datetime
+    penpal_profile: MatchedUserProfile
+
+
+class MatchesResponse(BaseModel):
+    """Response model for the matches endpoint."""
+    matches: List[Match]
+    total_count: int

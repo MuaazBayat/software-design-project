@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 from supabase import Client
-from models import ProfileCreate, ProfileUpdate, Profile
+from models import ProfileCreate, ProfileUpdate, Profile, Match, MatchedUserProfile, MatchesResponse
 from database import supabase
 
 # Import authentication
@@ -260,3 +260,151 @@ async def update_profile(
     if not getattr(resp, "data", None):
         raise HTTPException(status_code=500, detail="Upsert failed.")
     return resp.data[0]
+
+
+@app.get("/profiles/matches/{user_id}", response_model=MatchesResponse)
+async def get_user_matches(
+    user_id: str,
+    db: Client = Depends(get_supabase),
+    token: str = Depends(verify_token)
+):
+    """
+    Retrieves all matches for a user by their user_id.
+    Returns match records with the matched user's profile information.
+    
+    Args:
+        user_id (str): The unique user_id (UUID) of the user.
+        db (Client): The Supabase client dependency.
+        
+    Returns:
+        MatchesResponse: List of matches with penpal profile data.
+        
+    Raises:
+        HTTPException:
+            500 Internal Server Error: If the database operation fails.
+    """
+    try:
+        
+        # Get matches where the user is either user_1 or user_2, and join with profile data
+        # We need to do this in two queries due to the OR condition with different profile joins
+        
+        # Query 1: User is user_1_id, get user_2's profile
+        matches_as_user1 = db.table("match_records")\
+            .select("""
+                match_id,
+                conversation_thread_id,
+                match_type,
+                compatibility_score,
+                status,
+                created_at,
+                user_2_id,
+                user_profiles!match_records_user_2_id_fkey(
+                    user_id,
+                    anonymous_handle,
+                    country_code,
+                    bio,
+                    age_range,
+                    interests,
+                    primary_language,
+                    secondary_languages,
+                    favorite_local_fact
+                )
+            """)\
+            .eq("user_1_id", user_id)\
+            .eq("status", "active")\
+            .execute()
+        
+        # Query 2: User is user_2_id, get user_1's profile  
+        matches_as_user2 = db.table("match_records")\
+            .select("""
+                match_id,
+                conversation_thread_id,
+                match_type,
+                compatibility_score,
+                status,
+                created_at,
+                user_1_id,
+                user_profiles!match_records_user_1_id_fkey(
+                    user_id,
+                    anonymous_handle,
+                    country_code,
+                    bio,
+                    age_range,
+                    interests,
+                    primary_language,
+                    secondary_languages,
+                    favorite_local_fact
+                )
+            """)\
+            .eq("user_2_id", user_id)\
+            .eq("status", "active")\
+            .execute()
+        
+        matches = []
+        
+        # Process matches where user is user_1
+        for match_data in (matches_as_user1.data or []):
+            if match_data.get("user_profiles"):
+                profile_data = match_data["user_profiles"]
+                penpal_profile = MatchedUserProfile(
+                    user_id=str(profile_data["user_id"]),
+                    anonymous_handle=profile_data["anonymous_handle"],
+                    country_code=profile_data.get("country_code"),
+                    bio=profile_data.get("bio"),
+                    age_range=profile_data.get("age_range"),
+                    interests=profile_data.get("interests") or [],
+                    primary_language=profile_data.get("primary_language"),
+                    secondary_languages=profile_data.get("secondary_languages") or [],
+                    favorite_local_fact=profile_data.get("favorite_local_fact")
+                )
+                
+                match = Match(
+                    match_id=str(match_data["match_id"]),
+                    conversation_thread_id=str(match_data["conversation_thread_id"]) if match_data.get("conversation_thread_id") else None,
+                    match_type=match_data.get("match_type"),
+                    compatibility_score=match_data.get("compatibility_score"),
+                    status=match_data["status"],
+                    created_at=match_data["created_at"],
+                    penpal_profile=penpal_profile
+                )
+                matches.append(match)
+        
+        # Process matches where user is user_2
+        for match_data in (matches_as_user2.data or []):
+            if match_data.get("user_profiles"):
+                profile_data = match_data["user_profiles"]
+                penpal_profile = MatchedUserProfile(
+                    user_id=str(profile_data["user_id"]),
+                    anonymous_handle=profile_data["anonymous_handle"],
+                    country_code=profile_data.get("country_code"),
+                    bio=profile_data.get("bio"),
+                    age_range=profile_data.get("age_range"),
+                    interests=profile_data.get("interests") or [],
+                    primary_language=profile_data.get("primary_language"),
+                    secondary_languages=profile_data.get("secondary_languages") or [],
+                    favorite_local_fact=profile_data.get("favorite_local_fact")
+                )
+                
+                match = Match(
+                    match_id=str(match_data["match_id"]),
+                    conversation_thread_id=str(match_data["conversation_thread_id"]) if match_data.get("conversation_thread_id") else None,
+                    match_type=match_data.get("match_type"),
+                    compatibility_score=match_data.get("compatibility_score"),
+                    status=match_data["status"],
+                    created_at=match_data["created_at"],
+                    penpal_profile=penpal_profile
+                )
+                matches.append(match)
+        
+        return MatchesResponse(
+            matches=matches,
+            total_count=len(matches)
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        # Log the actual error and return a 500 with proper CORS headers
+        print(f"Database error in get_user_matches for user_id '{user_id}': {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -11,6 +11,9 @@ export const useSyncProfile = () => ({
   loading: false,
   error: null,
   synced: true,
+  matches: [],
+  matchesLoading: false,
   syncProfile: async () => {},
   clearProfile: () => {},
+  fetchMatches: async () => {},
 });
