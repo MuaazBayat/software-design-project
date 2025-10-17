@@ -12,7 +12,6 @@ import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import { moderationApi } from '@/lib/moderationApiClient';
 import { ProfilesApiClient, Match, MatchesResponse } from '@/lib/profilesApiClient';
 
-// Define the profile type based on your backend response
 export interface Profile {
   user_id: string;
   clerk_id: string;
@@ -26,6 +25,8 @@ export interface Profile {
   age_range?: string;
   interests?: string[];
   primary_language?: string;
+  secondary_languages?: string[];
+  time_zone?: string;
   favorite_local_fact?: string;
 }
 
@@ -37,12 +38,17 @@ interface ProfileContextType {
   synced: boolean;
   syncProfile: () => Promise<void>;
   clearProfile: () => void;
+  isOnboardingComplete: boolean;
+  checkOnboardingStatus: () => boolean;
+  initialOnboardingCheckDone: boolean;
   matches: Match[];
   matchesLoading: boolean;
   fetchMatches: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { isSignedIn, user } = useUser();
@@ -57,6 +63,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [initialOnboardingCheckDone, setInitialOnboardingCheckDone] = useState(false);
+
+  // Check if onboarding is complete based on required fields
+  const checkOnboardingStatus = (): boolean => {
+    if (!profile) return false;
+    
+    const hasValidHandle = !!profile.anonymous_handle && 
+                          HANDLE_RE.test(profile.anonymous_handle);
+    const hasPrimaryLanguage = !!profile.primary_language;
+    const hasTimeZone = !!profile.time_zone;
+    
+    return hasValidHandle && hasPrimaryLanguage && hasTimeZone;
+  };
+
+  // Update onboarding status whenever profile changes
+  useEffect(() => {
+    const onboardingComplete = checkOnboardingStatus();
+    setIsOnboardingComplete(onboardingComplete);
+    
+    // Mark initial check as done once we have a profile and it's loaded
+    if (profile && !loading && synced) {
+      setInitialOnboardingCheckDone(true);
+    }
+  }, [profile, loading, synced]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
 
@@ -66,7 +97,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     // Wait until fingerprint is ready
     if (fpLoading) return;
     const visitorId = fpData?.visitorId || null;
-    console.log("Fingerprint visitorId:", visitorId);
 
     //Check if fingerprint is banned
     if (visitorId) {
@@ -75,11 +105,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (fpCheck.is_banned) {
           setError(`Access denied: ${fpCheck.message}`);
           moderationApi.banClerkUser(user.id);
-          return; // Stop further processing if banned
+          return;
         }
       } catch (err) {
         console.error("Fingerprint check failed:", err);
-        // Proceed even if the check fails, as it might be a transient error
       }
     }
     setLoading(true);
@@ -87,9 +116,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     const coreUrl = process.env.NEXT_PUBLIC_CORE_URL;
     if (!coreUrl) {
-      const errorMessage =
-        "NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local";
-      setError(errorMessage);
+      setError("NEXT_PUBLIC_CORE_URL is not set. Add it to .env.local");
       setLoading(false);
       return;
     }
@@ -101,7 +128,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           clerk_id: user.id,
           anonymous_handle: user.primaryEmailAddress?.emailAddress ?? null,
-          fingerprint: visitorId, //send fingerprint to backend
+          fingerprint: visitorId,
         }),
       });
 
@@ -111,13 +138,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       const profileData: Profile = await response.json();
       setProfile(profileData);
-
-      if (response.status === 201) {
-        console.log("New profile created:", profileData);
-      } else if (response.status === 200) {
-        console.log("Existing profile retrieved:", profileData);
-      }
-
       setSynced(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -155,6 +175,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setError(null);
     setSynced(false);
     setLoading(false);
+    setIsOnboardingComplete(false);
+    setInitialOnboardingCheckDone(false);
     setMatches([]);
     setMatchesLoading(false);
   };
@@ -179,10 +201,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         profile,
         setProfile,
         loading,
-        error: error || (fpError ? fpError.message : null), //surface FP errors
+        error: error || (fpError ? fpError.message : null),
         synced,
         syncProfile,
         clearProfile,
+        isOnboardingComplete,
+        checkOnboardingStatus,
+        initialOnboardingCheckDone,
         matches,
         matchesLoading,
         fetchMatches,
