@@ -35,6 +35,8 @@ We use automated testing to ensure the quality and reliability of both our front
 * **Frontend — Jest**: Unit and integration tests for React components, functions, and helper modules in isolation.
 * **Backend — pytest**: Unit and integration tests for Python-based microservices and API logic with a simple, scalable style.
 
+## How we write tests
+
 ### Unit Test Plan
 
 Our unit test plan focuses on isolated testing of the smallest units of code.
@@ -138,10 +140,11 @@ Prioritize a cleaner, more cohesive landing page: modernize colors, refine the h
 
 ### Test snapshots as of 30 September
 * **Frontend tests**
-    ![Unit tests](images/UnitTests.png)
-    ![Integration tests](images/IntTests.png)
+    ![Unit tests](images/FrontendUnitTests.png)
+    ![Integration tests](images/BackendUnitTests.png)
 * **Backend tests**
-    ![Overall](images/BackendTests.png)
+    ![Unit tests](images/BackendUnitTests.png)
+    ![Integration tests](images/BackendIntegrationTests.png)
 
 
 ---
