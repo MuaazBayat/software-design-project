@@ -30,6 +30,7 @@ import {
   Settings,
   Mail,
   Mailbox,
+  Sparkles,
 } from "lucide-react";
 
 // Reuse types and API from settings
@@ -263,6 +264,35 @@ export default function OnboardingPage() {
       setIsSaving(false);
     }
   };
+
+const handleGoToPreferences = async () => {
+  // Final validation before completing
+  if (handle && !HANDLE_RE.test(handle)) {
+    setError(
+      "Handle must be 3-20 characters: lowercase letters, numbers, underscores only."
+    );
+    return;
+  }
+
+  if (!primaryLanguage || !timeZone) {
+    setError("Primary language, and timezone are required.");
+    return;
+  }
+
+  setIsSaving(true);
+  setError(null);
+
+  try {
+    // Save profile data but don't mark as complete
+    await apiUpdateProfile(user!.id, buildProfileData());
+    
+    // Redirect to preference profile immediately without syncing
+    router.push("/preference-profile");
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to save profile");
+    setIsSaving(false);
+  }
+};
 
   const addInterest = () => {
     const trimmed = interestInput.trim();
@@ -656,6 +686,31 @@ export default function OnboardingPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-semibold text-stone-800 mb-1">
+                          Want Better Matches?
+                        </h4>
+                        <p className="text-sm text-stone-600 mb-3">
+                          Take a moment to refine your preferences and help our algorithm find your perfect conversation partner.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={handleGoToPreferences}
+                          disabled={isSaving}
+                          variant="outline"
+                          className="w-full bg-white hover:bg-amber-50 border-amber-300"
+                        >
+                          Refine My Matches
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="text-sm text-stone-600 space-y-2">
                     <p className="mt-4">
                       Visit <strong>Settings</strong> anytime to adjust your
