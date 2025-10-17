@@ -188,3 +188,51 @@ Closes #<id>
 * ❌ `update stuff`
 
 ---
+
+
+# Evidence of Git Methodology
+
+### Figure 1 — Commit History with Conventional Commits
+![Figure 1 – Commit history with Conventional Commits](images/commit-log.png)
+
+*Demonstrates short-lived branches merged into `develop` using Conventional Commit prefixes (`feat`, `fix`, `chore`, `refactor`).  
+Confirms adherence to the Trunk-Based Development workflow.*
+
+---
+
+### Figure 2 — Pull Request Review and Merge
+![Figure 2 – Pull Request merged into develop](images/pr-example.png)
+
+*Example PR `feature/letter-inbox-UI` merged into `develop` after peer review and approval by multiple reviewers.  
+Shows collaboration, review process, and CI enforcement before merging.*
+
+---
+
+### Figure 3 — Project Work Tracker (GitHub Projects)
+![Figure 3 – GitHub Project Board](images/project-board.png)
+
+*GitHub Kanban board (`GlobeTalk`) used for sprint management.  
+Issues flow from **Backlog → Ready → In Progress → In Review → QA → Done**.  
+Each PR closes related issues automatically using commit footers.*
+
+---
+
+### Figure 4 — Repository Structure
+![Figure 4 – Repository layout and config files](images/repo-structure.png)
+
+*Repository includes configuration files (`eslint.config.mjs`, `jest.config.js`, `.gitignore`) confirming CI integration and code-quality enforcement.*
+
+---
+
+# Final Summary
+
+Our team demonstrated a **disciplined Git methodology** by combining **Trunk-Based Development** and **Conventional Commits** with automated CI enforcement.
+
+**Key takeaways:**
+- ✅ Single shared `develop` branch, always deployable  
+- ✅ Short-lived feature branches merged early  
+- ✅ Clear, standardized commit messages  
+- ✅ Reviewed PRs and continuous integration  
+- ✅ Traceability between commits, PRs, and project issues  
+
+> **Result:** A stable, collaborative workflow supporting continuous delivery and clean version control history — fully satisfying the *Git Methodology* rubric.

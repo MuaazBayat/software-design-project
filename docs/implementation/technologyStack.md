@@ -45,3 +45,53 @@ This project leverages a modern, containerized architecture designed for scalabi
 ### Repository & General  
 - **Git & GitHub** – Industry-standard for version control and collaboration, making it easy for distributed teams to work together.  
 - **GitHub Actions** – Used for CI/CD to automate testing, linting, and deployments, ensuring reliability and reducing manual steps in the workflow.  
+
+### Testing & Quality Assurance
+- **Jest (Frontend)** and **Pytest (Backend)** ensure unit and integration coverage.
+- **GitHub Actions** automates test execution and coverage enforcement on each pull request.
+
+### Version Control Standards
+- **Conventional Commits** standardize commit messages and automate changelog generation.
+- **Branch Protection Rules** enforce peer review and passing CI checks before merge.
+
+### Project Management & Collaboration
+- **GitHub Projects** and **GitHub Issues** track sprint progress, bugs, and features.
+- **Google meet / WhatsApp** facilitate team communication and stand-ups.
+
+### Environment Management
+- **.env files** manage secrets and configuration across environments.
+- **Docker Compose** supports consistent local orchestration for microservices.
+
+
+
+## Evidence of Tool Usage
+
+To support our Scrum workflow, we used the following integrated tooling setup:
+
+* **Project Tracking (GitHub Projects):**  
+  Each sprint was managed on a Kanban board (`GlobeTalk`) with columns  
+  *Backlog → Ready → In Progress → In Review → QA → Done*.  
+  Each issue represented a user story, bug, or task and was automatically linked to a PR (via commit footer `Closes #<id>`).  
+  *(See Figure 3 in Git Methodology section — GitHub Project Board)*
+
+* **Bug Tracking (GitHub Issues):**  
+  Bugs were labeled and moved through the same board workflow.  
+  Example: `[Bug]: Facts of countries that have reached their total of cards` in Sprint 2.
+
+* **Code Quality & Testing:**  
+  Automated linting and integration tests were enforced via **ESLint**, **Jest**, and **GitHub Actions** CI checks on each PR.  
+  These ensured code consistency and prevented merges if builds or tests failed.
+
+* **Branching & Reviews:**  
+  All development followed the `develop` + `feature/*` Trunk-Based workflow.  
+  Each PR required at least one reviewer approval and a passing CI pipeline before merge.  
+  *(See Figure 2 — PR Review Screenshot)*
+
+* **Communication & Coordination:**  
+  Stand-ups (2–3× per week) and sprint reviews were conducted via Discord and WhatsApp group calls.  
+  Key sprint updates were logged on GitHub issues and the board for traceability.
+
+---
+
+### Summary
+This combination of **GitHub Projects**, **GitHub Issues**, **CI/CD**, and **testing/linting pipelines** provided full visibility into sprint progress, ownership, and quality enforcement—directly satisfying the “Tools (5%)” assessment criterion.

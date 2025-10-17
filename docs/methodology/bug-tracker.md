@@ -122,3 +122,50 @@ When closing a bug, attach evidence and link supporting docs:
 * **Design/Architecture**: if relevant, link to decision records justifying a chosen fix
 
 > This process ensures defects are tracked formally and resolved in a structured manner, maintaining quality and stability.
+
+---
+
+All bugs are tracked using this workflow and linked directly to our Sprint board in GitHub Projects.  
+The following evidence illustrates this process in action.
+
+## Evidence — GitHub Projects & Issue Tracker
+
+
+The following screenshots provide direct proof of our structured, evidence-based bug tracking workflow in GitHub.
+
+### 1. Individual Bug Report Example
+![Bug Issue Example](images/bug.png)
+
+*Example issue:*  
+**"[Bug]: Facts of countries that have reached their total of cards (#104)"**  
+Shows severity (**P2 — moderate**), clear *Steps to Reproduce*, *Expected vs Actual* results, and evidence placeholders.  
+**Significance:** Demonstrates adherence to the required issue template and consistent metadata (assignee, labels, project link).
+
+---
+
+### 2. Bug in Project Board Workflow
+![Bug in Board](images/bugs%20in%20board.png)
+
+Shows the issue lifecycle across **Ready → In Progress → In Review** columns.  
+**Significance:** Confirms that bugs are tracked and progressed systematically through the GitHub Projects board.
+
+---
+
+### 3. Closed Bugs List (Evidence of Resolution)
+![Closed Bugs](images/bugs.png)
+
+Displays the **Closed** tab of GitHub Issues filtered by `label:bug`.  
+**Significance:** Verifies that bugs are actively resolved and closed after verification — confirming end-to-end lifecycle adherence.
+
+---
+
+### 4. Issue Template — Structured Reporting
+![Bug Tracker Template](images/bug-tracker.png)
+
+**Significance:** Provides proof of a standardized, reusable bug template enforcing the expected structure (Summary, Severity, Steps, Expected, Actual, Evidence).  
+This enforces consistency and quality across all team submissions.
+
+---
+
+> Together, these images demonstrate that the team followed a disciplined GitHub-based bug tracking methodology — from reporting and triage to verification and closure — fully aligned with the rubric’s “Tools” and “Evidence” expectations.
+

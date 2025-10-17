@@ -143,3 +143,21 @@ Prioritize a cleaner, more cohesive landing page: modernize colors, refine the h
 * **Backend tests**
     ![Overall](images/BackendTests.png)
 
+
+---
+
+### Continuous Integration & Quality Gates
+
+### CI Integration
+All Jest and Pytest jobs are automatically run by **GitHub Actions**.  
+Each pull request triggers the following CI steps:
+1. Lint and build checks  
+2. Jest unit and integration tests (`npm test`)  
+3. Pytest with coverage enforcement (`pytest --cov-fail-under=50`)  
+
+Pull requests cannot be merged unless **all CI checks pass**, ensuring code quality and preventing regressions.
+
+### Test Artifacts & Coverage Reports
+The CI pipeline uploads coverage artifacts for both the frontend (`coverage/`) and backend (`htmlcov/`) after every successful test run.  
+Minimum coverage thresholds (50%) are enforced; if coverage drops below this value, the workflow fails automatically.
+
