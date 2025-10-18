@@ -44,23 +44,34 @@
 
 ## Messaging Service (Letters)
 
-**Base:** `/`
+**Base:** `/api/v1`
 
-| Method   | Path             | Purpose                                                                  | Auth | Request Body                              | Success                                                      |
-| -------- | ---------------- | ------------------------------------------------------------------------ | ---- | ----------------------------------------- | ------------------------------------------------------------ |
-| **GET**  | `/health`        | Liveness                                                                 | —    | —                                         | **200** `{ ok: true }`                                       |
-| **POST** | `/messages`      | Send a message (scheduled delivery, SA time)                             | ✔️   | `MessageCreate` (optional `LetterStyles`) | **200** inserted `message` row                               |
-| **POST** | `/messages/page` | Page conversation messages (visible ≤ now SA)                            | ✔️   | `MessagesPage`                            | **200** `{ items[], count, next_cursor, has_more }`          |
-| **POST** | `/search`        | Search active conversations by `anonymous_handle` (empty string ⇒ inbox) | ✔️   | `SearchUsers`                             | **200** `{ count, items[{ user_profile, latest_message }]} ` |
+| Method    | Path                                      | Purpose                                                                  | Auth | Request Body / Query                                                                                           | Success                                                      |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **POST**  | `/messages`                               | Send a message (scheduled delivery, SA time) with optional file upload  | ✔️   | `MessageCreate` or multipart/form-data                                                                         | **200** inserted `message` row                               |
+| **GET**   | `/messages/page`                          | Page conversation messages (visible ≤ now SA)                           | ✔️   | Query: `conversation_thread_id`, `viewer_user_id`, `page_size?`, `last_message_id?`                          | **200** `{ items[], count, next_cursor, has_more }`          |
+| **GET**   | `/search`                                 | Search active conversations by `anonymous_handle` (empty string ⇒ inbox) | ✔️   | Query: `my_user_id`, `anonymous_handle?`, `limit?`, `offset?`                                                 | **200** `{ count, items[{ user_profile, latest_message }]} ` |
+| **PATCH** | `/conversations/{conversation_thread_id}/read` | Mark messages as read in a conversation                                 | ✔️   | `MarkReadBody`                                                                                                 | **200** `{ updated: number }`                                |
+| **POST**  | `/upload-image`                           | Upload an image file to storage                                          | ✔️   | File upload (multipart/form-data)                                                                              | **200** `{ object_path, data: { path } }`                    |
 
-**Scheduling**
+**Behavior**
 
-* Delivery is currently `now(Africa/Johannesburg) + 12h`.
-* `page_messages_sa` only returns rows with `scheduled_delivery_at ≤ now(SA)`.
+* **Message delivery**: Default delay is 12 hours from send time (customizable via `delay_hours`)
+* **Blocking enforcement**: Users cannot send messages if either party has blocked the other
+* **File uploads**: Supports image uploads via multipart/form-data or separate `/upload-image` endpoint
+* **Signed URLs**: Letter URLs in responses are automatically signed for secure access
+* **Pagination**: Uses cursor-based pagination with `last_message_id` for efficient scrolling
+* **Read tracking**: Messages can be marked as read per conversation thread
+
+**Storage**
+
+* Files are stored in Supabase storage bucket `letters` with auto-generated paths
+* Signed URLs are cached for 24 hours with 60-second buffer before refresh
 
 **Errors**
 
-* `POST /messages` may return **404** if no active match/thread for the pair, **409** if active match has `conversation_thread_id` = NULL, **400** for constraint violations.
+* `POST /messages` may return **403** if users have blocked each other, **404** if no active match/thread exists, **400** for validation errors
+* `GET /messages/page` may return **403** if access forbidden due to blocks, **404** if cursor not found, **400** if cursor doesn't belong to thread
 
 ---
 
@@ -68,15 +79,29 @@
 
 **Base:** `/api/v1`
 
-| Method   | Path     | Purpose                                      | Auth | Headers                                                         | Request Body | Success                                         |
-| -------- | -------- | -------------------------------------------- | ---- | --------------------------------------------------------------- | ------------ | ----------------------------------------------- |
-| **POST** | `/check` | Profanity check + (internal) auto‑log/censor | ✔️   | **Either** `X-User-Id` (internal) **or** `X-Api-Key` (external) | `{ text }`   | **200** `{ contains_profanity, censored_text }` |
+| Method   | Path                           | Purpose                                              | Auth | Headers                                                         | Request Body                                              | Success                                                         |
+| -------- | ------------------------------ | ---------------------------------------------------- | ---- | --------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- |
+| **POST** | `/check`                       | Profanity check + (internal) auto‑log/censor         | ✔️   | **Either** `X-User-Id` (internal) **or** `X-Api-Key` (external) | `CheckRequest`                                            | **200** `{ contains_profanity, censored_text }`                |
+| **POST** | `/report-user`                 | Report a user for violations                         | ✔️   | —                                                               | `ReportUser`                                              | **200/201** reported users list                                |
+| **POST** | `/report-message`              | Report a specific message for violations             | ✔️   | —                                                               | `ReportMessage`                                           | **200** moderation log entry                                   |
+| **POST** | `/block-user`                  | Block a user (add to blocked list)                  | ✔️   | —                                                               | `BlockUser`                                               | **200/201** blocked users list                                 |
+| **POST** | `/ban-user/{log_id}`           | Ban user based on moderation log entry              | ✔️   | —                                                               | —                                                         | **200** `{ message }`                                           |
+| **POST** | `/ban-clerk-user/{clerk_id}`   | Ban user by Clerk ID                                | ✔️   | —                                                               | —                                                         | **200** `{ message }`                                           |
+| **POST** | `/unban-user/{user_id}`        | Unban user by user ID                               | ✔️   | —                                                               | —                                                         | **200** `{ message }`                                           |
+| **POST** | `/unban-clerk-user/{clerk_id}` | Unban user by Clerk ID                              | ✔️   | —                                                               | —                                                         | **200** `{ message }`                                           |
+| **POST** | `/resolve-case`                | Resolve a moderation case with action and notes     | ✔️   | —                                                               | `ResolveCase`                                             | **200** `{ message }`                                           |
+| **GET**  | `/fingerprint/{fingerprint}`   | Check if device fingerprint is banned               | ✔️   | —                                                               | —                                                         | **200** `{ is_banned, message }`                               |
+| **GET**  | `/logs`                        | Get all moderation logs (moderators only)           | ✔️   | `X-User-Id` (required)                                          | —                                                         | **200** `{ logs[] }`                                            |
+| **GET**  | `/banned-users`                | Get list of all banned users                        | ✔️   | —                                                               | —                                                         | **200** `{ banned_users[] }`                                   |
 
 **Behavior**
 
-* **Internal (`X-User-Id`)**: if profanity is detected, a moderation log is created and the user’s `reported_count` is incremented.
+* **Internal (`X-User-Id`)**: if profanity is detected, a moderation log is created and the user's `reported_count` is incremented.
 * **External (`X-Api-Key`)**: usage limits enforced; **401** on invalid key; **429** when limit reached.
-* Returns **400** if both headers provided or neither provided; **404** if internal user not found.
+* **Check endpoint**: Returns **400** if both headers provided or neither provided; **404** if internal user not found.
+* **Logs endpoint**: Requires `X-User-Id` header and user must have `moderator: true` in profile.
+* **Ban/Unban operations**: Also manage Clerk authentication status and banned fingerprints.
+* **Report operations**: Create moderation log entries and update user violation counts.
 
 ---
 
@@ -94,12 +119,17 @@ interface MatchDecisionRequest { clerk_id: string; accept: boolean; suggested_us
 interface MatchResponse { match_id: string; thread_id: string; penpal_profile: UserProfile; match_type: string; compatibility_score: number; created_at: string }
 
 // Messaging
-interface LetterStyles { font_size: number; font_family: string }
-interface MessageCreate { sender_id: string; recipient_id: string; message_content: string; letter_styles?: LetterStyles }
-interface MessagesPage { conversation_thread_id: string; page_size?: number; last_message_id?: string }
+interface MessageCreate { sender_id: string; recipient_id: string; message_content: string; delay_hours?: number; letter_url?: string }
+interface PageLettersRequest { conversation_thread_id: string; page_size?: number; last_message_id?: string; viewer_user_id: string }
+interface SearchUsers { anonymous_handle: string; my_user_id: string; limit?: number; offset?: number }
+interface MarkReadBody { my_user_id: string }
 
 // Moderation
 interface CheckRequest { text: string }
+interface ReportUser { reporterId: string; reportedId: string; violationType: string }
+interface ReportMessage { reporterId: string; reportedUserId: string; reportedMessageId: string; violationType: string }
+interface BlockUser { reporterId: string; reportedId: string }
+interface ResolveCase { log_id: string; action: string; notes: string }
 ```
 
 ---
@@ -128,10 +158,49 @@ curl -X POST "$CORE/profiles" \
 curl "$MM/profiles/suggestions/user_123?limit=3&languages=en,ja&match_type=either"
 
 # Send a scheduled letter (Messaging)
-curl -X POST "$MSG/messages" -H "Content-Type: application/json" \
-  -d '{"sender_id":"u1","recipient_id":"u2","message_content":"Hi from SA!"}'
+curl -X POST "$MSG/api/v1/messages" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"sender_id":"u1","recipient_id":"u2","message_content":"Hi from SA!","delay_hours":12}'
+
+# Send a letter with image upload (multipart)
+curl -X POST "$MSG/api/v1/messages" -H "Authorization: Bearer $TOKEN" \
+  -F "sender_id=u1" -F "recipient_id=u2" -F "message_content=Hi with image!" \
+  -F "delay_hours=24" -F "file=@image.jpg"
+
+# Get conversation messages
+curl "$MSG/api/v1/messages/page?conversation_thread_id=thread123&viewer_user_id=u1&page_size=10" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Search conversations
+curl "$MSG/api/v1/search?my_user_id=u1&anonymous_handle=alice&limit=20" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Mark conversation as read
+curl -X PATCH "$MSG/api/v1/conversations/thread123/read" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"my_user_id":"u1"}'
+
+# Upload image separately
+curl -X POST "$MSG/api/v1/upload-image" -H "Authorization: Bearer $TOKEN" \
+  -F "file=@image.jpg"
 
 # Moderation check (internal)
 curl -X POST "$MOD/api/v1/check" -H "X-User-Id: u1" -H "Content-Type: application/json" \
   -d '{"text":"some text with darn words"}'
+
+# Moderation check (external API key)
+curl -X POST "$MOD/api/v1/check" -H "X-Api-Key: your-api-key" -H "Content-Type: application/json" \
+  -d '{"text":"some text to check"}'
+
+# Report a user
+curl -X POST "$MOD/api/v1/report-user" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"reporterId":"user1","reportedId":"user2","violationType":"harassment"}'
+
+# Get moderation logs (moderators only)
+curl -X GET "$MOD/api/v1/logs" -H "Authorization: Bearer $TOKEN" -H "X-User-Id: moderator_id"
+
+# Ban a user by log ID
+curl -X POST "$MOD/api/v1/ban-user/log123" -H "Authorization: Bearer $TOKEN"
+
+# Check fingerprint status
+curl -X GET "$MOD/api/v1/fingerprint/abc123def456" -H "Authorization: Bearer $TOKEN"
 ```
