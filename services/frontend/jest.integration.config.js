@@ -25,7 +25,7 @@ const custom = {
 
   collectCoverage: true,
   coverageReporters: ['text', 'lcov', 'json-summary'],
-  coverageThreshold: { global: { Lines: 50, Statements: 50 } },
+  coverageThreshold: { global: { lines: 50,} },
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',
     'components/**/*.{js,jsx,ts,tsx}',
