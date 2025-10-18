@@ -398,6 +398,7 @@ async def send_message(request: Request, token: str = Depends(verify_token)):
 
     sender_id = recipient_id = message_content = None
     delay_hours = os.getenv("DELAY_HOURS", 12)  # default
+    delay_minutes = os.getenv("DELAY_MINUTES", 0)  # default
     object_path: Optional[str] = None
 
     try:
@@ -440,6 +441,7 @@ async def send_message(request: Request, token: str = Depends(verify_token)):
         "p_message_content": message_content,
         "p_letter_url": object_path,
         "p_delay_hours": delay_hours,
+        "p_delay_minutes": delay_minutes,
     }
 
     res = _safe_execute(supabase.rpc("send_message_oneshot", payload))
