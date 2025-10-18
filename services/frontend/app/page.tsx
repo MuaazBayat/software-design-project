@@ -13,8 +13,8 @@ export default function Home() {
           className="object-cover"
           priority
         />
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+        {/* Blur overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-xs"></div>
       </div>
 
       {/* Main Content */}
