@@ -7,7 +7,7 @@ import { Inter, Lora, EB_Garamond, Patrick_Hand, Special_Elite, Caveat, Roboto_M
   Great_Vibes, Allura, Alex_Brush, Tangerine, Parisienne, Sacramento, Rochester, Yellowtail, Grand_Hotel, Kavoon,
   Bebas_Neue, Anton, Righteous, Bungee, Bungee_Shade, Bungee_Inline, Bungee_Outline, Orbitron, Audiowide, Russo_One,
   Pacifico, Comfortaa, Fredoka, Baloo_2, Chewy, Luckiest_Guy,   Bubblegum_Sans, Boogaloo,
-  Architects_Daughter, Gloria_Hallelujah, Coming_Soon, Just_Another_Hand, Rancho, Covered_By_Your_Grace, Reenie_Beanie,
+  Gloria_Hallelujah, Coming_Soon, Just_Another_Hand, Rancho, Covered_By_Your_Grace, Reenie_Beanie,
   Permanent_Marker, Rock_Salt, Calligraffitti, Homemade_Apple, Redressed, Gochi_Hand, Schoolbell, Crafty_Girls, The_Girl_Next_Door,
   Berkshire_Swash, La_Belle_Aurore, Meddon, Mr_De_Haviland, Norican, Stalemate, Swanky_and_Moo_Moo, Unkempt, Yesteryear,
   Abril_Fatface, Alike, Amarante, Amiri, Andada_Pro, Arvo, Asul, Atkinson_Hyperlegible, Averia_Sans_Libre,
@@ -186,7 +186,6 @@ export const rochester = Rochester({ subsets: ['latin'], weight: '400', variable
 export const yellowtail = Yellowtail({ subsets: ['latin'], weight: '400', variable: '--font-yellowtail', display: 'optional' })
 export const grandHotel = Grand_Hotel({ subsets: ['latin'], weight: '400', variable: '--font-grand-hotel', display: 'optional' })
 export const kavoon = Kavoon({ subsets: ['latin'], weight: '400', variable: '--font-kavoon', display: 'optional' })
-export const architectsDaughter = Architects_Daughter({ subsets: ['latin'], weight: '400', variable: '--font-architects-daughter', display: 'optional' })
 export const gloriaHallelujah = Gloria_Hallelujah({ subsets: ['latin'], weight: '400', variable: '--font-gloria-hallelujah', display: 'optional' })
 export const comingSoon = Coming_Soon({ subsets: ['latin'], weight: '400', variable: '--font-coming-soon', display: 'optional' })
 export const justAnotherHand = Just_Another_Hand({ subsets: ['latin'], weight: '400', variable: '--font-just-another-hand', display: 'optional' })
@@ -235,7 +234,6 @@ export const FONT_PRESETS: FontPresetMeta[] = [
   { id: 'dancing', label: 'Dancing Script', className: dancingScript.className, description: 'Elegant cursive script perfect for invitations, headings, and decorative text', lineHeight: '1.35', letterSpacing: '0.3px', category: 'handwritten' },
   { id: 'great-vibes', label: 'Great Vibes', className: greatVibes.className, description: 'Elegant script font perfect for formal invitations and decorative text', lineHeight: '1.3', letterSpacing: '0.3px', category: 'handwritten' },
   { id: 'permanent-marker', label: 'Permanent Marker', className: permanentMarker.className, description: 'Bold marker-style font that mimics handwritten text', lineHeight: '1.2', letterSpacing: '0.3px', category: 'handwritten' },
-  { id: 'architects-daughter', label: 'Architects Daughter', className: architectsDaughter.className, description: 'Playful handwritten font with a casual, artistic feel', lineHeight: '1.4', letterSpacing: '0.3px', category: 'handwritten' },
   { id: 'gloria-hallelujah', label: 'Gloria Hallelujah', className: gloriaHallelujah.className, description: 'Whimsical handwritten font perfect for creative and casual designs', lineHeight: '1.4', letterSpacing: '0.3px', category: 'handwritten' },
 
   // Core Monospace (highly distinctive choices)
@@ -255,4 +253,4 @@ export const FONT_PRESETS: FontPresetMeta[] = [
   { id: 'teko', label: 'Teko', className: teko.className, description: 'Condensed sans-serif with industrial character, perfect for modern branding', lineHeight: '1.2', category: 'display' }
 ]
 
-export const DEFAULT_FONT_ID = 'modern'
+export const DEFAULT_FONT_ID = 'pacifico'

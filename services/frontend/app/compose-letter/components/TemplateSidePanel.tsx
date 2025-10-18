@@ -1,3 +1,5 @@
+'use client';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TempPreviewProvider, useTempPreview } from "./TempPreview";
-import { motion } from 'motion/react'
+import { motion, useAnimation } from 'motion/react'
 
 interface TemplateSidePanelProps {
   open: boolean;
@@ -118,13 +120,9 @@ const TemplateItem = React.memo(({
           // Just apply the preset without closing the panel
           const appliedPreset = applyPreset(preset.id);
           if (appliedPreset && onLineConfigChange) {
-            onLineConfigChange(appliedPreset.config?.pattern?.params || {
-              type: 'none',
-              spacing: 24,
-              thickness: 1,
-              color: '#e5e7eb',
-              opacity: 0.5,
-              rotation: 0
+            onLineConfigChange({
+              type: appliedPreset.config.pattern.type,
+              ...appliedPreset.config.pattern.params
             });
           }
           if (appliedPreset && onBackgroundColorChange) {
@@ -326,9 +324,11 @@ const TemplateItem = React.memo(({
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              toggleFavorite(preset.id);
+              if (!preset.id.startsWith('default-')) {
+                toggleFavorite(preset.id);
+              }
             }}
-            className="text-gray-500 hover:text-amber-500 p-1"
+            className={`text-gray-500 hover:text-amber-500 p-1 ${preset.id.startsWith('default-') ? 'cursor-default' : 'cursor-pointer'}`}
           >
             {preset.isFavorite ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-yellow-400">
@@ -340,42 +340,48 @@ const TemplateItem = React.memo(({
               </svg>
             )}
           </button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="text-gray-500 hover:text-red-500 p-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  template &quot;{preset.name}&quot;.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deletePreset(preset.id);
-                  }}
-                  className="bg-red-600 hover:bg-red-700"
+          {!preset.id.startsWith('default-') && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-gray-500 hover:text-red-500 p-1"
+                  title="Delete template"
                 >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    template &quot;{preset.name}&quot;.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePreset(preset.id);
+                      if (preset.id === currentId) {
+                        onSelect(null);
+                      }
+                    }}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
     </div>
@@ -441,25 +447,38 @@ export default function TemplateSidePanel({
   const [touchCurrentY, setTouchCurrentY] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  // Ref for the motion.div to attach touch event listeners
+  const motionDivRef = useRef<HTMLDivElement>(null);
+  // Ref for the header area where drag-to-close should work
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Only handle touches that start in the header area (where the drag indicator is)
+    if (!headerRef.current?.contains(e.target as Node)) {
+      return;
+    }
+
     const touch = e.touches[0];
     setTouchStartY(touch.clientY);
     setTouchCurrentY(touch.clientY);
     setIsDragging(false);
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (touchStartY === null) return;
 
     const touch = e.touches[0];
     const currentY = touch.clientY;
     const deltaY = currentY - touchStartY;
 
-    // Only allow downward dragging
+    // Only allow downward dragging and only prevent default when drag distance exceeds threshold
     if (deltaY > 0) {
       setTouchCurrentY(currentY);
-      setIsDragging(true);
-      e.preventDefault(); // Prevent scrolling
+      // Only prevent scrolling if drag distance exceeds 20px (indicating intent to close)
+      if (deltaY > 20) {
+        setIsDragging(true);
+        e.preventDefault(); // Prevent scrolling only for significant drag gestures
+      }
     }
   }, [touchStartY]);
 
@@ -473,7 +492,7 @@ export default function TemplateSidePanel({
 
     const deltaY = touchCurrentY - touchStartY;
 
-    // Close panel if dragged down more than 100px
+    // Close panel if dragged down more than 100px and dragging was initiated
     if (deltaY > 100) {
       onClose?.();
     }
@@ -483,23 +502,39 @@ export default function TemplateSidePanel({
     setIsDragging(false);
   }, [isDragging, touchStartY, touchCurrentY, onClose]);
 
+  // Attach touch event listeners with passive: false
+  useEffect(() => {
+    const element = motionDivRef.current;
+    if (!element) return;
+
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    element.addEventListener('touchmove', handleTouchMove, { passive: false });
+    element.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+      element.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   // Calculate drag distance for visual feedback
   const dragDistance = touchStartY && touchCurrentY ? Math.max(0, touchCurrentY - touchStartY) : 0;
   const dragOpacity = Math.max(0.7, 1 - (dragDistance / 200)); // Fade out as dragged down
   const dragTransform = dragDistance > 0 ? `translateY(${dragDistance * 0.3}px)` : 'translateY(0px)';
-  // Refs for scroll-triggered animations
-  const presetsRef = useRef<HTMLDivElement>(null);
-  const fontColorRef = useRef<HTMLDivElement>(null);
-  const backgroundColorRef = useRef<HTMLDivElement>(null);
-  const pageLinesRef = useRef<HTMLDivElement>(null);
-  
   // State for tracking which sections are visible
   const [visibleSections, setVisibleSections] = useState({
-    presets: true, // Start with presets visible
+    presets: true,
     fontColor: false,
     backgroundColor: false,
     pageLines: false,
   });
+
+  // Refs for sections
+  const presetsRef = useRef<HTMLDivElement>(null);
+  const fontColorRef = useRef<HTMLDivElement>(null);
+  const backgroundColorRef = useRef<HTMLDivElement>(null);
+  const pageLinesRef = useRef<HTMLDivElement>(null);
 
   // Intersection Observer for scroll-triggered animations
   useEffect(() => {
@@ -511,13 +546,7 @@ export default function TemplateSidePanel({
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
-        const sectionId = entry.target.getAttribute('data-section');
-        if (entry.isIntersecting && sectionId) {
-          setVisibleSections(prev => ({
-            ...prev,
-            [sectionId]: true,
-          }));
-        }
+        // Removed auto-expansion on scroll to allow manual control only
       });
     };
 
@@ -547,7 +576,7 @@ export default function TemplateSidePanel({
         setTimeout(() => {
           onClose?.();
         }, 300); // Match animation duration
-      }, 5000); // 5 seconds
+      }, 10000); // 10 seconds
     };
 
     const events = ['mousemove', 'mousedown', 'click', 'scroll', 'keydown', 'touchstart', 'touchmove'];
@@ -759,13 +788,14 @@ export default function TemplateSidePanel({
   };
 
   const baseClasses = anchorWithinSidebar
-    ? 'absolute inset-0 w-full h-full bg-white backdrop-blur-sm border-r border-amber-200 shadow-lg flex flex-col z-50'
-    : 'w-full h-full bg-white border-0 shadow-none flex flex-col min-h-0';
+    ? 'absolute inset-0 w-full h-full bg-transparent backdrop-blur-sm border-r border-amber-200 shadow-lg flex flex-col z-50 overflow-hidden'
+    : 'w-full h-full bg-transparent border-0 shadow-none flex flex-col min-h-0 overflow-hidden';
 
   if (!open) return null;
 
   return (
     <motion.div 
+      ref={motionDivRef}
       className={baseClasses}
       initial={{ x: 0 }}
       animate={{ x: isFading ? -300 : 0, opacity: isFading ? 0 : 1 }}
@@ -775,53 +805,94 @@ export default function TemplateSidePanel({
         transform: isDragging ? dragTransform : 'translateY(0px)',
         transition: isDragging ? 'none' : 'opacity 0.2s ease-out, transform 0.2s ease-out'
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50 relative">
-        {/* Drag indicator for mobile */}
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gray-300 rounded-full opacity-60 md:hidden"></div>
-        
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 select-none">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-            Page Settings
-          </h2>
-          {showCloseButton && (
-            <button 
-              onClick={onClose} 
-              className="p-1 rounded-full hover:bg-amber-100 transition-colors"
-              aria-label="Close panel"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          )}
-        </div>
+      {/* Header Island */}
+      <div className="relative mb-2 -mx-4 mt-8 group/section">
+        <div className="absolute inset-[-6px] bg-gradient-to-br from-amber-400/30 via-orange-400/20 to-yellow-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
+        <div className="absolute inset-[-3px] bg-gradient-to-br from-amber-300/20 via-orange-300/15 to-yellow-300/20 rounded-[2.25rem] blur-md opacity-80 group-hover/section:opacity-100 group-hover/section:inset-[-4px] transition-all duration-500 pointer-events-none"></div>
+        <Card ref={headerRef} className="relative p-2 bg-gradient-to-br from-white via-amber-50/20 to-white shadow-2xl backdrop-blur-sm rounded-3xl overflow-hidden hover:shadow-3xl hover:scale-[1.02] transition-all duration-500 ease-out transform hover:-translate-y-1 animate-float-subtle animate-fade-in-up max-w-[90%] mx-auto will-change-transform border border-slate-200/50 group-hover/section:border-amber-300/40" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(255,255,255,0.98) 100%)'}}>
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-orange-50/20 to-yellow-50/30 rounded-3xl opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-orange-500/5 to-yellow-500/8 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="absolute inset-0 opacity-[0.03] rounded-3xl" style={{backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(245, 158, 11, 0.4) 1px, transparent 1px), radial-gradient(circle at 75% 75%, rgba(217, 119, 6, 0.4) 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+          <div className="absolute inset-0 rounded-3xl opacity-60 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, transparent 50%, rgba(217, 119, 6, 0.12) 100%)', mixBlendMode: 'overlay'}}></div>
+          <div className="relative px-1 py-0">
+            {/* Drag indicator for mobile */}
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gray-300 rounded-full opacity-60 md:hidden"></div>
+            
+            <div className="flex items-baseline">
+              <h2 className="flex-1 font-bold text-slate-800 mb-2 select-none text-base tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors">
+                <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                YOUR LETTER STUDIO
+              </h2>
+              {showCloseButton && (
+                <button 
+                  onClick={onClose} 
+                  className="p-1 rounded-full hover:bg-amber-100 transition-colors"
+                  aria-label="Close panel"
+                  title="Close the side panel"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Scrollable content */}
-      <ScrollArea className={`flex-1 min-h-0 px-4 py-4 space-y-6 scroll-smooth custom-scrollbar transition-all duration-700 ease-out ${
-        visibleSections.presets 
-          ? 'opacity-100 animate-scrollbars' 
-          : 'opacity-0'
-      }`}>
+      <div className={`flex-1 min-h-0 px-0 pt-4 pb-0.5 scroll-smooth custom-scrollbar transition-all duration-700 ease-out overflow-y-auto`}>
+        {/* Templates Island */}
+        <div className="relative mb-6 -mx-4 group/section">
+          <div className="absolute inset-[-6px] bg-gradient-to-br from-blue-400/30 via-purple-400/20 to-pink-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
+          <div className="absolute inset-[-3px] bg-gradient-to-br from-blue-300/20 via-purple-300/15 to-pink-300/20 rounded-[2.25rem] blur-md opacity-80 group-hover/section:opacity-100 group-hover/section:inset-[-4px] transition-all duration-500 pointer-events-none"></div>
+          <Card className="relative p-3 bg-gradient-to-br from-white via-slate-50/30 to-white shadow-2xl backdrop-blur-sm rounded-3xl overflow-hidden hover:shadow-3xl hover:scale-[1.02] transition-all duration-500 ease-out transform hover:-translate-y-1 animate-float-subtle animate-fade-in-up max-w-[90%] mx-auto will-change-transform border border-slate-200/50 group-hover/section:border-blue-300/40" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(255,255,255,0.98) 100%)'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30 rounded-3xl opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 via-purple-500/5 to-pink-500/8 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 opacity-[0.03] rounded-3xl" style={{backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.4) 1px, transparent 1px), radial-gradient(circle at 75% 75%, rgba(147, 51, 234, 0.4) 1px, transparent 1px)', backgroundSize: '20px 20px'}}>
+            </div>
+            <div className="relative">
+              <div className="pt-4">
+                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, presets: !prev.presets }))}>
+                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Templates
+                </h4>
+              </div>
         {/* Presets */}
-        <div 
+        <motion.div 
           ref={presetsRef}
           data-section="presets"
-          className={`space-y-3 transition-all duration-700 ease-out ${
-            visibleSections.presets 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-8'
-          }`}
+          layout
+          animate={visibleSections.presets ? {
+            opacity: 1,
+            y: 0,
+            scale: [1, 1.05, 1],
+            height: "auto"
+          } : {
+            opacity: 0,
+            y: 20,
+            scale: 1,
+            height: 0
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20,
+            scale: {
+              duration: 0.6,
+              times: [0, 0.4, 1],
+              ease: "easeInOut"
+            }
+          }}
+          initial={{ opacity: 0, y: 20, height: 0 }}
+          className="space-y-3 overflow-hidden"
         >
           {/* Search bar and filter tabs */}
           <div className="space-y-2">
@@ -833,10 +904,19 @@ export default function TemplateSidePanel({
               <input 
                 type="text" 
                 value={searchTerm}
-                placeholder="Search templates..." 
+                placeholder="Search templates by name..." 
                 className="w-full pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 focus:scale-105 transition-all duration-200"
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')} 
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             
             <div className="flex space-x-2">
@@ -1002,19 +1082,60 @@ export default function TemplateSidePanel({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </motion.div>
+            </div>
+          </Card>
         </div>
 
+        {/* Colors Island */}
+        <div className="relative mb-6 -mx-4 group/section">
+          <div className="absolute inset-[-6px] bg-gradient-to-br from-emerald-400/30 via-green-400/20 to-teal-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
+          <div className="absolute inset-[-3px] bg-gradient-to-br from-emerald-300/20 via-green-300/15 to-teal-300/20 rounded-[2.25rem] blur-md opacity-80 group-hover/section:opacity-100 group-hover/section:inset-[-4px] transition-all duration-500 pointer-events-none"></div>
+          <Card className="relative p-3 bg-gradient-to-br from-white via-emerald-50/20 to-white shadow-2xl backdrop-blur-sm rounded-3xl overflow-hidden hover:shadow-3xl transition-all duration-500 ease-out transform hover:scale-[1.01] hover:-translate-y-0.5 animate-float-subtle animate-fade-in-up max-w-[90%] mx-auto will-change-transform border border-slate-200/50 group-hover/section:border-emerald-300/40" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(255,255,255,0.98) 100%)', animationDelay: '0.15s'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/30 via-green-50/20 to-teal-50/30 rounded-3xl opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/8 via-green-500/5 to-teal-500/8 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 opacity-[0.03] rounded-3xl" style={{backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.4) 1px, transparent 1px), radial-gradient(circle at 75% 75%, rgba(5, 150, 105, 0.4) 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+            <div className="absolute inset-0 rounded-3xl opacity-60 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, transparent 50%, rgba(5, 150, 105, 0.12) 100%)', mixBlendMode: 'overlay'}}></div>
+            <div className="relative">
+              <div className="pt-4">
+                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, fontColor: !prev.fontColor, backgroundColor: !prev.backgroundColor }))}>
+                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 002-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                  </svg>
+                  Colors
+                </h4>
+              </div>
         {/* Font Color Section */}
-        <div 
+        <motion.div 
           ref={fontColorRef}
           data-section="fontColor"
-          className={`border-t border-gray-200 pt-4 transition-all duration-700 ease-out delay-100 ${
-            visibleSections.fontColor 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-8'
-          }`}
+          layout
+          animate={visibleSections.fontColor ? {
+            opacity: 1,
+            y: 0,
+            scale: [1, 1.05, 1],
+            height: "auto"
+          } : {
+            opacity: 0,
+            y: 20,
+            scale: 1,
+            height: 0
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20,
+            delay: 0.1,
+            scale: {
+              duration: 0.6,
+              times: [0, 0.4, 1],
+              ease: "easeInOut"
+            }
+          }}
+          initial={{ opacity: 0, y: 20, height: 0 }}
+          className="overflow-hidden"
         >
-          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-4 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
               <circle cx="13.5" cy="6.5" r=".5"></circle>
               <circle cx="17.5" cy="10.5" r=".5"></circle>
@@ -1025,56 +1146,77 @@ export default function TemplateSidePanel({
             Font Color
           </h3>
 
-          <div className="space-y-2">
-            <label className={`text-xs font-medium text-gray-700 select-none transition-all duration-500 ease-out ${
-              visibleSections.fontColor 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.fontColor ? '200ms' : '0ms'
-            }}>Choose Text Color</label>
-            <div className={`flex items-center gap-3 transition-all duration-500 ease-out ${
-              visibleSections.fontColor 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.fontColor ? '300ms' : '0ms'
-            }}>
-              <input
-                type="color"
-                value={localFontColor}
-                onChange={(e) => handleFontColorChange(e.target.value)}
-                className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
-                title="Select text color"
+          <div className={`flex items-center justify-center gap-4 py-0 transition-all duration-500 ease-out ${
+            visibleSections.fontColor 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-2'
+          }`}
+          style={{
+            transitionDelay: visibleSections.fontColor ? '300ms' : '0ms'
+          }}>
+            <input
+              type="color"
+              value={localFontColor}
+              onChange={(e) => handleFontColorChange(e.target.value)}
+              className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
+              title="Select text color"
+            />
+            <div className="flex items-center gap-3">
+              <Slider
+                value={[localFontOpacity]}
+                onValueChange={(value) => handleFontOpacityChange(value[0])}
+                min={0.1}
+                max={1}
+                step={0.01}
+                className="w-24"
               />
-              <div className="flex items-center gap-2 ml-2">
-                <Slider
-                  value={[localFontOpacity]}
-                  onValueChange={(value) => handleFontOpacityChange(value[0])}
-                  min={0.1}
-                  max={1}
-                  step={0.01}
-                  className="w-24"
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localFontOpacity * 100)}%</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleFontColorChange(color)}
+                  className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
+                  style={{ backgroundColor: color }}
+                  title={`Set to ${color}`}
                 />
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localFontOpacity * 100)}%</span>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Background Color Section */}
-        <div 
+        <motion.div 
           ref={backgroundColorRef}
           data-section="backgroundColor"
-          className={`border-t border-gray-200 pt-4 transition-all duration-700 ease-out delay-200 ${
-            visibleSections.backgroundColor 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-8'
-          }`}
+          layout
+          animate={visibleSections.backgroundColor ? {
+            opacity: 1,
+            y: 0,
+            scale: [1, 1.05, 1],
+            height: "auto"
+          } : {
+            opacity: 0,
+            y: 20,
+            scale: 1,
+            height: 0
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20,
+            delay: 0.2,
+            scale: {
+              duration: 0.6,
+              times: [0, 0.4, 1],
+              ease: "easeInOut"
+            }
+          }}
+          initial={{ opacity: 0, y: 20, height: 0 }}
+          className={`overflow-hidden ${visibleSections.backgroundColor ? 'mt-4' : 'mt-0'}`}
         >
-          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-4 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
               <circle cx="13.5" cy="6.5" r=".5"></circle>
               <circle cx="17.5" cy="10.5" r=".5"></circle>
@@ -1084,299 +1226,387 @@ export default function TemplateSidePanel({
             </svg>
             Background Color
           </h3>
-          <div className="space-y-2">
-            <label className={`text-xs font-medium text-gray-700 select-none transition-all duration-500 ease-out ${
-              visibleSections.backgroundColor 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.backgroundColor ? '200ms' : '0ms'
-            }}>Choose Background Color</label>
-            <div className={`flex items-center gap-3 transition-all duration-500 ease-out ${
-              visibleSections.backgroundColor 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.backgroundColor ? '300ms' : '0ms'
-            }}>
-              <input
-                type="color"
-                value={localBackgroundColor}
-                onChange={(e) => handleBackgroundColorChange(e.target.value)}
-                className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
-                title="Select background color"
-              />
-              <div className="flex items-center gap-2 ml-2">
-                <Slider
-                  value={[localBackgroundOpacity]}
-                  onValueChange={(value) => handleBackgroundOpacityChange(value[0])}
-                  min={0.1}
-                  max={1}
-                  step={0.01}
-                  className="w-24"
-                />
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localBackgroundOpacity * 100)}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Page Lines Section */}
-        <div 
-          ref={pageLinesRef}
-          data-section="pageLines"
-          className={`border-t border-gray-200 pt-4 transition-all duration-700 ease-out delay-300 ${
-            visibleSections.pageLines 
+          <div className={`flex items-center justify-center gap-4 py-0 transition-all duration-500 ease-out ${
+            visibleSections.backgroundColor 
               ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-8'
+              : 'opacity-0 translate-y-2'
           }`}
-        >
-          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-4 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
-              <path d="M19 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"></path>
-              <line x1="6" y1="6" x2="18" y2="6"></line>
-              <line x1="6" y1="10" x2="18" y2="10"></line>
-              <line x1="6" y1="14" x2="18" y2="14"></line>
-              <line x1="6" y1="18" x2="18" y2="18"></line>
-            </svg>
-            Page Lines
-          </h3>
-
-          {/* Line Style */}
-          <div className="space-y-3 mb-4">
-            <label className={`text-xs font-medium text-gray-700 select-none transition-all duration-500 ease-out ${
-              visibleSections.pageLines 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.pageLines ? '200ms' : '0ms'
-            }}>Line Style</label>
-            <div className={`grid grid-cols-3 gap-2 transition-all duration-500 ease-out ${
-              visibleSections.pageLines 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-2'
-            }`}
-            style={{
-              transitionDelay: visibleSections.pageLines ? '300ms' : '0ms'
-            }}>
-              {[
-                { type: 'none', label: 'None' },
-                { type: 'straight', label: 'Straight' },
-                { type: 'dotted', label: 'Dotted' },
-                { type: 'wavy', label: 'Wavy' },
-                { type: 'zigzag', label: 'Zigzag' },
-                { type: 'swirls', label: 'Swirls' },
-                { type: 'arc', label: 'Arc' }
-              ].map((style, index) => (
-                <Button
-                  key={style.type}
-                  size="sm"
-                  variant={lineConfig.type === style.type ? 'default' : 'outline'}
-                  onClick={() => style.type === 'none' ? handleLineConfigChange({ type: 'none' }) : handleLineTypeChange(style.type as LineType)}
-                  className={`text-xs hover:scale-105 transition-all duration-300 ease-out ${
-                    lineConfig.type === style.type ? 'bg-amber-100 text-amber-900 border-amber-300' : ''
-                  } ${
-                    visibleSections.pageLines 
-                      ? 'opacity-100 translate-y-0 scale-100' 
-                      : 'opacity-0 translate-y-2 scale-95'
-                  }`}
-                  style={{
-                    transitionDelay: visibleSections.pageLines ? `${400 + index * 50}ms` : '0ms'
-                  }}
-                >
-                  {style.label}
-                </Button>
+          style={{
+            transitionDelay: visibleSections.backgroundColor ? '300ms' : '0ms'
+          }}>
+            <input
+              type="color"
+              value={localBackgroundColor}
+              onChange={(e) => handleBackgroundColorChange(e.target.value)}
+              className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
+              title="Select background color"
+            />
+            <div className="flex items-center gap-3">
+              <Slider
+                value={[localBackgroundOpacity]}
+                onValueChange={(value) => handleBackgroundOpacityChange(value[0])}
+                min={0.1}
+                max={1}
+                step={0.01}
+                className="w-24"
+              />
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localBackgroundOpacity * 100)}%</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleBackgroundColorChange(color)}
+                  className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
+                  style={{ backgroundColor: color }}
+                  title={`Set to ${color}`}
+                />
               ))}
             </div>
           </div>
+        </motion.div>
+            </div>
+          </Card>
+        </div>
 
-          {lineConfig.type !== 'none' && (
-            <>
-              {/* Colour */}
-              <div className={`space-y-2 mb-4 transition-all duration-500 ease-out ${
+        {/* Lines Island */}
+        <div className="relative -mx-4 group/section">
+          <div className="absolute inset-[-6px] bg-gradient-to-br from-amber-400/30 via-orange-400/20 to-yellow-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
+          <div className="absolute inset-[-3px] bg-gradient-to-br from-amber-300/20 via-orange-300/15 to-yellow-300/20 rounded-[2.25rem] blur-md opacity-80 group-hover/section:opacity-100 group-hover/section:inset-[-4px] transition-all duration-500 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-3xl opacity-0 animate-shimmer pointer-events-none" style={{animationDelay: '3s'}}></div>
+          <Card className="relative p-3 bg-gradient-to-br from-white via-amber-50/20 to-white shadow-2xl backdrop-blur-sm rounded-3xl overflow-hidden hover:shadow-3xl transition-all duration-500 ease-out transform hover:scale-[1.01] hover:-translate-y-0.5 animate-float-subtle animate-fade-in-up max-w-[90%] mx-auto will-change-transform border border-slate-200/50 group-hover/section:border-amber-300/40" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(255,255,255,0.98) 100%)', animationDelay: '0.3s'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-orange-50/20 to-yellow-50/30 rounded-3xl opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-orange-500/5 to-yellow-500/8 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 opacity-[0.03] rounded-3xl" style={{backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(245, 158, 11, 0.4) 1px, transparent 1px), radial-gradient(circle at 75% 75%, rgba(217, 119, 6, 0.4) 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+            <div className="absolute inset-0 rounded-3xl opacity-60 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, transparent 50%, rgba(217, 119, 6, 0.12) 100%)', mixBlendMode: 'overlay'}}></div>
+            <div className="relative">
+              <div className="pt-4">
+                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, pageLines: !prev.pageLines }))}>
+                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                  Page Lines
+                </h4>
+              </div>
+
+          {/* Page Lines Section */}
+          <motion.div 
+          ref={pageLinesRef}
+          data-section="pageLines"
+          layout
+          animate={visibleSections.pageLines ? {
+            opacity: 1,
+            y: 0,
+            scale: [1, 1.05, 1],
+            height: "auto"
+          } : {
+            opacity: 0,
+            y: 20,
+            scale: 1,
+            height: 0
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20,
+            delay: 0.3,
+            scale: {
+              duration: 0.6,
+              times: [0, 0.4, 1],
+              ease: "easeInOut"
+            }
+          }}
+          initial={{ opacity: 0, y: 20, height: 0 }}
+          className="overflow-hidden pt-2"
+        >
+          <div className="space-y-6 animate-fade-in-up">
+            {/* Line Style */}
+            <div className="space-y-3 mb-6">
+              <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
+                  <path d="M2 12h20"></path>
+                  <path d="M7 7l5 5-5 5"></path>
+                  <path d="M17 7l-5 5 5 5"></path>
+                </svg>
+                Line Style
+              </h3>
+              <div className={`grid grid-cols-3 gap-2 transition-all duration-500 ease-out ${
                 visibleSections.pageLines 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-2'
               }`}
               style={{
-                transitionDelay: visibleSections.pageLines ? '500ms' : '0ms'
+                transitionDelay: visibleSections.pageLines ? '300ms' : '0ms'
               }}>
-                <label className="text-xs font-medium text-gray-700 select-none">Colour</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={lineConfig.color}
-                    onChange={(e) => handleLineColorChange(e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
-                    title="Select line color"
-                  />
-                  <div className="flex items-center gap-2 ml-2">
-                    <Slider
-                      value={[lineConfig.opacity]}
-                      onValueChange={(value) => handleLineConfigChange({ opacity: value[0] })}
-                      min={0.1}
-                      max={1}
-                      step={0.01}
-                      className="w-24"
+                {[
+                  { type: 'none', label: 'None' },
+                  { type: 'straight', label: 'Straight' },
+                  { type: 'dotted', label: 'Dotted' },
+                  { type: 'wavy', label: 'Wavy' },
+                  { type: 'zigzag', label: 'Zigzag' },
+                  { type: 'swirls', label: 'Swirls' },
+                  { type: 'arc', label: 'Arc' },
+                  { type: 'spiral', label: 'Spiral' },
+                  { type: 'floral', label: 'Floral' }
+                ].map((style, index) => (
+                  <Button
+                    key={style.type}
+                    size="sm"
+                    variant={lineConfig.type === style.type ? 'default' : 'outline'}
+                    onClick={() => style.type === 'none' ? handleLineConfigChange({ type: 'none' }) : handleLineTypeChange(style.type as LineConfig['type'])}
+                    className={`text-xs hover:scale-105 transition-all duration-300 ease-out ${
+                      lineConfig.type === style.type ? 'bg-amber-100 text-amber-900 border-amber-300' : ''
+                    } ${
+                      visibleSections.pageLines 
+                        ? 'opacity-100 translate-y-0 scale-100' 
+                        : 'opacity-0 translate-y-2 scale-95'
+                    }`}
+                    style={{
+                      transitionDelay: visibleSections.pageLines ? `${400 + index * 50}ms` : '0ms'
+                    }}
+                  >
+                    {style.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {lineConfig.type !== 'none' && (
+              <>
+                {/* Colour */}
+                <div className={`space-y-2 mb-6 transition-all duration-500 ease-out ${
+                  visibleSections.pageLines 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-2'
+                }`}
+                style={{
+                  transitionDelay: visibleSections.pageLines ? '500ms' : '0ms'
+                }}>
+                  <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
+                      <circle cx="13.5" cy="6.5" r=".5"></circle>
+                      <circle cx="17.5" cy="10.5" r=".5"></circle>
+                      <circle cx="8.5" cy="7.5" r=".5"></circle>
+                      <circle cx="6.5" cy="12.5" r=".5"></circle>
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                    </svg>
+                    Colour
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={lineConfig.color}
+                      onChange={(e) => handleLineColorChange(e.target.value)}
+                      className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
+                      title="Select line color"
                     />
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(lineConfig.opacity * 100)}%</span>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Slider
+                        value={[lineConfig.opacity]}
+                        onValueChange={(value) => handleLineConfigChange({ opacity: value[0] })}
+                        min={0.1}
+                        max={1}
+                        step={0.01}
+                        className="w-24"
+                      />
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(lineConfig.opacity * 100)}%</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => handleLineColorChange(color)}
+                          className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
+                          style={{ backgroundColor: color }}
+                          title={`Set to ${color}`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Spacing */}
-              <div className={`space-y-2 mb-4 transition-all duration-500 ease-out ${
-                visibleSections.pageLines 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-2'
-              }`}
-              style={{
-                transitionDelay: visibleSections.pageLines ? '600ms' : '0ms'
-              }}>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-gray-700 select-none">Spacing</label>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.spacing}px</span>
+                {/* Spacing */}
+                <div className={`space-y-2 mb-6 transition-all duration-500 ease-out ${
+                  visibleSections.pageLines 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-2'
+                }`}
+                style={{
+                  transitionDelay: visibleSections.pageLines ? '600ms' : '0ms'
+                }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="7.5,4.27 12,6.11 16.5,4.27"></polyline>
+                        <line x1="12" y1="22.5" x2="12" y2="6.11"></line>
+                      </svg>
+                      Spacing
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.spacing}px</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = lineConfig.spacing <= 10 ? 1 : lineConfig.spacing <= 40 ? 2 : lineConfig.spacing <= 100 ? 5 : lineConfig.spacing <= 300 ? 10 : 20;
+                        handleLineConfigChange({ spacing: Math.max(2, lineConfig.spacing - currentStep) });
+                      }}
+                      disabled={lineConfig.spacing <= 2}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                    </Button>
+                    <Slider
+                      value={[lineConfig.spacing]}
+                      onValueChange={(value) => handleLineConfigChange({ spacing: value[0] })}
+                      min={2}
+                      max={600}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = lineConfig.spacing < 10 ? 1 : lineConfig.spacing < 40 ? 2 : lineConfig.spacing < 100 ? 5 : lineConfig.spacing < 300 ? 10 : 20;
+                        handleLineConfigChange({ spacing: Math.min(600, lineConfig.spacing + currentStep) });
+                      }}
+                      disabled={lineConfig.spacing >= 600}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = lineConfig.spacing <= 10 ? 1 : lineConfig.spacing <= 40 ? 2 : lineConfig.spacing <= 100 ? 5 : lineConfig.spacing <= 300 ? 10 : 20;
-                      handleLineConfigChange({ spacing: Math.max(2, lineConfig.spacing - currentStep) });
-                    }}
-                    disabled={lineConfig.spacing <= 2}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
-                  </Button>
-                  <Slider
-                    value={[lineConfig.spacing]}
-                    onValueChange={(value) => handleLineConfigChange({ spacing: value[0] })}
-                    min={2}
-                    max={600}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = lineConfig.spacing < 10 ? 1 : lineConfig.spacing < 40 ? 2 : lineConfig.spacing < 100 ? 5 : lineConfig.spacing < 300 ? 10 : 20;
-                      handleLineConfigChange({ spacing: Math.min(600, lineConfig.spacing + currentStep) });
-                    }}
-                    disabled={lineConfig.spacing >= 600}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
-                  </Button>
-                </div>
-              </div>
 
-              {/* Thickness */}
-              <div className={`space-y-2 mb-4 transition-all duration-500 ease-out ${
-                visibleSections.pageLines 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-2'
-              }`}
-              style={{
-                transitionDelay: visibleSections.pageLines ? '700ms' : '0ms'
-              }}>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-gray-700 select-none">Thickness</label>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.thickness}px</span>
+                {/* Thickness */}
+                <div className={`space-y-2 mb-6 transition-all duration-500 ease-out ${
+                  visibleSections.pageLines 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-2'
+                }`}
+                style={{
+                  transitionDelay: visibleSections.pageLines ? '700ms' : '0ms'
+                }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="2" y1="14" x2="6" y2="14"></line>
+                        <line x1="10" y1="8" x2="14" y2="8"></line>
+                        <line x1="18" y1="16" x2="22" y2="16"></line>
+                      </svg>
+                      Thickness
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.thickness}px</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = lineConfig.thickness <= 10 ? 1 : lineConfig.thickness <= 40 ? 2 : lineConfig.thickness <= 100 ? 5 : lineConfig.thickness <= 300 ? 10 : 20;
+                        handleLineConfigChange({ thickness: Math.max(2, lineConfig.thickness - currentStep) });
+                      }}
+                      disabled={lineConfig.thickness <= 2}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                    </Button>
+                    <Slider
+                      value={[lineConfig.thickness]}
+                      onValueChange={(value) => handleLineConfigChange({ thickness: value[0] })}
+                      min={2}
+                      max={300}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = lineConfig.thickness < 10 ? 1 : lineConfig.thickness < 40 ? 2 : lineConfig.thickness < 100 ? 5 : lineConfig.thickness < 300 ? 10 : 20;
+                        handleLineConfigChange({ thickness: Math.min(300, lineConfig.thickness + currentStep) });
+                      }}
+                      disabled={lineConfig.thickness >= 300}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = lineConfig.thickness <= 10 ? 1 : lineConfig.thickness <= 40 ? 2 : lineConfig.thickness <= 100 ? 5 : lineConfig.thickness <= 300 ? 10 : 20;
-                      handleLineConfigChange({ thickness: Math.max(2, lineConfig.thickness - currentStep) });
-                    }}
-                    disabled={lineConfig.thickness <= 2}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
-                  </Button>
-                  <Slider
-                    value={[lineConfig.thickness]}
-                    onValueChange={(value) => handleLineConfigChange({ thickness: value[0] })}
-                    min={2}
-                    max={300}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = lineConfig.thickness < 10 ? 1 : lineConfig.thickness < 40 ? 2 : lineConfig.thickness < 100 ? 5 : lineConfig.thickness < 300 ? 10 : 20;
-                      handleLineConfigChange({ thickness: Math.min(300, lineConfig.thickness + currentStep) });
-                    }}
-                    disabled={lineConfig.thickness >= 300}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
-                  </Button>
-                </div>
-              </div>
 
-              {/* Rotation */}
-              <div className={`space-y-2 transition-all duration-500 ease-out ${
-                visibleSections.pageLines 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-2'
-              }`}
-              style={{
-                transitionDelay: visibleSections.pageLines ? '800ms' : '0ms'
-              }}>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-gray-700 select-none">Rotation</label>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.rotation}°</span>
+                {/* Rotation */}
+                <div className={`space-y-2 transition-all duration-500 ease-out ${
+                  visibleSections.pageLines 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-2'
+                }`}
+                style={{
+                  transitionDelay: visibleSections.pageLines ? '800ms' : '0ms'
+                }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                        <path d="M21 3v5h-5"></path>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                        <path d="M8 16H3v5"></path>
+                      </svg>
+                      Rotation
+                    </h3>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.rotation}°</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = 5;
+                        const newRotation = (lineConfig.rotation - currentStep + 360) % 360;
+                        handleLineConfigChange({ rotation: newRotation });
+                      }}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                    </Button>
+                    <Slider
+                      value={[lineConfig.rotation]}
+                      onValueChange={(value) => handleLineConfigChange({ rotation: value[0] })}
+                      min={0}
+                      max={360}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentStep = 5;
+                        const newRotation = (lineConfig.rotation + currentStep) % 360;
+                        handleLineConfigChange({ rotation: newRotation });
+                      }}
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                    >
+                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = 5;
-                      const newRotation = (lineConfig.rotation - currentStep + 360) % 360;
-                      handleLineConfigChange({ rotation: newRotation });
-                    }}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
-                  </Button>
-                  <Slider
-                    value={[lineConfig.rotation]}
-                    onValueChange={(value) => handleLineConfigChange({ rotation: value[0] })}
-                    min={0}
-                    max={360}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const currentStep = 5;
-                      const newRotation = (lineConfig.rotation + currentStep) % 360;
-                      handleLineConfigChange({ rotation: newRotation });
-                    }}
-                    className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
-                  >
-                    <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+        </motion.div>
+            </div>
+          </Card>
         </div>
-      </ScrollArea>
+      </div>
     </motion.div>
   );
 }

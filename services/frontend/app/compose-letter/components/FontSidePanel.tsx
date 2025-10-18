@@ -261,14 +261,14 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
                   filter: "blur(0px) brightness(1)"
                 }}
                 transition={{ 
-                  delay: index * 0.06, 
-                  duration: 0.9,
+                  delay: index * 0.02, 
+                  duration: 0.3,
                   ease: [0.23, 1, 0.32, 1], // Professional easing curve
                   type: "spring",
-                  stiffness: 100,
-                  damping: 15,
-                  mass: 0.8,
-                  bounce: 0.3
+                  stiffness: 250,
+                  damping: 30,
+                  mass: 0.5,
+                  bounce: 0.1
                 }}
                 whileHover={{ 
                   scale: 1.05,

@@ -1,0 +1,118 @@
+@keyframes wave-sway {
+  0% {
+    transform: rotateY(0deg) translateX(0px) translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: rotateY(15deg) translateX(5px) translateY(-3px) rotate(2deg);
+  }
+  50% {
+    transform: rotateY(0deg) translateX(0px) translateY(0px) rotate(0deg);
+  }
+  75% {
+    transform: rotateY(-15deg) translateX(-5px) translateY(2px) rotate(-2deg);
+  }
+  100% {
+    transform: rotateY(0deg) translateX(0px) translateY(0px) rotate(0deg);
+  }
+}
+
+.animate-wave-sway {
+  animation: wave-sway 3s ease-in-out infinite;
+}
+
+.flag-assembly {
+  display: flex;
+  align-items: flex-start;
+}
+
+.flagpole {
+  width: 16px;
+  height: 75px;
+  background:
+    linear-gradient(135deg, rgba(139,69,19,0.03) 0%, rgba(160,82,45,0.03) 20%, rgba(101,67,33,0.03) 50%, rgba(93,78,55,0.03) 80%, rgba(74,60,42,0.03) 100%),
+    radial-gradient(circle at 30% 30%, rgba(160,82,45,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(139,69,19,0.03) 0%, transparent 50%);
+  border-radius: 8px;
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.5),
+    0 3px 6px rgba(0,0,0,0.3),
+    inset 0 3px 0 rgba(255,255,255,0.4),
+    inset 0 -3px 0 rgba(0,0,0,0.5),
+    inset 4px 0 6px rgba(139,69,19,0.6),
+    inset -4px 0 6px rgba(74,60,42,0.4);
+  margin-right: -7px;
+  transform: rotate(5deg);
+  position: relative;
+  border: 1px solid rgba(101,67,33,0.4);
+  opacity: 1;
+  backdrop-filter: blur(1px);
+}
+
+.flagpole::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(45deg,
+      transparent 0%,
+      rgba(184,134,11,0.6) 15%,
+      transparent 30%,
+      rgba(160,82,45,0.7) 45%,
+      transparent 60%,
+      rgba(139,69,19,0.5) 75%,
+      transparent 90%),
+    radial-gradient(ellipse at 25% 25%, rgba(255,215,0,0.3) 0%, transparent 40%),
+    radial-gradient(ellipse at 75% 75%, rgba(184,134,11,0.25) 0%, transparent 40%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      rgba(101,67,33,0.1) 1px,
+      transparent 2px
+    );
+  pointer-events: none;
+  animation: pole-shimmer 4s ease-in-out infinite alternate;
+}
+
+.flagpole::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,215,0,0.4) 0%, transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(184,134,11,0.3) 0%, transparent 30%),
+    linear-gradient(135deg,
+      rgba(184,134,11,0.3) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgba(101,67,33,0.2) 100%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(2px);
+}
+
+.flapping-flag {
+  filter: url(#flag-flutter-effect);
+}
+
+@keyframes pole-shimmer {
+  0% {
+    opacity: 0.8;
+    filter: brightness(1) contrast(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.1) contrast(1.05);
+  }
+  100% {
+    opacity: 0.9;
+    filter: brightness(0.95) contrast(0.98);
+  }
+}
