@@ -2,10 +2,11 @@
 
 ## Database Architecture
 
-The database is hosted on **Supabase**, a PostgreSQL-based Backend-as-a-Service platform, providing:
+The database is hosted and deployed on **Supabase**, a Postgres based SQL Database platform, providing:
 - Real-time subscriptions
 - Row Level Security (RLS)
 - Edge functions support
+We are using supabase for plain Postgres and built in object storage. This decision was largely based on pricing as Google Cloud SQL was too expensive.
 
 ## Schema Overview
 

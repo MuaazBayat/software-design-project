@@ -8,6 +8,7 @@
 :maxdepth: 2
 :caption: Directories
 
+final_submission/index
 design/index
 implementation/index
 methodology/index
