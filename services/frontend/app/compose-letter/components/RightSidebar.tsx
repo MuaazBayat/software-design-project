@@ -235,7 +235,7 @@ interface RightSidebarProps {
   onPreviewTemplate?: (id: string | null) => void;
   templatesOpen?: boolean;
   setTemplatesOpen?: (open: boolean) => void;
-  lineConfig: LineConfig;
+  lineConfig: LineConfig | null;
   onLineConfigChange: (config: LineConfig) => void;
   fontColor: string;
   onFontColorChange: (color: string) => void;
@@ -343,7 +343,7 @@ export default function RightSidebar({
 
   const handleLineConfigChange = (key: keyof LineConfig, value: any) => {
     if (onLineConfigChange) {
-      onLineConfigChange({ ...lineConfig, [key]: value });
+      onLineConfigChange({ ...(lineConfig || { type: 'none', spacing: 0, thickness: 0, color: '#000000', opacity: 0, rotation: 0 }), [key]: value });
     }
   };
 
@@ -439,6 +439,7 @@ export default function RightSidebar({
                 width: '310px',
                 filter: 'drop-shadow(0 0 20px rgba(184,134,11,0.15))'
               }}
+              aria-label="Preview letter design and envelope"
             >
               {/* Aged paper texture overlays */}
               <div
@@ -657,6 +658,7 @@ export default function RightSidebar({
                       <DropdownMenuItem
                         onClick={() => onExportPDF?.()}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 focus:bg-blue-50 transition-all duration-200 cursor-pointer group"
+                        aria-label="Export letter as PDF document"
                       >
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
                           <FileDown className="w-4 h-4 text-blue-600 group-hover:text-blue-700 transition-colors" aria-hidden="true" />
@@ -666,6 +668,7 @@ export default function RightSidebar({
                       <DropdownMenuItem
                         onClick={() => onExportJPG?.()}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-50 focus:bg-green-50 transition-all duration-200 cursor-pointer group"
+                        aria-label="Export letter as JPG image"
                       >
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
                           <ImageDown className="w-4 h-4 text-green-600 group-hover:text-green-700 transition-colors" aria-hidden="true" />
@@ -1041,7 +1044,7 @@ export default function RightSidebar({
                 ? 'bg-gradient-to-br from-slate-50 via-slate-100 to-gray-100 border-0'
                 : 'bg-gradient-to-br from-green-50 via-green-100 to-emerald-100 border-0'
               }`}
-              onClick={() => setCharacterLimitDialogOpen(true)}>
+              onClick={() => setCharacterLimitDialogOpen(true)} role="button" tabIndex={0} aria-label={`Character count: ${charCount.toLocaleString('en-US')} characters. Click to view details`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCharacterLimitDialogOpen(true); } }}>
                 <div className={`absolute inset-0 transition-opacity duration-300 ${characterLimitFlash ? 'bg-red-400/20' : 'bg-gradient-to-br opacity-0 group-hover:opacity-100'} ${charCount >= 1000 ? 'from-red-400/10 to-pink-400/10' : charCount >= 500 ? 'from-yellow-400/10 to-amber-400/10' : charCount >= 250 ? 'from-slate-400/10 to-gray-400/10' : 'from-green-400/10 to-emerald-400/10'}`}></div>
                 <div className={`absolute inset-[-2px] rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none ${charCount >= 1000 ? 'bg-gradient-to-br from-red-400/20 via-pink-400/20 to-red-400/20' : charCount >= 500 ? 'bg-gradient-to-br from-yellow-400/20 via-amber-400/20 to-yellow-400/20' : charCount >= 250 ? 'bg-gradient-to-br from-slate-400/20 via-gray-400/20 to-slate-400/20' : 'bg-gradient-to-br from-green-400/20 via-emerald-400/20 to-green-400/20'}`} style={{zIndex: -1}}></div>
                 <div className="relative flex flex-col items-center space-y-4">
@@ -1089,7 +1092,7 @@ export default function RightSidebar({
               </Card>
             </div>
             <div className="grid grid-cols-2 gap-5">
-              <Card className="p-6 text-center bg-gradient-to-br from-purple-50 via-purple-100 to-violet-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 cursor-pointer group rounded-2xl overflow-hidden relative" onClick={() => setReadingTimeDialogOpen(true)}>
+              <Card className="p-6 text-center bg-gradient-to-br from-purple-50 via-purple-100 to-violet-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 cursor-pointer group rounded-2xl overflow-hidden relative" onClick={() => setReadingTimeDialogOpen(true)} role="button" tabIndex={0} aria-label={`Reading time: ${typeof readingTime === "string" ? readingTime : `~${readingTime} minutes`}. Click to view details`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setReadingTimeDialogOpen(true); } }}>
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-violet-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-[-2px] bg-gradient-to-br from-purple-400/0 via-purple-400/0 to-violet-400/0 group-hover:from-purple-400/20 group-hover:via-violet-400/20 group-hover:to-purple-400/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" style={{zIndex: -1}}></div>
                 <div className="relative flex flex-col items-center space-y-4">
@@ -1130,7 +1133,7 @@ export default function RightSidebar({
                       return 'bg-gradient-to-br from-slate-50 via-slate-100 to-gray-100 border-0';
                   }
                 })()
-              }`} onClick={() => setReadabilityDialogOpen(true)}>
+              }`} onClick={() => setReadabilityDialogOpen(true)} role="button" tabIndex={0} aria-label={`Readability level: ${String(readability).toUpperCase() || "Not available"}. Click to view details`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setReadabilityDialogOpen(true); } }}>
                 <div className={`absolute inset-0 transition-opacity duration-300 bg-gradient-to-br opacity-0 group-hover:opacity-100 ${
                   (() => {
                     const level = String(readability).toUpperCase();

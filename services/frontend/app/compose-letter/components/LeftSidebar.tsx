@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -409,59 +409,201 @@ export default function LeftSidebar({
   const [savedTemplates, setSavedTemplates] = useState<LetterTemplate[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
 
+  // Function to save to localStorage with cookie fallback for mobile
+  const saveToStorage = useCallback((key: string, data: any) => {
+    try {
+      const dataString = JSON.stringify(data);
+      localStorage.setItem(key, dataString);
+      console.log(`Saved to localStorage: ${key}`, data);
+      
+      // Also save to cookie as fallback for mobile browsers
+      document.cookie = `${key}=${encodeURIComponent(dataString)}; max-age=31536000; path=/; SameSite=Strict`;
+      console.log(`Also saved to cookie: ${key}`);
+    } catch (error) {
+      console.error('Error saving to storage:', error);
+      // Try cookie only
+      try {
+        const dataString = JSON.stringify(data);
+        document.cookie = `${key}=${encodeURIComponent(dataString)}; max-age=31536000; path=/; SameSite=Strict`;
+        console.log(`Fallback: saved to cookie only: ${key}`);
+      } catch (cookieError) {
+        console.error('Error saving to cookie fallback:', cookieError);
+      }
+    }
+  }, []);
+
+  // Function to load from storage with cookie fallback
+  const loadFromStorage = useCallback((key: string) => {
+    try {
+      // Try localStorage first
+      const localData = localStorage.getItem(key);
+      if (localData) {
+        console.log(`Loaded from localStorage: ${key}`, localData);
+        return JSON.parse(localData);
+      }
+      
+      // Fallback to cookie
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [cookieKey, cookieValue] = cookie.trim().split('=');
+        if (cookieKey === key && cookieValue) {
+          const decoded = decodeURIComponent(cookieValue);
+          console.log(`Loaded from cookie fallback: ${key}`, decoded);
+          return JSON.parse(decoded);
+        }
+      }
+      
+      console.log(`No data found for key: ${key}`);
+      return null;
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+      return null;
+    }
+  }, []);
+
+  // Function to set cookie
+  const setCookie = useCallback((name: string, value: string, days: number) => {
+    try {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`;
+      console.log(`Set cookie: ${name} for ${days} days`);
+    } catch (error) {
+      console.error('Error setting cookie:', error);
+    }
+  }, []);
+
+  // IndexedDB storage functions for better mobile persistence
+  const openDB = useCallback(() => {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('PenPalApp', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('templates')) {
+          db.createObjectStore('templates', { keyPath: 'key' });
+        }
+      };
+    });
+  }, []);
+
+  const saveToIndexedDB = useCallback(async (key: string, data: any) => {
+    try {
+      const db = await openDB();
+      const transaction = db.transaction(['templates'], 'readwrite');
+      const store = transaction.objectStore('templates');
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put({ key, data, timestamp: Date.now() });
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      db.close();
+      console.log(`Saved to IndexedDB: ${key}`, data);
+    } catch (error) {
+      console.error('Error saving to IndexedDB:', error);
+      // Fallback to localStorage/cookies
+      saveToStorage(key, data);
+    }
+  }, [openDB, saveToStorage]);
+
+  const loadFromIndexedDB = useCallback(async (key: string) => {
+    try {
+      const db = await openDB();
+      const transaction = db.transaction(['templates'], 'readonly');
+      const store = transaction.objectStore('templates');
+      
+      const result = await new Promise<any>((resolve, reject) => {
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      db.close();
+      
+      if (result && result.data) {
+        console.log(`Loaded from IndexedDB: ${key}`, result.data);
+        return result.data;
+      }
+      
+      console.log(`No data found in IndexedDB for key: ${key}`);
+      return null;
+    } catch (error) {
+      console.error('Error loading from IndexedDB:', error);
+      // Fallback to localStorage/cookies
+      return loadFromStorage(key);
+    }
+  }, [openDB, loadFromStorage]);
+
   // State for tracking hover on pen pal options
   const [isHoveringPenPalOptions, setIsHoveringPenPalOptions] = useState(false);
   
-  // Function to get initial saved templates from localStorage
-  const getInitialSavedTemplates = () => {
-    console.log('Loading saved templates from localStorage on component initialization');
-    try {
-      const saved = localStorage.getItem('savedLetterTemplates');
-      console.log('Raw localStorage data:', saved);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log('Successfully parsed localStorage data:', parsed);
-        if (Array.isArray(parsed)) {
-          console.log('Returning parsed array with length:', parsed.length);
-          return parsed;
-        } else {
-          console.error('Parsed data is not an array, clearing corrupted data');
-          localStorage.removeItem('savedLetterTemplates');
-        }
-      } else {
-        console.log('No saved templates found in localStorage');
-      }
-    } catch (error) {
-      console.error('Error loading saved templates:', error);
-      // Try to clear corrupted data
-      try {
-        localStorage.removeItem('savedLetterTemplates');
-        console.log('Cleared corrupted localStorage data');
-      } catch (clearError) {
-        console.error('Error clearing corrupted data:', clearError);
-      }
-    }
-    return [];
-  };
-  
+  // useCallback functions for loading templates
+  const getInitialSavedTemplates = useCallback(() => {
+    console.log('Loading initial saved templates...');
+    const saved = loadFromStorage('savedLetterTemplates');
+    console.log('Loaded saved templates:', saved);
+    return Array.isArray(saved) ? saved : [];
+  }, [loadFromStorage]);
+
+  const getInitialGeneratedTemplates = useCallback(() => {
+    console.log('Loading initial generated templates...');
+    const generated = loadFromStorage('generatedLetterTemplates');
+    console.log('Loaded generated templates:', generated);
+    return Array.isArray(generated) ? generated : [];
+  }, [loadFromStorage]);
+
   // Load saved templates after hydration
   useEffect(() => {
     const initialTemplates = getInitialSavedTemplates()
     setSavedTemplates(initialTemplates)
     setIsHydrated(true)
-  }, [])
-  
-  // Save templates to localStorage whenever savedTemplates changes
+  }, [getInitialSavedTemplates])
+
+  // Load generated templates after hydration
   useEffect(() => {
-    console.log('Saving templates to localStorage:', savedTemplates);
-    console.log('savedTemplates length:', savedTemplates.length);
-    try {
-      localStorage.setItem('savedLetterTemplates', JSON.stringify(savedTemplates));
-      console.log('Successfully saved templates to localStorage');
-    } catch (error) {
-      console.error('Error saving templates to localStorage:', error);
+    const initialGeneratedTemplates = getInitialGeneratedTemplates()
+    setGeneratedTemplates(initialGeneratedTemplates)
+  }, [getInitialGeneratedTemplates])
+  
+  // Save templates to localStorage whenever savedTemplates changes (but not during initial load)
+  useEffect(() => {
+    // Only save if we're hydrated (not during initial load) and templates array is not empty or has changed from initial state
+    if (isHydrated) {
+      console.log('Saving templates to localStorage and sessionStorage:', savedTemplates);
+      console.log('savedTemplates length:', savedTemplates.length);
+      try {
+        const dataToSave = JSON.stringify(savedTemplates);
+        localStorage.setItem('savedLetterTemplates', dataToSave);
+        sessionStorage.setItem('savedLetterTemplates', dataToSave);
+        setCookie('savedLetterTemplates', dataToSave, 30); // Save to cookies for 30 days
+        console.log('Successfully saved templates to localStorage, sessionStorage, and cookies');
+      } catch (error) {
+        console.error('Error saving templates to storage:', error);
+      }
     }
-  }, [savedTemplates]);
+  }, [savedTemplates, isHydrated, setCookie]);
+
+  // Save generated templates to localStorage whenever generatedTemplates changes (but not during initial load)
+  useEffect(() => {
+    // Only save if we're hydrated (not during initial load) and templates array is not empty or has changed from initial state
+    if (isHydrated && generatedTemplates.length >= 0) {
+      console.log('Saving generated templates to localStorage and sessionStorage:', generatedTemplates);
+      console.log('generatedTemplates length:', generatedTemplates.length);
+      try {
+        const dataToSave = JSON.stringify(generatedTemplates);
+        localStorage.setItem('generatedLetterTemplates', dataToSave);
+        sessionStorage.setItem('generatedLetterTemplates', dataToSave);
+        console.log('Successfully saved generated templates to localStorage and sessionStorage');
+      } catch (error) {
+        console.error('Error saving generated templates to storage:', error);
+      }
+    }
+  }, [generatedTemplates, isHydrated]);
   
   // Animation controls for the recipient section
   const controls = useAnimation();
@@ -618,7 +760,19 @@ export default function LeftSidebar({
       setGeneratedTemplates(prev => {
         // Keep only the most recent 7 templates, remove oldest if needed
         const updatedTemplates = [newTemplate, ...prev];
-        return updatedTemplates.slice(0, 7);
+        const finalTemplates = updatedTemplates.slice(0, 7);
+        
+        // Immediately save to both localStorage and sessionStorage
+        try {
+          const dataToSave = JSON.stringify(finalTemplates);
+          localStorage.setItem('generatedLetterTemplates', dataToSave);
+          sessionStorage.setItem('generatedLetterTemplates', dataToSave);
+          console.log('Immediately saved generated templates to localStorage and sessionStorage:', finalTemplates);
+        } catch (error) {
+          console.error('Error immediately saving generated templates to storage:', error);
+        }
+        
+        return finalTemplates;
       });
       setAiPrompt("");
     } catch (error) {
@@ -643,13 +797,38 @@ export default function LeftSidebar({
       }
       const newSaved = [...prev, template];
       console.log('Adding new template to saved list. New savedTemplates:', newSaved);
+
+      // Immediately save to both localStorage and sessionStorage
+      try {
+        const dataToSave = JSON.stringify(newSaved);
+        localStorage.setItem('savedLetterTemplates', dataToSave);
+        sessionStorage.setItem('savedLetterTemplates', dataToSave);
+        console.log('Successfully saved templates to localStorage and sessionStorage');
+      } catch (error) {
+        console.error('Error saving templates to storage:', error);
+      }
+
       return newSaved;
     });
   };
 
   // Function to remove a saved template
   const removeTemplate = (templateId: string) => {
-    setSavedTemplates(prev => prev.filter(t => t.id !== templateId));
+    setSavedTemplates(prev => {
+      const newSaved = prev.filter(t => t.id !== templateId);
+
+      // Immediately save to both localStorage and sessionStorage
+      try {
+        const dataToSave = JSON.stringify(newSaved);
+        localStorage.setItem('savedLetterTemplates', dataToSave);
+        sessionStorage.setItem('savedLetterTemplates', dataToSave);
+        console.log('Immediately saved updated templates to storage after removal:', newSaved);
+      } catch (error) {
+        console.error('Error saving templates to storage after removal:', error);
+      }
+
+      return newSaved;
+    });
   };
 
   // Function to check if a template is saved
@@ -730,6 +909,7 @@ export default function LeftSidebar({
               variant="ghost" 
               onClick={() => router.push('/inbox')} 
               className="relative w-full justify-start gap-3 bg-gradient-to-br from-white via-blue-50/30 to-white shadow-lg hover:shadow-xl backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50 hover:border-blue-300/40 transition-all duration-300 group/btn overflow-visible"
+              aria-label="Return to inbox"
             >
               {/* Icon circle with gradient */}
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center group-hover/btn:scale-110 group-hover/btn:shadow-lg transition-all duration-300 group-hover/btn:from-blue-200 group-hover/btn:to-cyan-200">
@@ -901,6 +1081,7 @@ export default function LeftSidebar({
                   variant="outline"
                   size="sm"
                   className="bg-white/80 hover:bg-amber-50 border-amber-200 text-amber-700 hover:text-amber-800 transition-colors font-medium"
+                  aria-label={showPenPalOptions ? "Close pen pal selection" : "Choose a different pen pal"}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -916,6 +1097,7 @@ export default function LeftSidebar({
                     setShowPenPalOptions(true);
                   }}
                   className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white shadow-lg"
+                  aria-label="Select a pen pal to write to"
                 >
                   <UserRound className="w-4 h-4 mr-2" />
                   Select a Pen Pal
@@ -955,6 +1137,7 @@ export default function LeftSidebar({
                       onClick={(e) => e.stopPropagation()}
                       placeholder="Search by name or location..."
                       className="w-full pl-10 pr-3 py-2 border border-amber-200 rounded focus:outline-none focus:ring focus:ring-amber-100 text-sm"
+                      aria-label="Search pen pals by name or location"
                     />
                   </div>
 
@@ -990,6 +1173,7 @@ export default function LeftSidebar({
                                 setSearch("");
                               }}
                               className="group relative bg-white rounded-lg p-3 border border-slate-200 hover:border-amber-300 hover:shadow-md cursor-pointer transition-all duration-300 active:scale-[0.98]"
+                              aria-label={`Select ${match.name} as pen pal`}
                             >
                               {/* Selected indicator */}
                               {selectedMatch?.id === match.id && (() => {
@@ -1123,6 +1307,7 @@ export default function LeftSidebar({
                 // On mobile, keep sidebar open and show popup on top (like right sidebar statistics)
                 setShowSharedInterestsPopup(true);
               }}
+              aria-label="View shared interests with pen pal"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-orange-50/20 to-rose-50/30 rounded-3xl opacity-80"></div>
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-orange-500/5 to-rose-500/8 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
@@ -1202,7 +1387,7 @@ export default function LeftSidebar({
                     // From title only: show options
                     setShowWritingPromptsOptions(true);
                   }
-                }}>
+                }} aria-label="Toggle writing prompts options">
                   <h4 className="font-bold text-slate-800 mb-6 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2">
                     <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -1297,6 +1482,7 @@ export default function LeftSidebar({
                                 ? 'border-amber-400 bg-amber-50 shadow-lg'
                                 : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50'
                             }`}
+                            aria-label="Select premade writing templates"
                           >
                             <motion.div
                               className="flex flex-col items-center gap-2"
@@ -1361,6 +1547,7 @@ export default function LeftSidebar({
                                 ? 'border-purple-400 bg-purple-50 shadow-lg'
                                 : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
                             }`}
+                            aria-label="Select AI assisted writing templates"
                           >
                             <motion.div
                               className="flex flex-col items-center gap-2"
@@ -1473,6 +1660,7 @@ export default function LeftSidebar({
                                 onChange={e => setTemplatesSearch(e.target.value)}
                                 placeholder="Search templates..."
                                 className="w-full pl-10 pr-3 py-2 border border-amber-200 rounded focus:outline-none focus:ring focus:ring-amber-100 text-sm"
+                                aria-label="Search writing templates"
                               />
                             </div>
                           </motion.div>
@@ -1510,7 +1698,7 @@ export default function LeftSidebar({
                                   }
                                 }}
                               >
-                                <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200" onClick={() => onApplyTemplate?.(t.id)}>
+                                <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200" onClick={() => onApplyTemplate?.(t.id)} aria-label={`Apply ${t.name} template`}>
                                   <div>
                                     <div className="flex items-center justify-between">
                                       <h4 className="font-medium text-gray-800">{t.name}</h4>
@@ -1630,6 +1818,7 @@ export default function LeftSidebar({
                                 }}
                                 variant="outline"
                                 className="bg-white hover:bg-purple-50 border-purple-200 text-purple-700 hover:text-purple-800"
+                                aria-label="Retry AI connection"
                               >
                                 Try Again
                               </Button>
@@ -1653,6 +1842,7 @@ export default function LeftSidebar({
                                     className="w-full p-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm resize-none"
                                     rows={3}
                                     maxLength={200}
+                                    aria-label="Describe the type of writing template you want to generate"
                                   />
                                   <div className="absolute bottom-2 right-2 text-xs text-slate-400">
                                     {aiPrompt.length}/200
@@ -1662,6 +1852,7 @@ export default function LeftSidebar({
                                   onClick={generateAiTemplate}
                                   disabled={!aiPrompt.trim() || isGenerating}
                                   className="w-full mt-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50"
+                                  aria-label="Generate AI writing template"
                                 >
                                   {isGenerating ? (
                                     <>
@@ -1729,7 +1920,7 @@ export default function LeftSidebar({
                                         }
                                       }}
                                     >
-                                      <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                                      <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200" aria-label={`Apply generated template: ${template.name}`}>
                                         <div onClick={() => onApplyTemplate?.(template)}>
                                           <div className="flex items-center justify-between">
                                             <h4 className="font-medium text-gray-800">{template.name}</h4>
@@ -1748,6 +1939,7 @@ export default function LeftSidebar({
                                                       saveTemplate(template);
                                                     }
                                                   }}
+                                                  aria-label={isTemplateSaved(template.id) ? "Remove template from saved" : "Save template"}
                                                 >
                                                   <Star className={`w-3 h-3 ${isTemplateSaved(template.id) ? 'fill-current' : ''}`} />
                                                 </Button>
@@ -1874,7 +2066,7 @@ export default function LeftSidebar({
                           }
                         }}
                       >
-                        <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+                        <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200" aria-label={`Apply saved template: ${template.name}`}>
                           <div onClick={() => onApplyTemplate?.(template)}>
                             <div className="flex items-center justify-between">
                               <h4 className="font-medium text-gray-800">{template.name}</h4>
@@ -1889,6 +2081,7 @@ export default function LeftSidebar({
                                       e.stopPropagation();
                                       removeTemplate(template.id);
                                     }}
+                                    aria-label="Remove template from saved"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
@@ -2012,6 +2205,7 @@ export default function LeftSidebar({
                       ? 'hover:bg-amber-100'
                       : 'hover:bg-green-100'
                   }`}
+                  aria-label="Close notification"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

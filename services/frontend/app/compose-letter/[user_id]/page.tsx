@@ -325,7 +325,7 @@ function LetterPageContent() {
     opacity: number;
     rotation: number;
   }
-  const [lineConfig, setLineConfig] = useState<LineConfig>({
+  const [lineConfig, setLineConfig] = useState<LineConfig | null>({
     type: 'floral',
     spacing: 170,
     thickness: 80,
@@ -380,7 +380,8 @@ function LetterPageContent() {
 
 
   // Map lineConfig to generator parameters
-  const mapLineConfigToParams = useCallback((config: LineConfig) => {
+  const mapLineConfigToParams = useCallback((config: LineConfig | null) => {
+    if (!config) return null;
     const { type, spacing, thickness, color, opacity, rotation } = config;
   // Use viewport dimensions so patterns fill full area
   const width = typeof window !== 'undefined' ? window.innerWidth : 600;
@@ -413,7 +414,7 @@ function LetterPageContent() {
       case 'spiral':
         return { type, width, height, spacing, thickness, color, opacity, rotation };
       case 'dotted':
-        return { type, width, height, originX: 0, originY: 0, spacing, thickness, jitter: 0, gridType: 'rect', fillColor: color, strokeColor: color, opacity, rotation };
+        return { type, width, height, originX: 0, originY: 0, spacing, thickness, jitter: 0, gridType: 'rect', color, opacity, rotation };
       case 'floral':
         return { type, width, height, spacing, thickness, color, opacity, rotation, secondaryColor: '#666' };
       default:
@@ -1235,7 +1236,7 @@ function LetterPageContent() {
     setLeftOpen(open => !open);
   }, []);
 
-  const resetLetter = useCallback(() => {
+  const resetLetter = useCallback((clearBackground: boolean = false) => {
     // Confirmation is handled in MainContent's dialog
     // Clear letter content and reset template/styling back to defaults
     setLetterContent("");
@@ -1244,18 +1245,13 @@ function LetterPageContent() {
     setTemplatesOpen(false);
     setTemplateBackground(null);
     setPreviewConfig(null);
-    setBackgroundColor("#FFC0CB"); // floral pink background
-    setBackgroundOpacity(0.7); // floral background opacity
+    if (clearBackground) {
+      setBackgroundColor("#FFFFFF"); // white background
+      setBackgroundOpacity(1); // full opacity
+      setLineConfig({ type: 'none', spacing: 0, thickness: 0, color: '#000000', opacity: 0, rotation: 0 }); // remove any line patterns
+    }
     setFontColor("#000000");
     setFontOpacity(1);
-    setLineConfig({
-      type: 'floral',
-      spacing: 170,
-      thickness: 80,
-      color: '#008000',
-      opacity: 0.55,
-      rotation: 15
-    });
   }, []);
 
   const handleAnimationComplete = () => {
@@ -1263,10 +1259,30 @@ function LetterPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 relative">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 relative" role="main" aria-label="Letter composition page">
+      {/* Skip Links for Keyboard Navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#letter-editor"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-8 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to letter editor
+      </a>
+      <a
+        href="#sidebar-navigation"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-12 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to sidebar navigation
+      </a>
+
       <Toaster richColors position="top-center" />
       <LetterSendAnimation key={animationKey} show={showAnimation} onAnimationComplete={handleAnimationComplete} onSendWithImage={handleSendWithImage} />
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10" role="banner" aria-label="Letter composition header">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
           </div>
@@ -1274,13 +1290,13 @@ function LetterPageContent() {
         </div>
       </header>
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-auto max-w-7xl mt-2">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-auto max-w-7xl mt-2" role="alert" aria-live="assertive">
           <p>{error}</p>
         </div>
       )}
       <div className="mx-auto w-full max-w-7xl px-3 xl:px-6 xl:max-w-[calc(100vw-20rem)] xl:ml-auto xl:mr-32">
         {/* Mobile top bar (only visible < md) */}
-        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between">
+        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between" aria-label="Mobile navigation bar">
           <Button 
             size="sm" 
             variant="outline" 
@@ -1292,20 +1308,21 @@ function LetterPageContent() {
                 setMobilePanelType('left');
               }
             }}
+            aria-label={mobilePanelType === 'left' ? 'Close matches panel' : 'Open matches panel'}
           >
-            <PanelLeft className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" aria-hidden="true" />
             Matches
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)}>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)} aria-label="Open preview and send panel">
             Preview & Send
-            <PanelRight className="h-4 w-4" />
+            <PanelRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
         {/* Desktop layout: 3 columns */}
-        <div className="xl:flex xl:gap-6">
+        <div className="xl:flex xl:gap-6" aria-label="Desktop layout with sidebars">
           {/* Left sidebar (desktop only) */}
-          <div className={`hidden xl:block xl:w-72 xl:w-80 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`}>
+          <aside id="sidebar-navigation" className={`hidden xl:block xl:w-72 xl:w-80 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`} aria-label="Left sidebar with matches and settings" role="complementary">
             <LeftSidebar
               selectedMatch={selectedMatch}
               matches={matches}
@@ -1358,10 +1375,10 @@ function LetterPageContent() {
               backgroundOpacity={backgroundOpacity}
               userInterests={profile?.interests || []}
             />
-          </div>
+          </aside>
 
           {/* Main editor (always visible) */}
-          <div className="flex-1">
+          <div id="main-content" className="flex-1" aria-label="Main letter editor" role="main">
             <MainContent
               letterContent={letterContent}
               setLetterContent={setLetterContent}
@@ -1408,11 +1425,13 @@ function LetterPageContent() {
               templateData={{ lines: mapLineConfigToParams(previewConfig?.lineConfig ?? lineConfig) }}
               onCharacterLimitExceeded={triggerCharacterLimitFlash}
               onFocusModeChange={setIsFocusMode}
+              userInterests={profile?.interests || []}
+              selectedMatch={selectedMatch}
             />
           </div>
 
           {/* Right sidebar (desktop only) */}
-          <div className={`hidden xl:block xl:w-80 xl:w-96 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`}>
+          <aside className={`hidden xl:block xl:w-80 xl:w-96 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`} aria-label="Right sidebar with preview and send options" role="complementary">
             <RightSidebar
               onSend={handleSend}
               onExportPDF={handleExportPDF}
@@ -1455,7 +1474,7 @@ function LetterPageContent() {
               onBackgroundOpacityChange={setBackgroundOpacity}
               triggerFlash={characterLimitFlashTrigger}
             />
-          </div>
+          </aside>
         </div>
       </div>
 
@@ -1578,6 +1597,7 @@ function LetterPageContent() {
                 backgroundColor={backgroundColor}
                 backgroundOpacity={backgroundOpacity}
                 onCloseMobilePanel={() => setMobilePanelType(null)}
+                userInterests={profile?.interests || []}
               />
             )}
           </div>

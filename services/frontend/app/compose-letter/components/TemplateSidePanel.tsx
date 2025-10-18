@@ -40,7 +40,7 @@ interface TemplateSidePanelProps {
   onPreview?: (id: string | null) => void;
   onClose?: () => void;
   thumbSize?: number;
-  lineConfig?: LineConfig;
+  lineConfig?: LineConfig | null;
   onLineConfigChange?: (config: LineConfig) => void;
   fontColor?: string;
   onFontColorChange?: (color: string) => void;
@@ -138,6 +138,7 @@ const TemplateItem = React.memo(({
             onFontOpacityChange(appliedPreset.config?.fontOpacity || 1);
           }
         }}
+        aria-label={`Apply ${preset.name} template. ${preset.isFavorite ? 'Favorited' : 'Not favorited'}. ${preset.id === currentId ? 'Currently selected' : 'Click to apply'}`}
       >
         <div className="flex justify-center mb-2 relative">
           {/* Removed the Preview tooltip */}
@@ -329,6 +330,7 @@ const TemplateItem = React.memo(({
               }
             }}
             className={`text-gray-500 hover:text-amber-500 p-1 ${preset.id.startsWith('default-') ? 'cursor-default' : 'cursor-pointer'}`}
+            aria-label={preset.isFavorite ? `Remove ${preset.name} from favorites` : `Add ${preset.name} to favorites`}
           >
             {preset.isFavorite ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-yellow-400">
@@ -347,6 +349,7 @@ const TemplateItem = React.memo(({
                   onClick={(e) => e.stopPropagation()}
                   className="text-gray-500 hover:text-red-500 p-1"
                   title="Delete template"
+                  aria-label={`Delete ${preset.name} template`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -907,12 +910,14 @@ export default function TemplateSidePanel({
                 placeholder="Search templates by name..." 
                 className="w-full pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 focus:scale-105 transition-all duration-200"
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search letter templates by name"
               />
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')} 
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
                   title="Clear search"
+                  aria-label="Clear template search"
                 >
                   ✕
                 </button>
@@ -934,6 +939,7 @@ export default function TemplateSidePanel({
                   style={{
                     transitionDelay: visibleSections.presets ? `${200 + index * 100}ms` : '0ms'
                   }}
+                  aria-label={`Show ${tab} templates`}
                 >
                   {tab.charAt(0).toUpperCase()+tab.slice(1)}
                 </Button>
@@ -1001,6 +1007,7 @@ export default function TemplateSidePanel({
                   transitionDelay: visibleSections.presets ? '600ms' : '0ms'
                 }}
                 onClick={() => setVisibleCount(prev => prev + INITIAL_TEMPLATE_COUNT)}
+                aria-label="Show more letter templates"
               >
                 Show more templates...
               </Button>
@@ -1020,6 +1027,7 @@ export default function TemplateSidePanel({
                   transitionDelay: visibleSections.presets ? '700ms' : '0ms'
                 }}
                 onClick={() => setVisibleCount(INITIAL_TEMPLATE_COUNT)}
+                aria-label="Show fewer letter templates"
               >
                 Show fewer templates
               </Button>
@@ -1043,6 +1051,7 @@ export default function TemplateSidePanel({
                   setTemplateName('');
                   setTemplateNameError('');
                 }}
+                aria-label="Save current letter template"
               >
                 Save Current Template
               </Button>
@@ -1068,6 +1077,7 @@ export default function TemplateSidePanel({
                       setTemplateName(e.target.value);
                       if (templateNameError) setTemplateNameError('');
                     }}
+                    aria-label="Template name"
                   />
                 </div>
                 {templateNameError && <p className="col-span-4 text-red-500 text-xs text-right">{templateNameError}</p>}
@@ -1160,6 +1170,7 @@ export default function TemplateSidePanel({
               onChange={(e) => handleFontColorChange(e.target.value)}
               className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
               title="Select text color"
+              aria-label="Select font color"
             />
             <div className="flex items-center gap-3">
               <Slider
@@ -1169,6 +1180,7 @@ export default function TemplateSidePanel({
                 max={1}
                 step={0.01}
                 className="w-24"
+                aria-label="Font opacity"
               />
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localFontOpacity * 100)}%</span>
             </div>
@@ -1180,6 +1192,7 @@ export default function TemplateSidePanel({
                   className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
                   style={{ backgroundColor: color }}
                   title={`Set to ${color}`}
+                  aria-label={`Set font color to ${color}`}
                 />
               ))}
             </div>
@@ -1240,6 +1253,7 @@ export default function TemplateSidePanel({
               onChange={(e) => handleBackgroundColorChange(e.target.value)}
               className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
               title="Select background color"
+              aria-label="Select background color"
             />
             <div className="flex items-center gap-3">
               <Slider
@@ -1249,6 +1263,7 @@ export default function TemplateSidePanel({
                 max={1}
                 step={0.01}
                 className="w-24"
+                aria-label="Background opacity"
               />
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localBackgroundOpacity * 100)}%</span>
             </div>
@@ -1260,6 +1275,7 @@ export default function TemplateSidePanel({
                   className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
                   style={{ backgroundColor: color }}
                   title={`Set to ${color}`}
+                  aria-label={`Set background color to ${color}`}
                 />
               ))}
             </div>
@@ -1364,6 +1380,7 @@ export default function TemplateSidePanel({
                     style={{
                       transitionDelay: visibleSections.pageLines ? `${400 + index * 50}ms` : '0ms'
                     }}
+                    aria-label={`Set line style to ${style.label}`}
                   >
                     {style.label}
                   </Button>
@@ -1399,6 +1416,7 @@ export default function TemplateSidePanel({
                       onChange={(e) => handleLineColorChange(e.target.value)}
                       className="w-12 h-10 border-2 border-gray-300 rounded-md cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-200"
                       title="Select line color"
+                      aria-label="Select line color"
                     />
                     <div className="flex items-center gap-2 ml-2">
                       <Slider
@@ -1408,6 +1426,7 @@ export default function TemplateSidePanel({
                         max={1}
                         step={0.01}
                         className="w-24"
+                        aria-label="Line opacity"
                       />
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(lineConfig.opacity * 100)}%</span>
                     </div>
@@ -1419,6 +1438,7 @@ export default function TemplateSidePanel({
                           className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-125 hover:shadow-lg transition-all duration-300"
                           style={{ backgroundColor: color }}
                           title={`Set to ${color}`}
+                          aria-label={`Set line color to ${color}`}
                         />
                       ))}
                     </div>
@@ -1455,6 +1475,7 @@ export default function TemplateSidePanel({
                       }}
                       disabled={lineConfig.spacing <= 2}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Decrease line spacing"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
                     </Button>
@@ -1465,6 +1486,7 @@ export default function TemplateSidePanel({
                       max={600}
                       step={1}
                       className="flex-1"
+                      aria-label="Line spacing"
                     />
                     <Button
                       size="sm"
@@ -1475,6 +1497,7 @@ export default function TemplateSidePanel({
                       }}
                       disabled={lineConfig.spacing >= 600}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Increase line spacing"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
                     </Button>
@@ -1517,6 +1540,7 @@ export default function TemplateSidePanel({
                       }}
                       disabled={lineConfig.thickness <= 2}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Decrease line thickness"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
                     </Button>
@@ -1527,6 +1551,7 @@ export default function TemplateSidePanel({
                       max={300}
                       step={1}
                       className="flex-1"
+                      aria-label="Line width"
                     />
                     <Button
                       size="sm"
@@ -1537,6 +1562,7 @@ export default function TemplateSidePanel({
                       }}
                       disabled={lineConfig.thickness >= 300}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Increase line thickness"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
                     </Button>
@@ -1574,6 +1600,7 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ rotation: newRotation });
                       }}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Decrease line rotation"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
                     </Button>
@@ -1584,6 +1611,7 @@ export default function TemplateSidePanel({
                       max={360}
                       step={1}
                       className="flex-1"
+                      aria-label="Line rotation"
                     />
                     <Button
                       size="sm"
@@ -1594,6 +1622,7 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ rotation: newRotation });
                       }}
                       className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      aria-label="Increase line rotation"
                     >
                       <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
                     </Button>

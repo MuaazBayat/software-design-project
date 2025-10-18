@@ -99,10 +99,13 @@ export default function LineColorPopup({
         }`}
         style={popupStyle}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="line-color-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h3 id="line-color-title" className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Palette className="w-4 h-4 text-amber-600" />
             Line Color
           </h3>
@@ -111,6 +114,7 @@ export default function LineColorPopup({
             size="sm"
             onClick={onClose}
             className="h-6 w-6 p-0 hover:bg-gray-100"
+            aria-label="Close line color selection"
           >
             ×
           </Button>
@@ -126,6 +130,7 @@ export default function LineColorPopup({
               onChange={(e) => onColorChange(e.target.value)}
               className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer"
               title="Select line color"
+              aria-label="Select line color"
             />
             <div className="text-xs text-gray-500 font-mono">{currentColor}</div>
           </div>
@@ -148,6 +153,7 @@ export default function LineColorPopup({
             size="sm"
             onClick={onClose}
             className="text-xs"
+            aria-label="Close line color selection dialog"
           >
             Done
           </Button>

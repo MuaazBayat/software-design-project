@@ -349,7 +349,7 @@ interface MainContentProps {
   backgroundColor?: string
   backgroundOpacity?: number
   anonymousHandle?: string
-  onNewLetter?: () => void
+  onNewLetter?: (clearBackground?: boolean) => void
   sending?: boolean
   isProcessing?: boolean
   previewFontIdExternal?: string | null
@@ -366,6 +366,8 @@ interface MainContentProps {
     textArea?: { top: number; left: number; width: number; height: number; padding?: number }
     lines?: LineConfigType
   }
+  userInterests?: string[]
+  selectedMatch?: any
 }
 
 export default function MainContent({
@@ -396,6 +398,8 @@ export default function MainContent({
   onCharacterLimitExceeded,
   onFocusModeChange,
   templateData,
+  userInterests,
+  selectedMatch,
 }: MainContentProps) {
   // Reference to measure letter area dimensions
   const containerRef = useRef<HTMLDivElement>(null);
@@ -444,6 +448,7 @@ export default function MainContent({
   const [selectedFormatting, setSelectedFormatting] = useState<string[]>([])
   const [formattingInProgress, setFormattingInProgress] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [clearBackground, setClearBackground] = useState(false)
   const [grammarDialogOpen, setGrammarDialogOpen] = useState(false)
   const [grammarSuggestions, setGrammarSuggestions] = useState<any[]>([])
   const [checkingGrammar, setCheckingGrammar] = useState(false)
@@ -1642,7 +1647,7 @@ export default function MainContent({
   ]);
 
   return (
-    <div className="flex-1 h-full min-h-[600px] max-h-[calc(100vh-70px)] overflow-y-auto scrollbar-hide main-content-area" onClick={() => onFocusModeChange?.(true)}>
+    <div className="flex-1 h-full min-h-[600px] max-h-[calc(100vh-70px)] overflow-y-auto scrollbar-hide main-content-area" onClick={() => onFocusModeChange?.(true)} role="main" aria-label="Letter composition main content">
       {/* CSS Animations for line patterns */}
       <style jsx>{`
         @keyframes wave-flow {
@@ -1744,7 +1749,7 @@ export default function MainContent({
         )}
 
         {/* Toolbar - Island Style - STICKY at top */}
-        <div className="toolbar-area sticky top-0 z-40 mb-6 bg-gradient-to-br from-amber-50 to-orange-50 pb-4 -mt-6 pt-6">
+        <div className="toolbar-area sticky top-0 z-40 mb-6 bg-gradient-to-br from-amber-50 to-orange-50 pb-4 -mt-6 pt-6" aria-label="Letter editing toolbar" role="toolbar" aria-orientation="horizontal">
           <div className="relative group/toolbar select-none">
             {/* Glow effects */}
             <div className="absolute inset-[-10px] bg-gradient-to-br from-amber-400/25 via-orange-400/15 to-rose-400/25 rounded-[2rem] blur-lg opacity-60 group-hover/toolbar:opacity-85 transition-all duration-500 pointer-events-none"></div>
@@ -1764,6 +1769,7 @@ export default function MainContent({
                           size="sm"
                           onClick={() => onToggleFontOverlay?.()}
                           className={`gap-1 hover:scale-105 transition-transform duration-200 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-700 hover:bg-amber-100'}`}
+                          aria-label="Choose font style"
                         >
                           <Type className="h-4 w-4" />
                           <span className="text-xs whitespace-nowrap">Fonts</span>
@@ -1781,7 +1787,7 @@ export default function MainContent({
                         <div className="flex items-center gap-1 sm:gap-2">
                           <span className="text-xs text-gray-500 select-none">Tt</span>
                           <div className="w-32 sm:w-48 md:w-64 lg:w-80 xl:w-92">
-                            <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} />
+                            <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} aria-label="Font size" />
                           </div>
                           <span className="text-lg text-gray-500 select-none">Tt</span>
                         </div>
@@ -1841,6 +1847,7 @@ export default function MainContent({
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('bold') }}
                         className={selectedFormatting.includes('bold') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Bold text"
                       >
                         <Bold className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
@@ -1856,6 +1863,7 @@ export default function MainContent({
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('italic') }}
                         className={selectedFormatting.includes('italic') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Italic text"
                       >
                         <Italic className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
@@ -1871,6 +1879,7 @@ export default function MainContent({
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('underline') }}
                         className={selectedFormatting.includes('underline') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Underline text"
                       >
                         <Underline className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
@@ -1888,7 +1897,7 @@ export default function MainContent({
                   <>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="undo">
+                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="Undo last action">
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -1898,7 +1907,7 @@ export default function MainContent({
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="redo">
+                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="Redo last action">
                           <RotateCw className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -1920,7 +1929,7 @@ export default function MainContent({
                             variant={selectedFormatting.includes('olist') ? 'default' : 'ghost'}
                             size="sm"
                             onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('olist') }}
-                            aria-label="ordered-list"
+                            aria-label="Insert numbered list"
                             className={selectedFormatting.includes('olist') ? 'bg-amber-100 text-amber-900' : ''}
                           >
                             <ListOrdered className="h-4 w-4" />
@@ -1936,7 +1945,7 @@ export default function MainContent({
                             variant={selectedFormatting.includes('ulist') ? 'default' : 'ghost'}
                             size="sm"
                             onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('ulist') }}
-                            aria-label="unordered-list"
+                            aria-label="Insert bullet list"
                             className={selectedFormatting.includes('ulist') ? 'bg-amber-100 text-amber-900' : ''}
                           >
                             <ListIcon className="h-4 w-4" />
@@ -1975,6 +1984,7 @@ export default function MainContent({
                           }
                         }}
                         className="emoji-picker-button hover:bg-amber-50 hover:scale-105 transition-all duration-200 w-8"
+                        aria-label="Insert emoji"
                       >
                         <Smile className="h-4 w-4" />
                       </Button>
@@ -1994,7 +2004,7 @@ export default function MainContent({
                         size="sm"
                         onClick={() => setConfirmOpen(true)}
                         disabled={sending}
-                        aria-label="clear-letter"
+                        aria-label="Clear letter content"
                         className="text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -2011,6 +2021,7 @@ export default function MainContent({
                         size="sm"
                         onClick={() => onToggleTemplates?.()}
                         className="gap-1 border-amber-200 hover:bg-amber-50 hover:scale-105 transition-transform duration-200 text-sm flex-shrink-0"
+                        aria-label="Browse letter templates"
                       >
                         <BookTemplate className="h-3 w-3 sm:h-4 sm:w-4" />
                         Templates
@@ -2027,6 +2038,18 @@ export default function MainContent({
         </div>
         </div>
 
+        {/* Error announcements for screen readers */}
+        <div id="error-announcements" className="sr-only" aria-live="assertive" aria-atomic="true">
+          {letterContent.length > MAIN_CONTENT_LIMIT && "Error: Letter content exceeds maximum character limit"}
+        </div>
+
+        {/* Status announcements for screen readers */}
+        <div id="status-announcements" className="sr-only" aria-live="polite" aria-atomic="true">
+          {checkingGrammar && "Checking grammar and spelling..."}
+          {grammarSuggestions.length > 0 && !checkingGrammar && `Found ${grammarSuggestions.length} grammar and spelling suggestion${grammarSuggestions.length === 1 ? '' : 's'}`}
+          {success && "Letter sent successfully"}
+        </div>
+
         {/* Floating Emoji Picker at Cursor Position */}
         {emojiPickerPosition && emojiPickerOpen && (
           <div
@@ -2035,6 +2058,9 @@ export default function MainContent({
               left: `${emojiPickerPosition.x}px`,
               top: `${emojiPickerPosition.y}px`,
             }}
+            role="dialog"
+            aria-label="Emoji picker"
+            aria-modal="true"
           >
             <div className="relative bg-white/20 backdrop-blur-md rounded-xl shadow-2xl border-2 border-amber-300 p-2 w-80 max-h-96 overflow-y-auto select-none emoji-picker-container">
               <div className="flex items-center gap-2 mb-2 px-2 bg-white/20 pb-2 border-b">
@@ -2045,7 +2071,13 @@ export default function MainContent({
                   onChange={(e) => setEmojiSearchQuery(e.target.value)}
                   className="flex-1 px-2 py-1 text-sm bg-white/50 border border-amber-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
                   onClick={(e) => e.stopPropagation()}
+                  aria-label="Search emojis"
+                  role="searchbox"
+                  aria-describedby="emoji-search-help"
                 />
+                <div id="emoji-search-help" className="sr-only">
+                  Type to search through emoji categories
+                </div>
                 <button
                   onClick={() => {
                     setEmojiPickerOpen(false)
@@ -2053,6 +2085,7 @@ export default function MainContent({
                     setEmojiSearchQuery('')
                   }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close emoji picker"
                 >
                   ✕
                 </button>
@@ -2063,7 +2096,7 @@ export default function MainContent({
                   <h4 className="text-sm font-bold text-amber-800 mb-3 px-2 uppercase tracking-wide flex items-center gap-2">
                     <span className="text-lg">🕒</span> Recently Used
                   </h4>
-                  <div className="grid grid-cols-8 gap-1">
+                  <div className="grid grid-cols-8 gap-1" role="grid" aria-label="Recently used emojis">
                     {recentlyUsedEmojis.map((emoji) => (
                       <button
                         key={emoji}
@@ -2072,6 +2105,8 @@ export default function MainContent({
                           setEmojiPickerPosition(null)
                         }}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-amber-100 hover:shadow-md transition-all duration-200 text-xl hover:scale-110 active:scale-95 border border-transparent hover:border-amber-200"
+                        aria-label={`Insert ${emoji}`}
+                        role="gridcell"
                       >
                         {emoji}
                       </button>
@@ -2081,8 +2116,10 @@ export default function MainContent({
               )}
               {Object.entries(getFilteredEmojis()).map(([category, emojis]) => (
                 <div key={category} className="mb-3 last:mb-0">
-                  <h4 className="text-sm font-bold text-gray-700 mb-3 px-2 uppercase tracking-wide">{category}</h4>
-                  <div className="grid grid-cols-8 gap-1">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 px-2 uppercase tracking-wide" id={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {category}
+                  </h4>
+                  <div className="grid grid-cols-8 gap-1" role="grid" aria-labelledby={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
                     {emojis.map((emoji) => (
                       <button
                         key={emoji}
@@ -2091,6 +2128,8 @@ export default function MainContent({
                           setEmojiPickerPosition(null)
                         }}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-amber-100 hover:shadow-md transition-all duration-200 text-xl hover:scale-110 active:scale-95 border border-transparent hover:border-amber-200"
+                        aria-label={`Insert ${emoji}`}
+                        role="gridcell"
                       >
                         {emoji}
                       </button>
@@ -2106,20 +2145,47 @@ export default function MainContent({
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Clear this letter?</DialogTitle>
+              <DialogTitle asChild>
+                <VisuallyHidden.Root>Confirm Clear Letter</VisuallyHidden.Root>
+              </DialogTitle>
             </DialogHeader>
-            <div className="text-sm text-gray-700">
-              This will remove your current letter and clear the selected template. This can’t be undone.
+            <div className="text-sm text-gray-700" role="alertdialog" aria-labelledby="clear-dialog-title" aria-describedby="clear-dialog-description">
+              <h2 id="clear-dialog-title" className="text-lg font-semibold text-gray-900 mb-3">Clear this letter?</h2>
+              <p id="clear-dialog-description" className="mb-4">
+                This will remove your current letter and clear the selected template. This can&apos;t be undone.
+              </p>
+              <div className="flex items-center space-x-2 py-2">
+                <input
+                  type="checkbox"
+                  id="clear-background"
+                  checked={clearBackground}
+                  onChange={(e) => setClearBackground(e.target.checked)}
+                  className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                  aria-describedby="clear-background-help"
+                />
+                <label htmlFor="clear-background" className="text-sm text-gray-700">
+                  Also reset background to white
+                </label>
+                <div id="clear-background-help" className="sr-only">
+                  Check this box to also reset the letter background to white when clearing
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} aria-label="Cancel clearing letter">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
-                onClick={() => { setConfirmOpen(false); onNewLetter?.() }}
+                onClick={() => { setConfirmOpen(false); onNewLetter?.(clearBackground); setClearBackground(false); }}
                 className="bg-red-600 hover:bg-red-700 text-white"
+                aria-describedby="clear-confirm-help"
               >
                 Clear Letter
               </Button>
+              <div id="clear-confirm-help" className="sr-only">
+                This action cannot be undone. Your letter content will be permanently removed.
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2128,18 +2194,18 @@ export default function MainContent({
         <Dialog open={grammarDialogOpen} onOpenChange={setGrammarDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[85vh] p-0 z-50 flex flex-col" showCloseButton={false}>
             <DialogTitle asChild>
-              <VisuallyHidden.Root>Grammar Check</VisuallyHidden.Root>
+              <VisuallyHidden.Root>Grammar Check Results</VisuallyHidden.Root>
             </DialogTitle>
 
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0" role="banner">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                   <CheckSquare className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Grammar Check</h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="text-lg font-semibold text-gray-900" id="grammar-dialog-title">Grammar Check</h2>
+                  <p className="text-sm text-gray-500" aria-live="polite">
                     {grammarSuggestions.length === 0
                       ? "No issues found - great job!"
                       : `${grammarSuggestions.length} suggestion${grammarSuggestions.length === 1 ? '' : 's'} found`
@@ -2152,16 +2218,17 @@ export default function MainContent({
                 size="sm"
                 onClick={() => setGrammarDialogOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
+                aria-label="Close grammar check dialog"
               >
                 ✕
               </Button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0" role="main" aria-labelledby="grammar-dialog-title">
               <div className="p-6">
                 {grammarSuggestions.length === 0 ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-12" role="status" aria-live="polite">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
@@ -2171,7 +2238,7 @@ export default function MainContent({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4" role="list" aria-label="Grammar and spelling suggestions">
                     {grammarSuggestions.map((match, index) => {
                       const isSpellingError = match.message.toLowerCase().includes('spelling') ||
                                              match.message.toLowerCase().includes('misspelled');
@@ -2179,7 +2246,7 @@ export default function MainContent({
                                             match.message.toLowerCase().includes('syntax');
 
                       return (
-                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow" role="listitem">
                           <div className="flex items-start gap-3">
                             {/* Error Type Icon */}
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -2188,7 +2255,7 @@ export default function MainContent({
                                 : isGrammarError
                                 ? 'bg-orange-100 text-orange-600'
                                 : 'bg-blue-100 text-blue-600'
-                            }`}>
+                            }`} aria-hidden="true">
                               {isSpellingError ? '🔤' : isGrammarError ? '📝' : '💡'}
                             </div>
 
@@ -2196,14 +2263,14 @@ export default function MainContent({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <h4 className="font-medium text-gray-900 text-sm leading-5">
+                                  <h4 className="font-medium text-gray-900 text-sm leading-5" id={`suggestion-${index}-title`}>
                                     {match.message}
                                   </h4>
 
                                   {/* Context with highlighting */}
                                   {match.context?.text && (
-                                    <div className="mt-2 p-3 bg-gray-50 rounded-md border-l-2 border-gray-300">
-                                      <p className="text-sm text-gray-700 font-mono">
+                                    <div className="mt-2 p-3 bg-gray-50 rounded-md border-l-2 border-gray-300" aria-labelledby={`suggestion-${index}-title`}>
+                                      <p className="text-sm text-gray-700 font-mono" aria-label="Error context">
                                         {(() => {
                                           const contextText = match.context.text;
                                           // Calculate where the error starts within the context
@@ -2218,7 +2285,7 @@ export default function MainContent({
                                           return (
                                             <>
                                               {beforeError}
-                                              <span className="bg-red-200 text-red-900 px-1 rounded font-semibold">
+                                              <span className="bg-red-200 text-red-900 px-1 rounded font-semibold" aria-label={`Error: ${errorText}`}>
                                                 {errorText}
                                               </span>
                                               {afterError}
@@ -2232,10 +2299,10 @@ export default function MainContent({
                                   {/* Suggestions */}
                                   {match.replacements && match.replacements.length > 0 && (
                                     <div className="mt-3 space-y-2">
-                                      <p className="text-xs font-medium text-gray-700 uppercase tracking-wide">
+                                      <p className="text-xs font-medium text-gray-700 uppercase tracking-wide" id={`suggestions-${index}-label`}>
                                         Suggestions
                                       </p>
-                                      <div className="flex flex-wrap gap-2">
+                                      <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`suggestions-${index}-label`}>
                                         {match.replacements.slice(0, 3).map((replacement: { value: string }, repIndex: number) => (
                                           <Button
                                             key={repIndex}
@@ -2243,6 +2310,7 @@ export default function MainContent({
                                             size="sm"
                                             onClick={() => applyGrammarSuggestion(match, repIndex)}
                                             className="text-sm px-3 py-1 h-auto bg-white hover:bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-300"
+                                            aria-label={`Apply suggestion: ${replacement.value}`}
                                           >
                                             {replacement.value}
                                           </Button>
@@ -2259,6 +2327,7 @@ export default function MainContent({
                                     size="sm"
                                     onClick={() => applyGrammarSuggestion(match, 0)}
                                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0"
+                                    aria-label="Apply first suggestion"
                                   >
                                     <CheckCircle2 className="w-4 h-4 mr-1" />
                                     Fix
@@ -2277,18 +2346,22 @@ export default function MainContent({
 
             {/* Footer */}
             {grammarSuggestions.length > 0 && (
-              <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50 flex-shrink-0">
-                <div className="text-sm text-gray-600">
+              <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50 flex-shrink-0" role="contentinfo">
+                <div className="text-sm text-gray-600" aria-live="polite">
                   {grammarSuggestions.length} issue{grammarSuggestions.length === 1 ? '' : 's'} found
                 </div>
                 <div className="flex gap-3">
                   <Button
                     onClick={applyAllGrammarSuggestions}
                     className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    aria-describedby="apply-all-help"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Apply All Fixes
                   </Button>
+                  <div id="apply-all-help" className="sr-only">
+                    Apply all grammar and spelling suggestions at once
+                  </div>
                 </div>
               </div>
             )}
@@ -2454,6 +2527,10 @@ export default function MainContent({
                 }}
                 onPaste={(e) => handlePaste(e, HEADING_LIMIT)}
                 className={`w-full md:w-auto bg-transparent ${fontClass}`}
+                aria-label="Letter heading"
+                aria-required="true"
+                aria-invalid={letterHeading.trim().length === 0 ? "true" : "false"}
+                aria-describedby="heading-character-count"
                 style={{ 
                   fontSize: `${headerFooterSize}px`, 
                   color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -2473,6 +2550,10 @@ export default function MainContent({
                   ...(fontInlineStyle || {}) 
                 }}
               />
+              {/* Heading character count for screen readers */}
+              <div id="heading-character-count" className="sr-only" aria-live="polite">
+                Heading: {letterHeading.length}/{HEADING_LIMIT} characters
+              </div>
             </div>
 
             <Card className="pt-5 pb-2 px-4 sm:px-5 bg-transparent shadow-none relative main-content-area" onClick={() => onFocusModeChange?.(true)} style={{ 
@@ -2486,6 +2567,7 @@ export default function MainContent({
               
               <div className="relative flex flex-col bg-transparent z-10" style={{ width: '100%' }}>
                 <div
+                  id="letter-editor"
                   ref={editorRef}
                   contentEditable={!success}
                   suppressContentEditableWarning
@@ -2496,6 +2578,12 @@ export default function MainContent({
                   spellCheck="true"
                   className={`flex-1 border-none leading-relaxed ${fontClass} resize-none pb-2 min-h-[200px] bg-transparent`}
                   tabIndex={0}
+                  role="textbox"
+                  aria-label="Letter content"
+                  aria-multiline="true"
+                  aria-describedby="letter-stats character-limit-status"
+                  aria-required="true"
+                  aria-invalid={letterContent.trim().length === 0 ? "true" : "false"}
                   style={{
                     fontSize: `${fontSize[0]}px`,
                     color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -2519,6 +2607,17 @@ export default function MainContent({
                   }}
                 />
 
+                {/* Character limit status for screen readers */}
+                <div id="character-limit-status" className="sr-only" aria-live="polite" aria-atomic="true">
+                  {letterContent.length}/{MAIN_CONTENT_LIMIT} characters used
+                  {letterContent.length >= MAIN_CONTENT_LIMIT * 0.9 && (
+                    <span>. Warning: Approaching character limit</span>
+                  )}
+                  {letterContent.length >= MAIN_CONTENT_LIMIT && (
+                    <span>. Character limit exceeded</span>
+                  )}
+                </div>
+
                 <div className="text-right pt-1 pb-1 z-20 bg-transparent">
                   {/* Footer prefix full width on small, right-aligned */}
                   <textarea
@@ -2532,6 +2631,10 @@ export default function MainContent({
                     }}
                     onPaste={(e) => handlePaste(e, FOOTER_LIMIT)}
                     className={`w-full md:w-48 text-right bg-transparent ${fontClass}`}
+                    aria-label="Letter footer signature"
+                    aria-required="true"
+                    aria-invalid={letterFooterPrefix.trim().length === 0 ? "true" : "false"}
+                    aria-describedby="footer-character-count"
                     style={{ 
                       fontSize: `${fontSize[0]}px`, 
                       color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -2553,6 +2656,10 @@ export default function MainContent({
                       ...(fontInlineStyle || {}) 
                     }}
                   />
+                  {/* Footer character count for screen readers */}
+                  <div id="footer-character-count" className="sr-only" aria-live="polite">
+                    Footer: {letterFooterPrefix.length}/{FOOTER_LIMIT} characters
+                  </div>
                   <div className={`${fontClass} bg-transparent`} style={{ 
                     fontSize: `${fontSize[0]}px`, 
                     color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,

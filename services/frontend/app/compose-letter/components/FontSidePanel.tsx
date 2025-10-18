@@ -182,6 +182,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
           onChange={e => setQuery(e.target.value)}
           placeholder="Search fonts..."
           className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400 focus:placeholder:text-gray-300 transition-colors duration-200"
+          aria-label="Search available fonts"
         />
         {query && (
           <button
@@ -292,6 +293,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
                   borderColor: `rgba(${r}, ${g}, ${b}, 0.2)`,
                   boxShadow: `0 4px 15px ${bgColor}30, inset 0 1px 0 ${bgColor}60`
                 }}
+                aria-label={`Select ${fp.label} font. ${fp.description}. ${fav ? 'Currently favorited' : `Category: ${fp.category}`}. ${active ? 'Currently selected' : 'Click to apply'}`}
               >
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className={`${fp.className} font-medium leading-snug`} style={{ color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined }}>{fp.label}</span>
@@ -301,7 +303,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(fp.id) }}
                   className="p-1 rounded hover:bg-gray-200 text-gray-700"
-                  aria-label={fav ? 'remove-favorite' : 'add-favorite'}
+                  aria-label={fav ? `Remove ${fp.label} from favorites` : `Add ${fp.label} to favorites`}
                 >
                   {fav ? <Star className="h-4 w-4 fill-black" /> : <StarOff className="h-4 w-4" />}
                 </button>
