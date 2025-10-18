@@ -108,7 +108,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 
 - **Unit Tests**: React components, helper functions, utilities
 - **Integration Tests**: Multi-component flows using Mock Service Worker (MSW)
-- **Coverage**: 50%+ enforced by CI pipeline
+- **Coverage**: 75%+(unit) and 50%+(integration) enforced by CI pipeline
 - **Snapshot Testing**: UI component regression detection
 - **User Interaction**: Testing Library for realistic user behavior
 
@@ -116,7 +116,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 
 - **Unit Tests**: Individual functions, business logic
 - **Integration Tests**: API endpoints, database interactions
-- **Coverage**: 50%+ enforced by CI pipeline
+- **Coverage**: (75,60)%+(unit) 50%+(integration) enforced by CI pipeline for each api service
 - **Fixtures**: Reusable test data and mocked dependencies
 - **Async Testing**: Testing async endpoints and operations
 
@@ -149,7 +149,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 **Evidence:**
 
 - [docs/testing/strategy.md](../testing/strategy.md) comprehensive testing documentation
-- Test snapshots showing 50%+ coverage (Figure: Frontend Unit Tests, Backend Unit Tests)
+- Test snapshots showing unit and integration test coverage (Figure: Frontend Unit Tests, Backend Unit Tests)
 - MSW integration for realistic API testing
 - CI/CD configuration enforcing coverage thresholds
 - [docs/testing/running-tests.md](../testing/running-tests.md) instructions for running tests locally
@@ -168,7 +168,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 
 **1. Project Work Tracker: GitHub Projects**
 
-- **Kanban Board**: Columns from Backlog ’ Ready ’ In Progress ’ In Review ’ QA ’ Done
+- **Kanban Board**: Columns from Backlog ï¿½ Ready ï¿½ In Progress ï¿½ In Review ï¿½ QA ï¿½ Done
 - **Sprint Planning**: Two-week sprints with issue tracking
 - **Automated Workflows**: PRs move cards automatically
 - **Issue Linking**: Commits reference issues with `Closes #<id>`
