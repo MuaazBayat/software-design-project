@@ -88,6 +88,33 @@ These are the integration tests we **implemented** (not a future plan). On the f
 
 
 ---
+## What we do not test
+#### Auth / Session Management
+Clerk uses HttpOnly cookies + middleware redirects that don't work in jsdom. Auto-logout vs. recovery logic lives in Next middleware, making assertions fragile and prone to false positives.
+
+#### Network Failures & Retry Logic
+True network loss, DNS failures, and transport errors can't be emulated by MSW alone—requires multi-layer fault injection. React 18 + fake timers for backoff/jitter testing is flaky in CI and hides real race conditions.
+
+#### Authorization & RBAC Edge Cases
+Moderator permissions depend on cross-service fixtures and dynamic policy rules that change outside test runtime. Risk asserting policy instead of code behavior.
+
+#### Keyboard Accessibility & Focus Management
+Radix focus traps, roving tabindex, and aria-modal don't behave correctly in jsdom. Requires Playwright + axe-core for real DOM verification.
+
+#### Internationalization & RTL Layout
+RTL rendering, text-shaping, and directional CSS bugs only surface in real browsers with actual font rendering. jsdom can't replicate layout engines.
+
+#### Image/Media Failures & Fallbacks
+`next/image` decoding, canvas operations, and avatar fallbacks depend on browser codecs and layout metrics. jsdom shims diverge significantly from real behavior.
+
+#### Offline & Service Worker Caching
+Service workers and stale-while-revalidate strategies are disabled in Jest. Meaningful offline tests need browser-level network emulation.
+
+#### Concurrency & Race Conditions
+Double-click guards and rapid navigation depend on React batching + network timing that isn't deterministic in CI without backend idempotency checks.
+
+#### Pure Utility Functions
+Current helpers are coupled to DOM/module state and heavily mocked in integration tests. Unit tests only valuable after extraction to stable, pure APIs.
 
 ## User Testing & Feedback
 
