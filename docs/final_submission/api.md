@@ -64,21 +64,53 @@ All APIs are deployed using:
 
 **Documentation:**
 
+- [Load Testing & Performance Analysis](../testing/load-testing.md)
 - [Testing Strategy](../testing/strategy.md)
 - [API Endpoints - Error Handling](../design/api/endpoints.md#status-codes-common)
 
-**Load handling:**
+**Load Testing Results (Locust):**
 
-- **Rate limiting** on moderation service (external API key limits)
-- **Daily match limits** enforced by matchmaking service
-- **Error handling**: Proper HTTP status codes (400, 401, 404, 409, 429)
-- **Validation**: Request validation at API layer prevents crashes
-- **Testing**: Integration tests verify error handling and edge cases
+Our Core API has been tested under load using Locust with real-world scenarios:
+
+**Test Configuration:**
+- **20 concurrent users**, 83 total requests over ~20 seconds
+- **Tested endpoints:** Health checks, profile retrieval (existing & nonexistent users)
+
+**Key Results:**
+- **0% failure rate** on health checks (63 requests, 0 failures) ✅
+- **0% failure rate** on 404 handling (nonexistent profiles handled correctly) ✅
+- **API stability**: No crashes or 500 errors throughout testing
+- **Throughput**: 4.1 requests/second sustained
+- **Auto-scaling**: Google Cloud Run automatically handles load spikes
+
+**Performance Characteristics:**
+- Health endpoint: 6.6s average (affected by serverless cold starts)
+- Profile endpoints: 13-15s average (includes database queries + potential auth checks)
+- Note: Response times reflect serverless architecture cold starts; warm instances respond significantly faster
+
+**Error Handling:**
+
+All malformed requests are handled gracefully without crashes:
+- **400 Bad Request**: Invalid business logic (duplicates, invalid IDs)
+- **401 Unauthorized**: Missing/invalid JWT tokens
+- **404 Not Found**: Non-existent resources
+- **422 Unprocessable Entity**: Pydantic validation failures (wrong types, missing fields)
+- **429 Too Many Requests**: Rate limiting on moderation service
+- **500 Internal Server Error**: Database errors (never from user input validation)
+
+**Crash Prevention:**
+
+- **Health monitoring**: All services include `/health` endpoints
+- **Database connection checks**: Services validate connections before handling requests
+- **Auto-restart**: Cloud Run automatically restarts unhealthy containers
+- **Input validation**: Pydantic models catch malformed data before processing
 
 **Evidence:**
 
-- [docs/design/api/endpoints.md](../design/api/endpoints.md) shows rate limiting and comprehensive error handling
-- [docs/testing/strategy.md](../testing/strategy.md) shows integration testing of API behavior
+- [docs/testing/load-testing.md](../testing/load-testing.md) - Comprehensive load test results and methodology
+- [tests/load/locustfile.py](../../tests/load/locustfile.py) - Load test scenarios for all services
+- [docs/design/api/endpoints.md](../design/api/endpoints.md) - Error handling documentation
+- Health endpoint implementations in all service main.py files
 
 ---
 

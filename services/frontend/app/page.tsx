@@ -4,31 +4,46 @@ export default function Home() {
     <>
     <main>
     <section className="min-h-screen w-full bg-black text-white relative overflow-hidden" role="banner" aria-label="Hero section">
-      {/* Background Hero Image */}
-      <div className="absolute inset-0 z-0" aria-hidden="true">
+      {/* Background Hero Image - Desktop */}
+      <div className="absolute inset-0 z-0 hidden md:block" aria-hidden="true">
         <Image
           src='/hero.png'
           alt=""
           fill
-          className="object-cover"
+          className="object-cover object-center"
           priority
+          sizes="100vw"
         />
-        {/* Blur overlay for better text readability */}
+        {/* Overlay for desktop */}
         <div className="absolute inset-0 bg-black/30 backdrop-blur-xs"></div>
       </div>
 
+      {/* Background Hero Image - Mobile */}
+      <div className="absolute inset-0 z-0 block md:hidden" aria-hidden="true">
+        <Image
+          src='/hero_mobile.png'
+          alt=""
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+        {/* Gradient overlay for mobile */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
+      </div>
+
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-12">
         {/* Hero Section */}
-        <header className="text-center max-w-4xl mx-auto mb-16">
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+        <header className="text-center max-w-4xl mx-auto mb-12 md:mb-16">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight">
             Connecting Cultures,{" "}
             <span className="bg-gradient-to-r from-violet-200 to-pink-200 bg-clip-text text-transparent">One</span>
             <br />
             <span className="bg-gradient-to-r from-teal-400 to-yellow-200 bg-clip-text text-transparent">Letter at a Time</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 md:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
             Discover the joy of cultural exchange with GlobeTalk - your global pen pal community where meaningful friendships begin.
           </p>
 
@@ -47,20 +62,20 @@ export default function Home() {
         </header>
 
         {/* Statistics Section */}
-        <section className="flex flex-wrap justify-center items-center gap-12 md:gap-16" aria-label="Platform statistics">
+        <section className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16" aria-label="Platform statistics">
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="50 plus countries">50+</div>
-            <div className="text-gray-300 text-xl">Countries</div>
+            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1 md:mb-2" aria-label="50 plus countries">50+</div>
+            <div className="text-gray-300 text-sm md:text-base lg:text-xl">Countries</div>
           </div>
 
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="1000 plus active users">1000+</div>
-            <div className="text-gray-300 text-xl">Active Users</div>
+            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1 md:mb-2" aria-label="1000 plus active users">1000+</div>
+            <div className="text-gray-300 text-sm md:text-base lg:text-xl">Active Users</div>
           </div>
 
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2" aria-label="5000 plus letters sent">5000+</div>
-            <div className="text-gray-300 text-xl">Letters Sent</div>
+            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1 md:mb-2" aria-label="5000 plus letters sent">5000+</div>
+            <div className="text-gray-300 text-sm md:text-base lg:text-xl">Letters Sent</div>
           </div>
         </section>
       </div>
