@@ -397,7 +397,7 @@ async def send_message(request: Request, token: str = Depends(verify_token)):
     is_multipart = "multipart/form-data" in ctype
 
     sender_id = recipient_id = message_content = None
-    delay_hours = 12  # default
+    delay_hours = os.getenv("DELAY_HOURS", 12)  # default
     object_path: Optional[str] = None
 
     try:
