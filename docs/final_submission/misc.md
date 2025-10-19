@@ -191,15 +191,14 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 - **Jest**: Test coverage tracking and reporting
 
 **Backend:**
-- **Ruff**: Python linting and formatting
 - **MyPy**: Static type checking for Python (optional)
 - **Pytest**: Test coverage with `--cov-fail-under=50`
-- **Black**: Code formatting (via Ruff)
+- **Black**: Code formatting 
 
 **4. CI/CD Enforcement:**
 
 - **GitHub Actions**: Automated workflows on every PR
-- **Linting Jobs**: ESLint (frontend), Ruff (backend) must pass
+- **Linting Jobs**: ESLint (frontend)
 - **Test Jobs**: Jest and Pytest with coverage gates
 - **Build Jobs**: Verify builds complete successfully
 - **Branch Protection**: Cannot merge without all checks passing
