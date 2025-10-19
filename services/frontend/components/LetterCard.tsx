@@ -2,9 +2,10 @@ import { MessageRow } from '@/lib/MessagingApiClient';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Mail, 
-  Clock, 
+import Image from 'next/image';
+import {
+  Mail,
+  Clock,
   Heart,
   Flag
 } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [selectedViolation, setSelectedViolation] = useState('inappropriate_content');
   const [reportLoading, setReportLoading] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   const formatDeliveryTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -105,6 +107,22 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
   const isMine = isMyMessage(message);
   const fontClass = getFontClass(message.letter_styles?.font_family);
   const fontSize = message.letter_styles?.font_size || 16;
+
+  // Try to get image URL with fallback chain: signed URL -> regular URL -> null
+  const getImageUrl = () => {
+    const signedUrl = (message as any).letter_url_signed;
+    const regularUrl = (message as any).letter_url;
+
+    if (signedUrl && typeof signedUrl === 'string' && signedUrl.trim()) {
+      return signedUrl;
+    }
+    if (regularUrl && typeof regularUrl === 'string' && regularUrl.trim()) {
+      return regularUrl;
+    }
+    return null;
+  };
+
+  const imageUrl = getImageUrl();
 
   return (
     <>
@@ -211,38 +229,59 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
                   
                   {/* Letter Content */}
                   <div className="relative z-10">
-                    <div className={`
-                      ${fontClass}
-                      text-gray-800 leading-relaxed
-                      ${message.letter_styles?.font_family === 'handwritten' ? 'tracking-wide' : ''}
-                      ${message.letter_styles?.font_family === 'typewriter' ? 'tracking-wider' : ''}
-                    `}
-                    style={{
-                      fontSize: `${Math.min(fontSize, 14)}px`,
-                      lineHeight: '1.5'
-                    }}>
-                      {/* Letter salutation for non-first messages */}
-                      {message.message_sequence && message.message_sequence > 1 && (
-                        <div className="mb-3 text-gray-600 text-sm">
-                          <em>Dear friend,</em>
-                        </div>
-                      )}
-                      
-                      {/* Main content with proper letter indentation */}
-                      <div className="pl-6 text-sm">
-                        {message.message_content}
-                      </div>
-                      
-                      {/* Letter closing */}
-                      <div className="mt-4 text-right pr-4">
-                        <div className="text-gray-600 italic text-xs">
-                          {isMine ? 'Yours truly,' : 'With warm regards,'}
-                        </div>
-                        <div className={`mt-1 ${fontClass} ${isMine ? 'text-blue-800' : 'text-rose-800'} font-semibold text-sm`}>
-                          {isMine ? 'You' : 'Your Pen Pal'}
+                    {imageUrl && !imageLoadError ? (
+                      /* Display Image Letter */
+                      <div className="flex items-center justify-center h-full">
+                        <div className="relative w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg">
+                          <Image
+                            src={imageUrl}
+                            alt="Folded letter with handwritten message"
+                            width={800}
+                            height={600}
+                            className="w-full h-auto object-contain"
+                            unoptimized
+                            onError={() => {
+                              console.error('Failed to load image:', imageUrl);
+                              setImageLoadError(true);
+                            }}
+                          />
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Display Text Letter */
+                      <div className={`
+                        ${fontClass}
+                        text-gray-800 leading-relaxed
+                        ${message.letter_styles?.font_family === 'handwritten' ? 'tracking-wide' : ''}
+                        ${message.letter_styles?.font_family === 'typewriter' ? 'tracking-wider' : ''}
+                      `}
+                      style={{
+                        fontSize: `${Math.min(fontSize, 14)}px`,
+                        lineHeight: '1.5'
+                      }}>
+                        {/* Letter salutation for non-first messages */}
+                        {message.message_sequence && message.message_sequence > 1 && (
+                          <div className="mb-3 text-gray-600 text-sm">
+                            <em>Dear friend,</em>
+                          </div>
+                        )}
+
+                        {/* Main content with proper letter indentation */}
+                        <div className="pl-6 text-sm">
+                          {message.message_content}
+                        </div>
+
+                        {/* Letter closing */}
+                        <div className="mt-4 text-right pr-4">
+                          <div className="text-gray-600 italic text-xs">
+                            {isMine ? 'Yours truly,' : 'With warm regards,'}
+                          </div>
+                          <div className={`mt-1 ${fontClass} ${isMine ? 'text-blue-800' : 'text-rose-800'} font-semibold text-sm`}>
+                            {isMine ? 'You' : 'Your Pen Pal'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

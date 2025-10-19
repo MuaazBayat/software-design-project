@@ -37,8 +37,11 @@ app = FastAPI(title="Messages API (fast, SA time)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=[
+        "https://globetalk-frontend-388957617777.us-central1.run.app",
+        "http://localhost:3000",  # For local development
+    ],
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -189,12 +192,14 @@ def _batch_signed_urls(object_paths: List[str], ttl_seconds: int = 86400) -> Dic
 
     if paths_to_sign:
         res = supabase.storage.from_("letters").create_signed_urls(paths_to_sign, ttl_seconds)
+        print(f"DEBUG _batch_signed_urls: paths_to_sign={paths_to_sign}, response={res}")
         if isinstance(res, list):
             with _CACHE_LOCK:
                 for r in res:
                     if r.get("path") and r.get("signedURL"):
                         result[r["path"]] = r["signedURL"]
                         _SIGNED_URL_CACHE[r["path"]] = (r["signedURL"], now + ttl_seconds)
+                        print(f"DEBUG: Cached signed URL for {r['path']}: {r['signedURL']}")
     return result
 
 
@@ -397,7 +402,8 @@ async def send_message(request: Request, token: str = Depends(verify_token)):
     is_multipart = "multipart/form-data" in ctype
 
     sender_id = recipient_id = message_content = None
-    delay_hours = 12  # default
+    delay_hours = os.getenv("DELAY_HOURS", 12)  # default
+    delay_minutes = os.getenv("DELAY_MINUTES", 0)  # default
     object_path: Optional[str] = None
 
     try:
@@ -440,6 +446,7 @@ async def send_message(request: Request, token: str = Depends(verify_token)):
         "p_message_content": message_content,
         "p_letter_url": object_path,
         "p_delay_hours": delay_hours,
+        "p_delay_minutes": delay_minutes,
     }
 
     res = _safe_execute(supabase.rpc("send_message_oneshot", payload))
@@ -490,7 +497,9 @@ def page_messages_sa(
     for r in rows:
         lu = r.get("letter_url")
         if lu and lu in signed_map:
-            r["letter_url_signed"] = signed_map[lu]
+            signed_url = signed_map[lu]
+            print(f"DEBUG: letter_url={lu}, signed_url={signed_url}")
+            r["letter_url_signed"] = signed_url
 
     next_cursor = rows[-1]["message_id"] if rows else None
     return {

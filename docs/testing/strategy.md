@@ -88,6 +88,11 @@ These are the integration tests we **implemented** (not a future plan). On the f
 
 
 ---
+## What we do not test
+- External API implementations (Clerk, Supabase internals) - rely on vendor testing
+- Third-party library internals - focus on our integration code
+- Generated code from frameworks
+- Simple pass-through functions with no logic
 
 ## User Testing & Feedback
 
@@ -138,7 +143,7 @@ Prioritize a cleaner, more cohesive landing page: modernize colors, refine the h
     ![Pie Chart2](images/pieChart2.jpg)
 ---
 
-### Test snapshots as of 17 October 2025
+### Test snapshots a 19 October 2025
 * **Frontend tests**
     ![Unit tests](images/FrontendUnitTests.png)
     ![Integration tests](images/FrontendIntTests.png)
