@@ -43,7 +43,7 @@ jobs:
         with:
           service: 'globetalk-messaging'
           image: ${{ env.MESSAGING_IMAGE }}
-          flags: '--allow-unauthenticated --port=8000 --update-env-vars=[SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},CORE_URL=${{ secrets.CORE_URL }},MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }},MESSAGING_URL=${{ secrets.MESSAGING_URL }},MODERATION_URL=${{ secrets.MODERATION_URL }},ENABLE_AUTH=true]'
+          flags: '--allow-unauthenticated --port=8000 --update-env-vars=[SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},CORE_URL=${{ secrets.CORE_URL }},MATCHMAKING_URL=${{ secrets.MATCHMAKING_URL }},MESSAGING_URL=${{ secrets.MESSAGING_URL }},MODERATION_URL=${{ secrets.MODERATION_URL }},DELAY_MINUTES=1,DELAY_HOURS=0,ENABLE_AUTH=true]'
           container_port: 8000
 
       - name: Show Output
