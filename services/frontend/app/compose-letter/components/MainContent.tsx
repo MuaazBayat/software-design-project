@@ -875,10 +875,8 @@ export default function MainContent({
     setCheckingGrammar(true)
     try {
       const text = editor.textContent || ''
-      console.log('Extracted text for grammar check:', text)
 
       if (!text.trim()) {
-        console.log('No text found, showing empty result')
         setGrammarSuggestions([])
         setGrammarDialogOpen(true)
         return
@@ -886,7 +884,6 @@ export default function MainContent({
 
       // Use LanguageTool API directly
       try {
-        console.log('Making LanguageTool API call with text:', text)
         const response = await fetch('https://api.languagetool.org/v2/check', {
           method: 'POST',
           headers: {
@@ -898,16 +895,11 @@ export default function MainContent({
           }).toString()
         })
 
-        console.log('API response status:', response.status)
-        console.log('API response headers:', response.headers)
-
         if (!response.ok) {
           throw new Error(`LanguageTool API failed: ${response.status}`)
         }
 
         const result: LanguageToolResult = await response.json()
-        console.log('LanguageTool response:', result)
-        console.log('Number of matches found:', result.matches.length)
 
         const suggestions = result.matches
           .filter(match => match.replacements && match.replacements.length > 0)

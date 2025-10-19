@@ -97,7 +97,6 @@ export default function ConversationPage({}: ConversationPageProps) {
           (a.message_sequence || 0) - (b.message_sequence || 0)
         );
         setMessages(sortedMessages);
-        console.log("Loaded messages:", sortedMessages);
       }
 
       setHasMore(response.has_more);
@@ -163,12 +162,7 @@ export default function ConversationPage({}: ConversationPageProps) {
   setModerationError(null);
   
   try {
-    console.log('Reporting message:', {
-      reporterId: CURRENT_USER_ID,
-      reportedUserId: reportedUserId,
-      reportedMessageId: messageId,
-      violationType: violationType
-    });
+
     
     await moderationApi.reportMessage(
       CURRENT_USER_ID,
