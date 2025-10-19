@@ -19,12 +19,13 @@ Getting the whole project up and running in development requires some environmen
 Note : The env vars are configured to use production microservices so as to not run the whole stack locally. But it can be done. Read below to see how.
 
 ## Backend API's
-0. Save the `.env` for Python Backend API's in `<root_folder>`
+0. Save the `.env` for Python Backend API's in `<root_folder>` or wherever else you want
 For each service:
 1. Setup a python environment with `python3 -m venv ve`
 2. Activate the virtualenv with `source ./ve/bin/activate`
 3. Install deps with `pip install -r requirements.txt`
-4. Run server with `uvicorn main:app --host 0.0.0.0 --port <port> --reload`
+4. Source the env vars `source ./../../.env` (use the path to wherever you saved it, use this if you sued root folder)
+5. Run server with `uvicorn main:app --host 0.0.0.0 --port <port> --reload`
 Note: Remember to use a different port for each service, and to set the frontend env vars to use these `localhost:<port>` urls.
 
 Goodluck and happy coding!

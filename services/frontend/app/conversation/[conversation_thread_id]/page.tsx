@@ -74,33 +74,38 @@ export default function ConversationPage({}: ConversationPageProps) {
   }, [currentConversationUser]);
 
   const loadMessages = useCallback(async (lastMessageId?: string) => {
+    if (!CURRENT_USER_ID) {
+      console.warn('Cannot load messages: user ID not available yet');
+      return;
+    }
+
     try {
       setLoading(true);
       const response: PageLettersResponse = await apiClient.pageLetters({
         conversation_thread_id: conversationThreadId,
         page_size: 50,
         last_message_id: lastMessageId,
-        viewer_user_id: CURRENT_USER_ID || "",
+        viewer_user_id: CURRENT_USER_ID,
       });
 
       console.log("API response:", response);
-      
+
       if (lastMessageId) {
         setMessages(prev => [...prev, ...response.items]);
       } else {
-        const sortedMessages = response.items.sort((a, b) => 
+        const sortedMessages = response.items.sort((a, b) =>
           (a.message_sequence || 0) - (b.message_sequence || 0)
         );
         setMessages(sortedMessages);
       }
-      
+
       setHasMore(response.has_more);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setLoading(false);
     }
-  }, [apiClient, conversationThreadId]);
+  }, [apiClient, conversationThreadId, CURRENT_USER_ID]);
 
   // Moderation functions using your existing client
   const handleReportUser = async () => {
