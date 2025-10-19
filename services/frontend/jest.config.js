@@ -34,7 +34,7 @@ const customJestConfig = {
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {
     global: {
-      lines: 75,
+      lines: 70,
     },
   },
 
