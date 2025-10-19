@@ -2,9 +2,10 @@ import { MessageRow } from '@/lib/MessagingApiClient';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Mail, 
-  Clock, 
+import Image from 'next/image';
+import {
+  Mail,
+  Clock,
   Heart,
   Flag
 } from 'lucide-react';
@@ -211,38 +212,55 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
                   
                   {/* Letter Content */}
                   <div className="relative z-10">
-                    <div className={`
-                      ${fontClass}
-                      text-gray-800 leading-relaxed
-                      ${message.letter_styles?.font_family === 'handwritten' ? 'tracking-wide' : ''}
-                      ${message.letter_styles?.font_family === 'typewriter' ? 'tracking-wider' : ''}
-                    `}
-                    style={{
-                      fontSize: `${Math.min(fontSize, 14)}px`,
-                      lineHeight: '1.5'
-                    }}>
-                      {/* Letter salutation for non-first messages */}
-                      {message.message_sequence && message.message_sequence > 1 && (
-                        <div className="mb-3 text-gray-600 text-sm">
-                          <em>Dear friend,</em>
-                        </div>
-                      )}
-                      
-                      {/* Main content with proper letter indentation */}
-                      <div className="pl-6 text-sm">
-                        {message.message_content}
-                      </div>
-                      
-                      {/* Letter closing */}
-                      <div className="mt-4 text-right pr-4">
-                        <div className="text-gray-600 italic text-xs">
-                          {isMine ? 'Yours truly,' : 'With warm regards,'}
-                        </div>
-                        <div className={`mt-1 ${fontClass} ${isMine ? 'text-blue-800' : 'text-rose-800'} font-semibold text-sm`}>
-                          {isMine ? 'You' : 'Your Pen Pal'}
+                    {(message as any).letter_url_signed ? (
+                      /* Display Image Letter */
+                      <div className="flex items-center justify-center h-full">
+                        <div className="relative w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg">
+                          <Image
+                            src={(message as any).letter_url_signed}
+                            alt="Folded letter with handwritten message"
+                            width={800}
+                            height={600}
+                            className="w-full h-auto object-contain"
+                            unoptimized
+                          />
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Display Text Letter */
+                      <div className={`
+                        ${fontClass}
+                        text-gray-800 leading-relaxed
+                        ${message.letter_styles?.font_family === 'handwritten' ? 'tracking-wide' : ''}
+                        ${message.letter_styles?.font_family === 'typewriter' ? 'tracking-wider' : ''}
+                      `}
+                      style={{
+                        fontSize: `${Math.min(fontSize, 14)}px`,
+                        lineHeight: '1.5'
+                      }}>
+                        {/* Letter salutation for non-first messages */}
+                        {message.message_sequence && message.message_sequence > 1 && (
+                          <div className="mb-3 text-gray-600 text-sm">
+                            <em>Dear friend,</em>
+                          </div>
+                        )}
+
+                        {/* Main content with proper letter indentation */}
+                        <div className="pl-6 text-sm">
+                          {message.message_content}
+                        </div>
+
+                        {/* Letter closing */}
+                        <div className="mt-4 text-right pr-4">
+                          <div className="text-gray-600 italic text-xs">
+                            {isMine ? 'Yours truly,' : 'With warm regards,'}
+                          </div>
+                          <div className={`mt-1 ${fontClass} ${isMine ? 'text-blue-800' : 'text-rose-800'} font-semibold text-sm`}>
+                            {isMine ? 'You' : 'Your Pen Pal'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
