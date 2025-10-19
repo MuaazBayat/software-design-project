@@ -37,6 +37,7 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [selectedViolation, setSelectedViolation] = useState('inappropriate_content');
   const [reportLoading, setReportLoading] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   const formatDeliveryTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -106,6 +107,22 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
   const isMine = isMyMessage(message);
   const fontClass = getFontClass(message.letter_styles?.font_family);
   const fontSize = message.letter_styles?.font_size || 16;
+
+  // Try to get image URL with fallback chain: signed URL -> regular URL -> null
+  const getImageUrl = () => {
+    const signedUrl = (message as any).letter_url_signed;
+    const regularUrl = (message as any).letter_url;
+
+    if (signedUrl && typeof signedUrl === 'string' && signedUrl.trim()) {
+      return signedUrl;
+    }
+    if (regularUrl && typeof regularUrl === 'string' && regularUrl.trim()) {
+      return regularUrl;
+    }
+    return null;
+  };
+
+  const imageUrl = getImageUrl();
 
   return (
     <>
@@ -212,17 +229,21 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
                   
                   {/* Letter Content */}
                   <div className="relative z-10">
-                    {(message as any).letter_url_signed ? (
+                    {imageUrl && !imageLoadError ? (
                       /* Display Image Letter */
                       <div className="flex items-center justify-center h-full">
                         <div className="relative w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg">
                           <Image
-                            src={(message as any).letter_url_signed}
+                            src={imageUrl}
                             alt="Folded letter with handwritten message"
                             width={800}
                             height={600}
                             className="w-full h-auto object-contain"
                             unoptimized
+                            onError={() => {
+                              console.error('Failed to load image:', imageUrl);
+                              setImageLoadError(true);
+                            }}
                           />
                         </div>
                       </div>
