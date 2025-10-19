@@ -60,7 +60,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage-unit.xml \
             --cov-report=html:htmlcov-unit \
-            --cov-fail-under=60
+            --cov-fail-under=70
 
       - name: Run matchmaking integration tests with coverage
         run: |
