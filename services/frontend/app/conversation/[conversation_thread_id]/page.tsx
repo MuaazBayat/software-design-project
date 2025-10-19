@@ -83,6 +83,7 @@ export default function ConversationPage({}: ConversationPageProps) {
         viewer_user_id: CURRENT_USER_ID || "",
       });
 
+      console.log("API response:", response);
       
       if (lastMessageId) {
         setMessages(prev => [...prev, ...response.items]);
