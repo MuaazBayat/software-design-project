@@ -7,7 +7,6 @@ export default function DebugPage() {
 
   useEffect(() => {
     setMounted(true);
-    console.log('Environment variables loaded');
   }, []);
 
   if (!mounted) {
