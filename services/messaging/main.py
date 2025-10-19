@@ -192,12 +192,14 @@ def _batch_signed_urls(object_paths: List[str], ttl_seconds: int = 86400) -> Dic
 
     if paths_to_sign:
         res = supabase.storage.from_("letters").create_signed_urls(paths_to_sign, ttl_seconds)
+        print(f"DEBUG _batch_signed_urls: paths_to_sign={paths_to_sign}, response={res}")
         if isinstance(res, list):
             with _CACHE_LOCK:
                 for r in res:
                     if r.get("path") and r.get("signedURL"):
                         result[r["path"]] = r["signedURL"]
                         _SIGNED_URL_CACHE[r["path"]] = (r["signedURL"], now + ttl_seconds)
+                        print(f"DEBUG: Cached signed URL for {r['path']}: {r['signedURL']}")
     return result
 
 
@@ -495,7 +497,9 @@ def page_messages_sa(
     for r in rows:
         lu = r.get("letter_url")
         if lu and lu in signed_map:
-            r["letter_url_signed"] = signed_map[lu]
+            signed_url = signed_map[lu]
+            print(f"DEBUG: letter_url={lu}, signed_url={signed_url}")
+            r["letter_url_signed"] = signed_url
 
     next_cursor = rows[-1]["message_id"] if rows else None
     return {
