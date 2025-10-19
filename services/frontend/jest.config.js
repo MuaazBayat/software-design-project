@@ -19,6 +19,7 @@ const customJestConfig = {
     '/node_modules/',
     '/.next/',
     '/__tests__/setup/',
+    '/__tests__/integration/',
     ],
   moduleNameMapper: {
     '^@/app/(.*)$': '<rootDir>/app/$1',
