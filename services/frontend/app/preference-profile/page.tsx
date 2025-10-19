@@ -270,8 +270,8 @@ const PreferenceProfileSelector = () => {
         preference_type: selectedProfile.is_real ? "real" : "fake",
       };
 
-      console.log("Sending payload:", payload);
 
+      
       const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
       const token = authDisabled ? null : await getToken();
       const response = await fetch(`${API_BASE_URL}/preferences/select`, {

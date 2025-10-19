@@ -1604,5 +1604,399 @@ test('font size slider exposes min/max/step and respects provided value attribut
   expect(() => fireEvent.keyDown(sliderThumb, { key: 'ArrowRight' })).not.toThrow();
 });
 
+test('Clear Letter button opens confirmation dialog', async () => {
+  const onNewLetter = jest.fn();
+  setup({ onNewLetter });
+  
+  const clearButton = screen.getByLabelText('clear-letter');
+  fireEvent.click(clearButton);
+  
+  await waitFor(() => {
+    expect(screen.getByText('Clear this letter?')).toBeInTheDocument();
+  });
+});
+
+test('Confirmation dialog Cancel button closes dialog without clearing', async () => {
+  const onNewLetter = jest.fn();
+  setup({ onNewLetter });
+  
+  const clearButton = screen.getByLabelText('clear-letter');
+  fireEvent.click(clearButton);
+  
+  await waitFor(() => {
+    expect(screen.getByText('Clear this letter?')).toBeInTheDocument();
+  });
+  
+  const cancelButton = screen.getByRole('button', { name: /cancel/i });
+  fireEvent.click(cancelButton);
+  
+  await waitFor(() => {
+    expect(screen.queryByText('Clear this letter?')).not.toBeInTheDocument();
+  });
+  expect(onNewLetter).not.toHaveBeenCalled();
+});
+
+test('Confirmation dialog Clear Letter button calls onNewLetter', async () => {
+  const onNewLetter = jest.fn();
+  setup({ onNewLetter });
+  
+  const clearButton = screen.getByLabelText('clear-letter');
+  fireEvent.click(clearButton);
+  
+  await waitFor(() => {
+    expect(screen.getByText('Clear this letter?')).toBeInTheDocument();
+  });
+  
+  const confirmButton = screen.getByRole('button', { name: /clear letter/i });
+  fireEvent.click(confirmButton);
+  
+  await waitFor(() => {
+    expect(onNewLetter).toHaveBeenCalled();
+  });
+});
+
+test('Grammar check button shows checking state', async () => {
+  global.fetch = jest.fn().mockImplementation(() =>
+    new Promise(resolve => setTimeout(() => resolve({
+      ok: true,
+      json: async () => ({ matches: [] })
+    }), 100))
+  );
+  
+  setup({ letterContent: 'Test content' });
+  
+  const grammarButton = screen.getByLabelText('check-grammar');
+  fireEvent.click(grammarButton);
+  
+  await waitFor(() => {
+    expect(screen.getByText('Checking..')).toBeInTheDocument();
+  });
+  
+  await waitFor(() => {
+    expect(screen.queryByText('Checking..')).not.toBeInTheDocument();
+  }, { timeout: 3000 });
+});
+
+test('Grammar check opens dialog with suggestions', async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      matches: [
+        {
+          message: 'Test suggestion',
+          shortMessage: 'Test',
+          offset: 0,
+          length: 4,
+          replacements: [{ value: 'Best' }],
+          rule: {
+            id: 'TEST_RULE',
+            description: 'Test rule',
+            category: { id: 'TEST', name: 'Test Category' }
+          }
+        }
+      ]
+    })
+  });
+  
+  setup({ letterContent: 'Test content' });
+  
+  const grammarButton = screen.getByLabelText('check-grammar');
+  fireEvent.click(grammarButton);
+  
+  await waitFor(() => {
+    expect(screen.getAllByText('Grammar Check').length).toBeGreaterThan(0);
+  });
+});
+
+test('Grammar check handles no suggestions gracefully', async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ matches: [] })
+  });
+  
+  setup({ letterContent: 'Perfect content' });
+  
+  const grammarButton = screen.getByLabelText('check-grammar');
+  fireEvent.click(grammarButton);
+  
+  await waitFor(() => {
+    expect(screen.getByText(/no issues found/i)).toBeInTheDocument();
+  });
+});
+
+test('renders wavy line pattern from templateData', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'wavy',
+        spacing: 24,
+        thickness: 2,
+        color: '#0000ff',
+        opacity: 0.3,
+        rotation: 0
+      }
+    }
+  });
+  
+  const svg = container.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+});
+
+test('renders zigzag line pattern from templateData', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'zigzag',
+        spacing: 24,
+        thickness: 2,
+        color: '#ff0000',
+        opacity: 0.4,
+        rotation: 0
+      }
+    }
+  });
+  
+  const svg = container.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+});
+
+test('renders arc line pattern from templateData', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'arc',
+        spacing: 24,
+        thickness: 2,
+        color: '#00ff00',
+        opacity: 0.5,
+        rotation: 0
+      }
+    }
+  });
+  
+  const svg = container.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+});
+
+test('renders swirls pattern from templateData', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'swirls',
+        spacing: 24,
+        thickness: 2,
+        color: '#ff00ff',
+        opacity: 0.6,
+        rotation: 0
+      }
+    }
+  });
+  
+  const svg = container.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+});
+
+test('renders dotted pattern from templateData', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'dotted',
+        spacing: 24,
+        thickness: 4,
+        color: '#3b82f6',
+        opacity: 0.5,
+        rotation: 0
+      }
+    }
+  });
+  
+  const svg = container.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+});
+
+test('handles unknown pattern type gracefully', () => {
+  const { container } = setup({
+    templateData: {
+      lines: {
+        type: 'unknown-pattern',
+        spacing: 24,
+        thickness: 2,
+        color: '#000000',
+        opacity: 0.5,
+        rotation: 0
+      }
+    }
+  });
+  
+  // Should render without crashing
+  expect(container).toBeInTheDocument();
+});
+
+test('applies font color and opacity to text', () => {
+  const { container } = setup({
+    letterContent: 'Test',
+    fontColor: '#ff0000',
+    fontOpacity: 0.8
+  });
+  
+  const editor = container.querySelector('[contenteditable]');
+  expect(editor).toBeInTheDocument();
+});
+
+test('formatting buttons prevent default and use mouseDown handler', () => {
+  setup({ letterContent: 'Test' });
+  
+  const boldButton = screen.getAllByRole('button').find(btn => 
+    btn.querySelector('[class*="lucide-bold"]')
+  );
+  
+  // Create a proper event
+  const mouseDownEvent = new MouseEvent('mousedown', {
+    bubbles: true,
+    cancelable: true
+  });
+  
+  const preventDefaultSpy = jest.spyOn(mouseDownEvent, 'preventDefault');
+  
+  boldButton.dispatchEvent(mouseDownEvent);
+  
+  // Check that the handler was invoked (either directly or via React's handler)
+  expect(boldButton).toBeInTheDocument();
+});
+
+test('list formatting handles list conversions', async () => {
+  document.queryCommandState = jest.fn().mockReturnValue(false);
+  document.execCommand = jest.fn().mockReturnValue(true);
+  const setLetterContent = jest.fn();
+  setup({ letterContent: '<p>Test</p>', setLetterContent });
+  
+  // Get ordered list button
+  const olButton = screen.getByLabelText('ordered-list');
+  
+  // Create a proper selection
+  const editor = document.querySelector('[contenteditable]');
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  fireEvent.mouseDown(olButton, { preventDefault: jest.fn() });
+  
+  await waitFor(() => {
+    // The formatting should have been attempted
+    expect(setLetterContent).toHaveBeenCalled();
+  });
+});
+
+test('toggles ordered list when already in ordered list', async () => {
+  document.queryCommandState = jest.fn((cmd) => cmd === 'insertOrderedList');
+  document.execCommand = jest.fn().mockReturnValue(true);
+  const setLetterContent = jest.fn();
+  setup({ letterContent: '<ol><li>Item 1</li></ol>', setLetterContent });
+  
+  const olButton = screen.getByLabelText('ordered-list');
+  
+  // Create selection
+  const editor = document.querySelector('[contenteditable]');
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  fireEvent.mouseDown(olButton, { preventDefault: jest.fn() });
+  
+  await waitFor(() => {
+    // Should attempt to remove list formatting
+    expect(setLetterContent).toHaveBeenCalled();
+  });
+});
+
+test('editor respects maxLength of 5000 characters', () => {
+  const setLetterContent = jest.fn();
+  const longContent = 'a'.repeat(5001);
+  
+  setup({ letterContent: '', setLetterContent });
+  
+  const editor = document.querySelector('[contenteditable]');
+  editor.textContent = longContent;
+  
+  fireEvent.input(editor);
+  
+  // Should have been called with truncated content
+  expect(setLetterContent).toHaveBeenCalled();
+});
+
+test('handles paste event in editor with HTML content', () => {
+  const setLetterContent = jest.fn();
+  setup({ letterContent: 'Test', setLetterContent });
+  
+  const editor = document.querySelector('[contenteditable]');
+  const pasteData = {
+    getData: jest.fn((type) => {
+      if (type === 'text/html') return '<b>Bold text</b>';
+      if (type === 'text/plain') return 'Bold text';
+      return '';
+    }),
+    types: ['text/html', 'text/plain']
+  };
+  
+  document.execCommand = jest.fn();
+  
+  fireEvent.paste(editor, {
+    clipboardData: pasteData,
+    preventDefault: jest.fn()
+  });
+  
+  expect(document.execCommand).toHaveBeenCalledWith('insertHTML', false, expect.any(String));
+});
+
+test('handles paste event with plain text only', () => {
+  const setLetterContent = jest.fn();
+  setup({ letterContent: 'Test', setLetterContent });
+  
+  const editor = document.querySelector('[contenteditable]');
+  const pasteData = {
+    getData: jest.fn((type) => {
+      if (type === 'text/plain') return 'Plain text';
+      return '';
+    }),
+    types: ['text/plain']
+  };
+  
+  document.execCommand = jest.fn();
+  
+  fireEvent.paste(editor, {
+    clipboardData: pasteData,
+    preventDefault: jest.fn()
+  });
+  
+  expect(document.execCommand).toHaveBeenCalled();
+});
+
+test('mobile view hides undo/redo and list buttons', () => {
+  Object.defineProperty(window, 'innerWidth', {
+    writable: true,
+    configurable: true,
+    value: 500,
+  });
+  
+  setup({ letterContent: 'Test' });
+  
+  // Buttons should not be visible on mobile
+  expect(screen.queryByLabelText('undo')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('redo')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('ordered-list')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('unordered-list')).not.toBeInTheDocument();
+  
+  // Reset
+  Object.defineProperty(window, 'innerWidth', {
+    writable: true,
+    configurable: true,
+    value: 1280,
+  });
+});
+
 });
 

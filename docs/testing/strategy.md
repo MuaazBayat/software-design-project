@@ -143,7 +143,7 @@ Prioritize a cleaner, more cohesive landing page: modernize colors, refine the h
     ![Pie Chart2](images/pieChart2.jpg)
 ---
 
-### Test snapshots as of 17 October 2025
+### Test snapshots a 19 October 2025
 * **Frontend tests**
     ![Unit tests](images/FrontendUnitTests.png)
     ![Integration tests](images/FrontendIntTests.png)

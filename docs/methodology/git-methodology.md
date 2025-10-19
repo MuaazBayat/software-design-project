@@ -203,7 +203,7 @@ Confirms adherence to the Trunk-Based Development workflow.*
 ### Figure 2 — Pull Request Review and Merge
 ![Figure 2 – Pull Request merged into develop](images/pr-example.png)
 
-*Example PR `feature/letter-inbox-UI` merged into `develop` after peer review and approval by multiple reviewers.  
+*Example PR `feature/letter-inbox-UI` merged into `develop` after optional peer review and approval.  
 Shows collaboration, review process, and CI enforcement before merging.*
 
 ---

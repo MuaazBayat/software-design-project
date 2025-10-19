@@ -18,7 +18,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (!clerkLoaded || !initialOnboardingCheckDone) return;
 
     if (isSignedIn && !isOnboardingComplete && pathname === "/") {
-      console.log("OnboardingGuard: User needs onboarding, redirecting from landing page");
       setShouldRedirect(true);
     }
   }, [clerkLoaded, isSignedIn, initialOnboardingCheckDone, isOnboardingComplete, pathname]);

@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'flagcdn.com' },
+      { protocol: 'https', hostname: '**.supabase.co' },
     ],
   },
 };
