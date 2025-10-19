@@ -35,16 +35,18 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # -------------
 app = FastAPI(title="Messages API (fast, SA time)")
 
+
+ALLOWED_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|globetalk-frontend-388957617777\.us-central1\.run\.app)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://globetalk-frontend-388957617777.us-central1.run.app",
-        "http://localhost:3000",  # For local development
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+    allow_methods=["*"],     
+    allow_headers=["*"],      
+    allow_credentials=False,  
 )
+
+
+
 
 # -------------
 # Models
