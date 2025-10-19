@@ -40,7 +40,7 @@ This project leverages a modern, containerized architecture designed for scalabi
 
 ### Microservices (Python)  
 - **uv** – Chosen as a modern Python package/environment manager that simplifies dependency handling.  
-- **Ruff** – Selected for its speed and reliability in linting/formatting Python code, keeping microservices clean and performant.  
+
 
 ### Repository & General  
 - **Git & GitHub** – Industry-standard for version control and collaboration, making it easy for distributed teams to work together.  

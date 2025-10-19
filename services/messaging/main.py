@@ -395,7 +395,9 @@ async def _upload_from_uploadfile(file: UploadFile) -> str:
 # ---------------------------
 # Routes
 # ---------------------------
-
+@app.get("/health")
+def health_check():
+    return {"status":"healthy","timestamp":datetime.now().isoformat(),"version":"2.0.0"}
 @app.post("/api/v1/messages")
 async def send_message(request: Request, token: str = Depends(verify_token)):
     ctype = (request.headers.get("content-type") or "").lower()
