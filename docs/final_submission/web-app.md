@@ -18,7 +18,6 @@ This section maps our web application implementation to the assessment rubric cr
 - **ARIA Support**: Screen reader-friendly with ARIA labels, live regions, and keyboard navigation
 - **Focus Indicators**: Visible focus rings on all interactive elements
 - **Color Space**: OKLCH color system ensures perceptually uniform brightness for better accessibility
-- **Dark Mode**: Full dark mode support with adjusted contrast for visibility
 
 **Evidence:**
 
