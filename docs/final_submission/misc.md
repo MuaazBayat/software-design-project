@@ -168,6 +168,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 
 **1. Project Work Tracker: GitHub Projects**
 
+[https://github.com/users/MuaazBayat/projects/4](https://github.com/users/MuaazBayat/projects/4)
 - **Kanban Board**: Columns from Backlog � Ready � In Progress � In Review � QA � Done
 - **Sprint Planning**: Two-week sprints with issue tracking
 - **Automated Workflows**: PRs move cards automatically
@@ -176,6 +177,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 
 **2. Bug Tracker: GitHub Issues**
 
+[https://github.com/MuaazBayat/software-design-project/issues](https://github.com/MuaazBayat/software-design-project/issues)
 - **Structured Templates**: Severity, priority, steps to reproduce, expected/actual results
 - **Labels**: `type:bug`, `sev:S0-S3`, `prio:P0-P3`, `area:<service>`
 - **SLA Tracking**: S0 (24h), S1 (2-3 days), S2 (1 sprint), S3 (backlog)
@@ -193,7 +195,7 @@ Our team followed a disciplined **Trunk-Based Development (TBD)** strategy:
 **Backend:**
 - **MyPy**: Static type checking for Python (optional)
 - **Pytest**: Test coverage with `--cov-fail-under=50`
-- **Black**: Code formatting 
+- **Black**: Code formatting
 
 **4. CI/CD Enforcement:**
 
