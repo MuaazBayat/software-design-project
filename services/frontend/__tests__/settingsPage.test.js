@@ -105,4 +105,89 @@ describe("Settings Page", () => {
         const saveButton = screen.getByRole("button", { name: /save changes/i });
         expect(saveButton).toBeDisabled();
     });
+
+    it("can add interest using Add button", async () => {
+        render(<Page />);
+        
+        await waitFor(() => {
+            expect(screen.getByLabelText(/bio/i)).toBeInTheDocument();
+        });
+
+        const interestInput = screen.getByPlaceholderText(/e.g. hiking, anime, cooking/i);
+        fireEvent.change(interestInput, { target: { value: "photography" } });
+
+        const addButton = screen.getByLabelText(/Add interest to list/i);
+        fireEvent.click(addButton);
+
+        await waitFor(() => {
+            expect(screen.getByText("photography")).toBeInTheDocument();
+        });
+    });
+
+
+
+    it("prevents duplicate interests", async () => {
+        render(<Page />);
+        
+        await waitFor(() => {
+            expect(screen.getByLabelText(/bio/i)).toBeInTheDocument();
+        });
+
+        const interestInput = screen.getByPlaceholderText(/e.g. hiking, anime, cooking/i);
+        
+        // Add an interest twice
+        fireEvent.change(interestInput, { target: { value: "gaming" } });
+        fireEvent.keyDown(interestInput, { key: "Enter", code: "Enter" });
+
+        await waitFor(() => {
+            expect(screen.getByText("gaming")).toBeInTheDocument();
+        });
+
+        // Try to add the same interest again
+        fireEvent.change(interestInput, { target: { value: "gaming" } });
+        fireEvent.keyDown(interestInput, { key: "Enter", code: "Enter" });
+
+        // Should only have one "gaming" element
+        const gamingElements = screen.getAllByText("gaming");
+        expect(gamingElements).toHaveLength(1);
+    });
+
+    it("clears interest input after adding", async () => {
+        render(<Page />);
+        
+        await waitFor(() => {
+            expect(screen.getByLabelText(/bio/i)).toBeInTheDocument();
+        });
+
+        const interestInput = screen.getByPlaceholderText(/e.g. hiking, anime, cooking/i);
+        
+        fireEvent.change(interestInput, { target: { value: "traveling" } });
+        expect(interestInput).toHaveValue("traveling");
+
+        fireEvent.keyDown(interestInput, { key: "Enter", code: "Enter" });
+
+        await waitFor(() => {
+            expect(interestInput).toHaveValue("");
+        });
+    });
+
+    it("renders skip to main content link", () => {
+        render(<Page />);
+        
+        const skipLink = screen.getByText(/skip to main content/i);
+        expect(skipLink).toBeInTheDocument();
+    });
+
+    it("renders interests section", async () => {
+        render(<Page />);
+        
+        // Wait for the bio to load, indicating profile is loaded
+        await waitFor(() => {
+            expect(screen.getByLabelText(/bio/i)).toBeInTheDocument();
+        });
+
+        // Verify interests input field is present
+        const interestInput = screen.getByPlaceholderText(/e.g. hiking, anime, cooking/i);
+        expect(interestInput).toBeInTheDocument();
+    });
 });

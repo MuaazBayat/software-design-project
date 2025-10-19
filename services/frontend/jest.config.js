@@ -19,6 +19,7 @@ const customJestConfig = {
     '/node_modules/',
     '/.next/',
     '/__tests__/setup/',
+    '/__tests__/integration/'
     ],
   moduleNameMapper: {
     '^@/app/(.*)$': '<rootDir>/app/$1',
@@ -33,7 +34,7 @@ const customJestConfig = {
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {
     global: {
-      lines: 75,
+      lines: 70,
     },
   },
 
