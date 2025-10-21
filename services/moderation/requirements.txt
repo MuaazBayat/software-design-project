@@ -32,4 +32,5 @@ typing-inspection==0.4.1
 typing_extensions==4.15.0
 uvicorn==0.35.0
 websockets==15.0.1
+uvloop==0.21.0; platform_system!='Windows'
 clerk-backend-api==3.3.1
