@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { UserButton, SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Settings, Menu } from 'lucide-react';
+import { Settings, Menu, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useProfile } from '@/lib/context/ProfileContext';
@@ -19,10 +20,13 @@ export default function Header() {
   const [isLoaded, setIsLoaded] = useState(false);
   const pathname = usePathname();  // Track the current path
   const { profile } = useProfile();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   // This effect ensures that once the component mounts, it's fully loaded
   useEffect(() => {
     setIsLoaded(true);  // Make sure the component is fully loaded
+    setMounted(true);
   }, [pathname]);
 
   if (pathname === "/onboarding") {
@@ -79,6 +83,23 @@ export default function Header() {
             </div>
 
             {/* Desktop: Settings button */}
+            {/* Theme toggle (light/dark) - desktop only */}
+            <div className="hidden lg:block">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20"
+                aria-label={mounted ? (resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : 'Toggle theme'}
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              >
+                {mounted ? (
+                  resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5 opacity-50" />
+                )}
+              </Button>
+            </div>
+
             <Link
               href="/settings"
               aria-label="Open settings"
