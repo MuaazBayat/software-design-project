@@ -4,6 +4,10 @@ This document provides a comprehensive overview of known security vulnerabilitie
 
 **Last Updated:** 2025-09-30
 
+
+## The attacks on NPM packages in the news
+Our codebase was not impacted by the recent supply chain attack that targeted the @ctrl/tinycolor package and over 40 other npm packages. Despite the widespread compromise of popular packages like chalk, debug, and supports-color, which injected malicious code to manipulate Web3 transactions and redirect crypto funds, our project remains secure. We've carefully reviewed our dependencies and ensure that no affected packages are used within our codebase, maintaining the integrity and safety of our application.
+
 ## Summary
 
 | Service | Total Vulnerabilities | Critical | High | Moderate | Low |

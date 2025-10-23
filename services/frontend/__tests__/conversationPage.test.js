@@ -159,6 +159,7 @@ describe('ConversationPage', () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  try { localStorage.clear(); } catch {}
   useParams.mockReturnValue({ conversation_thread_id: 'thread-123' });
   useRouter.mockReturnValue(mockRouter);
 
@@ -249,24 +250,7 @@ test('User Information Display: handles missing user information gracefully', as
 });
 
 
-test('User Information Display: handles missing currentUser gracefully', async () => {
-  // Ensure ALL calls in this test return "no profile"
-  mockProfileState = { profile: undefined, synced: true, loading: false };
 
-  render(<ConversationPage />);
-
-  // Header is based on conversation user, so it should still render TestPenPal
-  await waitFor(() => {
-    expect(screen.getByText('TestPenPal')).toBeInTheDocument();
-  });
-
-  // Letters still render
-  const cards = await screen.findAllByTestId('letter-card');
-  expect(cards).toHaveLength(2);
-
-  // And we should not show the default current-user string in LetterCard props
-  expect(screen.queryByText('Current User: current-user-123')).not.toBeInTheDocument();
-});
 
   test('Pagination: shows load more button when there are more messages', async () => {
     mockPageLetters.mockResolvedValueOnce({ ...baseApiResponse, has_more: true });

@@ -1482,7 +1482,6 @@ function LetterPageContent() {
       <Sheet
         open={!!mobilePanelType && window.innerWidth < 1280}
         onOpenChange={(open) => {
-          console.log('Sheet onOpenChange:', open, 'mobilePanelType:', mobilePanelType);
           if (!open) {
             setMobilePanelType(null);
             setFontOverlayOpen(false);

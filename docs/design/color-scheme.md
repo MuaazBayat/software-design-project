@@ -12,7 +12,6 @@ GlobeTalk uses a modern, accessible design system built on:
 - **Design Framework:** shadcn/ui (New York style)
 - **CSS Framework:** Tailwind CSS v4
 - **Color Space:** OKLCH (Oklab Lightness Chroma Hue)
-- **Theme Support:** Light and Dark mode
 - **Base Color:** Neutral
 - **Icon Library:** Lucide React
 
@@ -92,62 +91,6 @@ Benefits:
 
 ---
 
-### Dark Mode
-
-#### Core Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--background` | `oklch(0.145 0 0)` | `#1A1A1A` | Main background color |
-| `--foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Main text color |
-| `--card` | `oklch(0.205 0 0)` | `#2C2C2C` | Card backgrounds |
-| `--card-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Card text |
-| `--popover` | `oklch(0.205 0 0)` | `#2C2C2C` | Popover backgrounds |
-| `--popover-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Popover text |
-
-#### Primary Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--primary` | `oklch(0.922 0 0)` | `#E5E5E5` | Primary buttons, links |
-| `--primary-foreground` | `oklch(0.205 0 0)` | `#2C2C2C` | Text on primary elements |
-
-#### Secondary Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--secondary` | `oklch(0.269 0 0)` | `#3F3F3F` | Secondary buttons, backgrounds |
-| `--secondary-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Text on secondary elements |
-
-#### Muted Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--muted` | `oklch(0.269 0 0)` | `#3F3F3F` | Muted backgrounds |
-| `--muted-foreground` | `oklch(0.708 0 0)` | `#A3A3A3` | Muted text, labels |
-
-#### Accent Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--accent` | `oklch(0.269 0 0)` | `#3F3F3F` | Hover states, highlights |
-| `--accent-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Text on accent elements |
-
-#### Destructive Colors
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--destructive` | `oklch(0.704 0.191 22.216)` | `#EF4444` | Error states, delete buttons |
-
-#### Border & Input
-
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--border` | `oklch(1 0 0 / 10%)` | `rgba(255,255,255,0.1)` | Borders, dividers |
-| `--input` | `oklch(1 0 0 / 15%)` | `rgba(255,255,255,0.15)` | Input borders |
-| `--ring` | `oklch(0.556 0 0)` | `#737373` | Focus rings |
-
----
 
 ## Brand Colors (Tailwind Utilities)
 
@@ -249,17 +192,7 @@ Colors used for data visualization:
 | `--chart-4` | `oklch(0.828 0.189 84.429)` | `#EAB308` | Quaternary chart color |
 | `--chart-5` | `oklch(0.769 0.188 70.08)` | `#F59E0B` | Quinary chart color |
 
-### Dark Mode Charts
 
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--chart-1` | `oklch(0.488 0.243 264.376)` | `#8B5CF6` | Primary chart color |
-| `--chart-2` | `oklch(0.696 0.17 162.48)` | `#34D399` | Secondary chart color |
-| `--chart-3` | `oklch(0.769 0.188 70.08)` | `#F59E0B` | Tertiary chart color |
-| `--chart-4` | `oklch(0.627 0.265 303.9)` | `#EC4899` | Quaternary chart color |
-| `--chart-5` | `oklch(0.645 0.246 16.439)` | `#F97316` | Quinary chart color |
-
----
 
 ## Sidebar Colors
 
@@ -276,20 +209,7 @@ Colors used for data visualization:
 | `--sidebar-border` | `oklch(0.922 0 0)` | `#E5E5E5` | Sidebar borders |
 | `--sidebar-ring` | `oklch(0.708 0 0)` | `#A3A3A3` | Sidebar focus rings |
 
-### Dark Mode Sidebar
 
-| Token | OKLCH Value | Hex Approximation | Usage |
-|-------|-------------|-------------------|-------|
-| `--sidebar` | `oklch(0.205 0 0)` | `#2C2C2C` | Sidebar background |
-| `--sidebar-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Sidebar text |
-| `--sidebar-primary` | `oklch(0.488 0.243 264.376)` | `#8B5CF6` | Sidebar primary elements |
-| `--sidebar-primary-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Text on sidebar primary |
-| `--sidebar-accent` | `oklch(0.269 0 0)` | `#3F3F3F` | Sidebar hover states |
-| `--sidebar-accent-foreground` | `oklch(0.985 0 0)` | `#FAFAFA` | Text on sidebar accents |
-| `--sidebar-border` | `oklch(1 0 0 / 10%)` | `rgba(255,255,255,0.1)` | Sidebar borders |
-| `--sidebar-ring` | `oklch(0.556 0 0)` | `#737373` | Sidebar focus rings |
-
----
 
 ## Border Radius System
 
@@ -444,14 +364,6 @@ className="focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 className="outline-ring/50"
 ```
 
-### Dark Mode
-
-Dark mode automatically adjusts:
-- Inverted lightness values for backgrounds and text
-- Reduced opacity for borders to prevent harshness
-- Adjusted destructive colors for better visibility
-
----
 
 ## Usage Examples
 
