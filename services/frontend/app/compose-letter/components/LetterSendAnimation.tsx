@@ -292,6 +292,9 @@ export default function LetterSendAnimation({ show, onAnimationComplete, embedde
             }}
             dragConstraints={{ top: -FOLD_RANGE, bottom: 0 }}
             className={`absolute inset-0 z-10 ${isPointerLocked ? "cursor-grabbing" : "cursor-grab"} active:cursor-grabbing`}
+            role="button"
+            tabIndex={0}
+            aria-label="Drag up and down to fold the letter"
           />
         </div>
         {isFolded && (
@@ -329,6 +332,7 @@ export default function LetterSendAnimation({ show, onAnimationComplete, embedde
                   }}
                   disabled={isSending}
                   className="rounded-2xl bg-black px-4 py-2 text-white font-semibold hover:bg-opacity-90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                  aria-label="Send the folded letter"
                 >
                   {isSending ? 'Sending...' : 'Send Letter'}
                 </button>
@@ -343,6 +347,7 @@ export default function LetterSendAnimation({ show, onAnimationComplete, embedde
                     try { onCancel && onCancel(); } catch (err) {}
                   }}
                   className="rounded-2xl bg-white px-4 py-2 text-black font-semibold hover:bg-opacity-90 transition-colors text-sm border border-black select-none"
+                  aria-label="Cancel sending and unfold the letter"
                 >
                   Cancel
                 </button>

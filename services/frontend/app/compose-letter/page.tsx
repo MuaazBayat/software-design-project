@@ -12,9 +12,9 @@ export default function ComposeLetterRedirect() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin text-4xl mb-4">📝</div>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center" role="main">
+      <div className="text-center" aria-live="polite">
+        <div className="animate-spin text-4xl mb-4" aria-label="Loading animation"></div>
         <h1 className="text-2xl font-bold text-amber-800 mb-4">Loading Compose Page...</h1>
         <p className="text-amber-600">Setting up your letter writing experience.</p>
       </div>

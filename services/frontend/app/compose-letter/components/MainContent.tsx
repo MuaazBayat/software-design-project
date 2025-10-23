@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react"
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { CheckCircle2, Bold, Italic, Underline, ListOrdered, ListIcon, BookTemplate, RotateCcw, RotateCw, Type, Trash2, MoreHorizontal, CheckSquare } from "lucide-react"
+import { CheckCircle2, Bold, Italic, Underline, ListOrdered, ListIcon, BookTemplate, RotateCcw, RotateCw, Type, Trash2, MoreHorizontal, CheckSquare, Smile } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden"
 // Temporary alias for backward compatibility
 type LineConfigType = any;
@@ -347,7 +349,7 @@ interface MainContentProps {
   backgroundColor?: string
   backgroundOpacity?: number
   anonymousHandle?: string
-  onNewLetter?: () => void
+  onNewLetter?: (clearBackground?: boolean) => void
   sending?: boolean
   isProcessing?: boolean
   previewFontIdExternal?: string | null
@@ -357,11 +359,15 @@ interface MainContentProps {
   // Props controlling template panel toggles
   onToggleTemplates?: () => void
   toggleLeftSidebar?: () => void
+  onCharacterLimitExceeded?: () => void
+  onFocusModeChange?: (isFocused: boolean) => void
   templateData?: {
     imageUrl?: string
     textArea?: { top: number; left: number; width: number; height: number; padding?: number }
     lines?: LineConfigType
   }
+  userInterests?: string[]
+  selectedMatch?: any
 }
 
 export default function MainContent({
@@ -389,7 +395,11 @@ export default function MainContent({
   templateBackground = null,
   onToggleTemplates,
   toggleLeftSidebar,
+  onCharacterLimitExceeded,
+  onFocusModeChange,
   templateData,
+  userInterests,
+  selectedMatch,
 }: MainContentProps) {
   // Reference to measure letter area dimensions
   const containerRef = useRef<HTMLDivElement>(null);
@@ -409,7 +419,18 @@ export default function MainContent({
     return () => { window.removeEventListener('resize', updateSize); };
   }, []);
 
+  const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Set isClient to true after hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Character limits
+  const MAIN_CONTENT_LIMIT = 1500;
+  const HEADING_LIMIT = 100;
+  const FOOTER_LIMIT = 100;
 
   // Check if device is mobile
   useEffect(() => {
@@ -427,11 +448,409 @@ export default function MainContent({
   const [selectedFormatting, setSelectedFormatting] = useState<string[]>([])
   const [formattingInProgress, setFormattingInProgress] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [clearBackground, setClearBackground] = useState(false)
   const [grammarDialogOpen, setGrammarDialogOpen] = useState(false)
   const [grammarSuggestions, setGrammarSuggestions] = useState<any[]>([])
   const [checkingGrammar, setCheckingGrammar] = useState(false)
   const [lastTapTime, setLastTapTime] = useState<number>(0)
   const [tapCount, setTapCount] = useState<number>(0)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ x: number; y: number } | null>(null)
+  const [recentlyUsedEmojis, setRecentlyUsedEmojis] = useState<string[]>([])
+  const [emojiSearchQuery, setEmojiSearchQuery] = useState('')
+  
+  // Load recently used emojis from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('recentlyUsedEmojis')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          setRecentlyUsedEmojis(parsed.slice(0, 20)) // Limit to 20 emojis
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load recently used emojis from localStorage:', error)
+    }
+  }, [])
+
+  // Emoji categories
+  const emojiCategories = useMemo(() => ({
+    'Smileys': ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳'],
+    'Gestures': ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏'],
+    'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️'],
+    'Nature': ['🌸', '💮', '🏵', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🌱', '🪴', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🌍', '🌎', '🌏', '🌐', '🌙', '⭐', '🌟', '✨', '⚡'],
+    'Food': ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜'],
+    'Travel': ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛴', '🚲', '🛵', '🏍', '🛺', '✈️', '🛫', '🛬', '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '⛴', '🛳'],
+    'Objects': ['⌚', '📱', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '🎚', '🎛', '⏱', '⏲', '⏰', '🕰'],
+    'Symbols': ['❤️', '💔', '✨', '💫', '⭐', '🌟', '✅', '❌', '⚠️', '🔥', '💯', '👍', '👎', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖', '📌', '📍', '🚩', '🏴', '🏳️', '🏁']
+  }), [])
+
+  // Filter emojis based on search query
+  const getFilteredEmojis = useCallback((): { [key: string]: string[] } => {
+    if (!emojiSearchQuery.trim()) {
+      return emojiCategories
+    }
+
+    const query = emojiSearchQuery.toLowerCase().trim()
+    const filtered: { [key: string]: string[] } = {}
+
+    // Search through all categories
+    Object.entries(emojiCategories).forEach(([category, emojis]) => {
+      const filteredEmojis = emojis.filter(emoji => {
+        // Simple search: check if emoji name contains the query
+        // You could enhance this with a more comprehensive emoji name mapping
+        const emojiName = getEmojiName(emoji)
+        return emojiName.toLowerCase().includes(query)
+      })
+
+      if (filteredEmojis.length > 0) {
+        filtered[category] = filteredEmojis
+      }
+    })
+
+    return filtered
+  }, [emojiSearchQuery, emojiCategories])
+
+  // Simple emoji name mapping (you could expand this)
+  const getEmojiName = (emoji: string): string => {
+    const emojiNames: { [key: string]: string } = {
+      '😀': 'grinning face',
+      '😃': 'grinning face with big eyes',
+      '😄': 'grinning face with smiling eyes',
+      '😁': 'beaming face with smiling eyes',
+      '😅': 'grinning face with sweat',
+      '😂': 'face with tears of joy',
+      '🤣': 'rolling on the floor laughing',
+      '😊': 'smiling face with smiling eyes',
+      '😇': 'smiling face with halo',
+      '🙂': 'slightly smiling face',
+      '🙃': 'upside-down face',
+      '😉': 'winking face',
+      '😌': 'relieved face',
+      '😍': 'smiling face with heart-eyes',
+      '🥰': 'smiling face with hearts',
+      '😘': 'face blowing a kiss',
+      '😗': 'kissing face',
+      '😙': 'kissing face with smiling eyes',
+      '😚': 'kissing face with closed eyes',
+      '😋': 'face savoring food',
+      '😛': 'face with tongue',
+      '😝': 'squinting face with tongue',
+      '😜': 'winking face with tongue',
+      '🤪': 'zany face',
+      '🤨': 'face with raised eyebrow',
+      '🧐': 'face with monocle',
+      '🤓': 'nerd face',
+      '😎': 'smiling face with sunglasses',
+      '🥸': 'disguised face',
+      '🤩': 'star-struck',
+      '🥳': 'partying face',
+      '👋': 'waving hand',
+      '🤚': 'raised back of hand',
+      '🖐': 'hand with fingers splayed',
+      '✋': 'raised hand',
+      '🖖': 'vulcan salute',
+      '👌': 'ok hand',
+      '🤌': 'pinched fingers',
+      '🤏': 'pinching hand',
+      '✌️': 'victory hand',
+      '🤞': 'crossed fingers',
+      '🤟': 'love-you gesture',
+      '🤘': 'sign of the horns',
+      '🤙': 'call me hand',
+      '👈': 'backhand index pointing left',
+      '👉': 'backhand index pointing right',
+      '👆': 'backhand index pointing up',
+      '🖕': 'middle finger',
+      '👇': 'backhand index pointing down',
+      '☝️': 'index pointing up',
+      '👍': 'thumbs up',
+      '👎': 'thumbs down',
+      '✊': 'raised fist',
+      '👊': 'oncoming fist',
+      '🤛': 'left-facing fist',
+      '🤜': 'right-facing fist',
+      '👏': 'clapping hands',
+      '🙌': 'raising hands',
+      '👐': 'open hands',
+      '🤲': 'palms up together',
+      '🤝': 'handshake',
+      '🙏': 'folded hands',
+      '❤️': 'red heart',
+      '🧡': 'orange heart',
+      '💛': 'yellow heart',
+      '💚': 'green heart',
+      '💙': 'blue heart',
+      '💜': 'purple heart',
+      '🖤': 'black heart',
+      '🤍': 'white heart',
+      '🤎': 'brown heart',
+      '💔': 'broken heart',
+      '❣️': 'heart exclamation',
+      '💕': 'two hearts',
+      '💞': 'revolving hearts',
+      '💓': 'beating heart',
+      '💗': 'growing heart',
+      '💖': 'sparkling heart',
+      '💘': 'heart with arrow',
+      '💝': 'heart with ribbon',
+      '💟': 'heart decoration',
+      '☮️': 'peace symbol',
+      '✝️': 'latin cross',
+      '☪️': 'star and crescent',
+      '🕉': 'om',
+      '☸️': 'wheel of dharma',
+      '✡️': 'star of david',
+      '🔯': 'dotted six-pointed star',
+      '🕎': 'menorah',
+      '☯️': 'yin yang',
+      '☦️': 'orthodox cross',
+      '🌸': 'cherry blossom',
+      '💮': 'white flower',
+      '🏵': 'rosette',
+      '🌹': 'rose',
+      '🥀': 'wilted flower',
+      '🌺': 'hibiscus',
+      '🌻': 'sunflower',
+      '🌼': 'blossom',
+      '🌷': 'tulip',
+      '🌱': 'seedling',
+      '🪴': 'potted plant',
+      '🌲': 'evergreen tree',
+      '🌳': 'deciduous tree',
+      '🌴': 'palm tree',
+      '🌵': 'cactus',
+      '🌾': 'sheaf of rice',
+      '🌿': 'herb',
+      '☘️': 'shamrock',
+      '🍀': 'four leaf clover',
+      '🍁': 'maple leaf',
+      '🍂': 'fallen leaf',
+      '🍃': 'leaf fluttering in wind',
+      '🌍': 'globe showing europe-africa',
+      '🌎': 'globe showing americas',
+      '🌏': 'globe showing asia-australia',
+      '🌐': 'globe with meridians',
+      '🌙': 'crescent moon',
+      '⭐': 'star',
+      '🌟': 'glowing star',
+      '✨': 'sparkles',
+      '⚡': 'high voltage',
+      '🍎': 'red apple',
+      '🍊': 'tangerine',
+      '🍋': 'lemon',
+      '🍌': 'banana',
+      '🍉': 'watermelon',
+      '🍇': 'grapes',
+      '🍓': 'strawberry',
+      '🫐': 'blueberries',
+      '🍈': 'melon',
+      '🍒': 'cherries',
+      '🍑': 'peach',
+      '🥭': 'mango',
+      '🍍': 'pineapple',
+      '🥥': 'coconut',
+      '🥝': 'kiwi fruit',
+      '🍅': 'tomato',
+      '🥑': 'avocado',
+      '🍆': 'eggplant',
+      '🥔': 'potato',
+      '🥕': 'carrot',
+      '🌽': 'ear of corn',
+      '🌶': 'hot pepper',
+      '🫑': 'bell pepper',
+      '🥒': 'cucumber',
+      '🥬': 'leafy green',
+      '🥦': 'broccoli',
+      '🧄': 'garlic',
+      '🧅': 'onion',
+      '🍄': 'mushroom',
+      '🥜': 'peanuts',
+      '🚗': 'automobile',
+      '🚕': 'taxi',
+      '🚙': 'sport utility vehicle',
+      '🚌': 'bus',
+      '🚎': 'trolleybus',
+      '🏎': 'racing car',
+      '🚓': 'police car',
+      '🚑': 'ambulance',
+      '🚒': 'fire engine',
+      '🚐': 'minibus',
+      '🛻': 'pickup truck',
+      '🚚': 'delivery truck',
+      '🚛': 'articulated lorry',
+      '🚜': 'tractor',
+      '🛴': 'kick scooter',
+      '🚲': 'bicycle',
+      '🛵': 'motor scooter',
+      '🏍': 'motorcycle',
+      '🛺': 'auto rickshaw',
+      '✈️': 'airplane',
+      '🛫': 'airplane departure',
+      '🛬': 'airplane arrival',
+      '🚀': 'rocket',
+      '🛸': 'flying saucer',
+      '🚁': 'helicopter',
+      '🛶': 'canoe',
+      '⛵': 'sailboat',
+      '🚤': 'speedboat',
+      '⛴': 'ferry',
+      '🛳': 'passenger ship',
+      '⌚': 'watch',
+      '📱': 'mobile phone',
+      '💻': 'laptop',
+      '⌨️': 'keyboard',
+      '🖥': 'desktop computer',
+      '🖨': 'printer',
+      '🖱': 'computer mouse',
+      '🖲': 'trackball',
+      '🕹': 'joystick',
+      '💽': 'computer disk',
+      '💾': 'floppy disk',
+      '💿': 'optical disk',
+      '📀': 'dvd',
+      '📼': 'videocassette',
+      '📷': 'camera',
+      '📸': 'camera with flash',
+      '📹': 'video camera',
+      '🎥': 'movie camera',
+      '📞': 'telephone receiver',
+      '☎️': 'telephone',
+      '📟': 'pager',
+      '📠': 'fax machine',
+      '📺': 'television',
+      '📻': 'radio',
+      '🎙': 'studio microphone',
+      '🎚': 'level slider',
+      '🎛': 'control knobs',
+      '⏱': 'stopwatch',
+      '⏲': 'timer clock',
+      '⏰': 'alarm clock',
+      '🕰': 'mantelpiece clock',
+      '✅': 'check mark button',
+      '❌': 'cross mark',
+      '⚠️': 'warning',
+      '🔥': 'fire',
+      '💯': 'hundred points',
+      '🎉': 'party popper',
+      '🎊': 'confetti ball',
+      '🎈': 'balloon',
+      '🎁': 'wrapped gift',
+      '🏆': 'trophy',
+      '🥇': '1st place medal',
+      '🥈': '2nd place medal',
+      '🥉': '3rd place medal',
+      '🏅': 'sports medal',
+      '🎖': 'military medal',
+      '📌': 'pushpin',
+      '📍': 'round pushpin',
+      '🚩': 'triangular flag',
+      '🏴': 'black flag',
+      '🏳️': 'white flag',
+      '🏁': 'chequered flag'
+    }
+    return emojiNames[emoji] || emoji
+  }
+  
+  const insertEmoji = useCallback((emoji: string) => {
+    const editor = editorRef.current
+    if (!editor) return
+    
+    editor.focus()
+    
+    // Get current selection or create one at the end
+    const selection = window.getSelection()
+    if (!selection) return
+    
+    let range: Range
+    if (selection.rangeCount > 0) {
+      range = selection.getRangeAt(0)
+    } else {
+      range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false)
+    }
+    
+    // Insert emoji as text node
+    const textNode = document.createTextNode(emoji)
+    range.deleteContents()
+    range.insertNode(textNode)
+    
+    // Move cursor after emoji
+    range.setStartAfter(textNode)
+    range.setEndAfter(textNode)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    
+    // Update recently used emojis
+    setRecentlyUsedEmojis(prev => {
+      const filtered = prev.filter(e => e !== emoji)
+      const updated = [emoji, ...filtered].slice(0, 20)
+      try {
+        localStorage.setItem('recentlyUsedEmojis', JSON.stringify(updated))
+      } catch (error) {
+        console.warn('Failed to save recently used emojis to localStorage:', error)
+      }
+      return updated
+    })
+    
+    // Trigger input event to update content
+    const inputEvent = new Event('input', { bubbles: true })
+    editor.dispatchEvent(inputEvent)
+    
+    setEmojiPickerOpen(false)
+  }, [])
+  
+  // Click outside to close emoji picker
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      // Check if click is outside the emoji picker and emoji button
+      if (!target.closest('.emoji-picker-container') && !target.closest('.emoji-picker-button')) {
+        setEmojiPickerOpen(false)
+        setEmojiPickerPosition(null)
+        setEmojiSearchQuery('')
+      }
+    }
+
+    // Use click instead of mousedown to avoid interfering with focus mode clicks
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [emojiPickerOpen])
+  
+  // Keyboard shortcut for emoji picker (Ctrl+Shift+E)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e' && e.shiftKey) {
+        e.preventDefault()
+        
+        // Get cursor position
+        const selection = window.getSelection()
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0)
+          const rect = range.getBoundingClientRect()
+          
+          // Set position for floating emoji picker
+          setEmojiPickerPosition({
+            x: rect.left,
+            y: rect.bottom + window.scrollY
+          })
+          setEmojiPickerOpen(true)
+        } else {
+          // Fallback: open at toolbar button position
+          setEmojiPickerPosition(null)
+          setEmojiPickerOpen(true)
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+  
   if (!fontStyle) setFontStyle?.(DEFAULT_FONT_ID)
   const lastContentRef = useRef<string>(letterContent)
   const editorRef = useRef<HTMLDivElement | null>(null)
@@ -815,11 +1234,60 @@ export default function MainContent({
 
 
 
+  const handleBeforeInput = useCallback((e: React.FormEvent<HTMLDivElement> & { data?: string }) => {
+    const target = e.target as HTMLDivElement;
+    const currentText = target.innerText || '';
+
+    // If we're already at or over the limit, prevent any input
+    if (currentText.length >= MAIN_CONTENT_LIMIT) {
+      e.preventDefault();
+      onCharacterLimitExceeded?.();
+      return;
+    }
+
+    // If this input would put us over the limit, prevent it
+    if (e.data && currentText.length + e.data.length > MAIN_CONTENT_LIMIT) {
+      e.preventDefault();
+      onCharacterLimitExceeded?.();
+      return;
+    }
+  }, [MAIN_CONTENT_LIMIT, onCharacterLimitExceeded]);
+
   // Clear selection when user starts typing
   const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     const html = (e.target as HTMLDivElement).innerHTML;
-    if (html.length > 10000) { // Character limit for the editor
-      (e.target as HTMLDivElement).innerHTML = html.substring(0, 10000);
+    const textContent = (e.target as HTMLDivElement).innerText || '';
+
+    // Double-check: if somehow we went over the limit, truncate
+    if (textContent.length > MAIN_CONTENT_LIMIT) {
+      // Truncate to the exact limit by removing characters from the end
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+
+      // Get all text nodes and truncate the content
+      const truncateTextContent = (element: Node, remainingChars: number): number => {
+        if (remainingChars <= 0) return 0;
+
+        for (const child of Array.from(element.childNodes)) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const textNode = child as Text;
+            if (textNode.length <= remainingChars) {
+              remainingChars -= textNode.length;
+            } else {
+              textNode.textContent = textNode.textContent!.substring(0, remainingChars);
+              remainingChars = 0;
+            }
+          } else if (child.nodeType === Node.ELEMENT_NODE) {
+            remainingChars = truncateTextContent(child, remainingChars);
+          }
+          if (remainingChars <= 0) break;
+        }
+        return remainingChars;
+      };
+
+      truncateTextContent(tempDiv, MAIN_CONTENT_LIMIT);
+      (e.target as HTMLDivElement).innerHTML = tempDiv.innerHTML;
+
       // Move cursor to the end
       const range = document.createRange();
       const sel = window.getSelection();
@@ -827,6 +1295,8 @@ export default function MainContent({
       range.collapse(false);
       sel?.removeAllRanges();
       sel?.addRange(range);
+
+      return;
     }
 
     if (html !== lastContentRef.current) {
@@ -835,9 +1305,9 @@ export default function MainContent({
       currentContentRef.current = html;
       setLetterContent(html); // Update parent state on input
     }
-  }, [pushUndo, setLetterContent])
+  }, [pushUndo, setLetterContent, MAIN_CONTENT_LIMIT]);
 
-  const handlePaste = useCallback((e: React.ClipboardEvent, charLimit: number = 5000) => {
+  const handlePaste = useCallback((e: React.ClipboardEvent, charLimit: number = MAIN_CONTENT_LIMIT) => {
     e.preventDefault();
     let pasteData = e.clipboardData.getData('text/html');
     let isHtml = true;
@@ -846,25 +1316,85 @@ export default function MainContent({
       pasteData = e.clipboardData.getData('text/plain');
       isHtml = false;
     }
-    
-    // This is a simple truncation. For HTML, it might break tags if the content is too long.
-    // Given the context, we assume pasted content is not excessively large.
-    const truncatedData = pasteData.substring(0, charLimit);
 
-    if (isHtml) {
-        document.execCommand('insertHTML', false, truncatedData);
-    } else {
-        document.execCommand('insertText', false, truncatedData);
+    // Get current content length - use innerText and trim to avoid trailing whitespace
+    const editor = editorRef.current;
+    const currentText = editor ? (editor.innerText || '').trim() : '';
+
+    // Check if there's a selection and calculate its length
+    const currentSelection = window.getSelection();
+    let selectedTextLength = 0;
+    if (currentSelection && currentSelection.rangeCount > 0) {
+      const range = currentSelection.getRangeAt(0);
+      selectedTextLength = range.toString().length;
     }
-  }, []);
+
+    // Calculate available space: current content minus selected content (which will be replaced)
+    const availableSpace = charLimit - (currentText.length - selectedTextLength);
+    if (availableSpace <= 0) {
+      // No space available, prevent paste entirely and flash
+      onCharacterLimitExceeded?.();
+      return;
+    }
+
+    // For HTML content, convert to plain text first to avoid broken tags causing extra whitespace
+    let finalData: string;
+    let originalLength: number;
+    if (isHtml) {
+      // Create a temporary element to extract plain text from HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = pasteData;
+      const plainText = tempDiv.textContent || tempDiv.innerText || '';
+      // Trim whitespace and normalize line breaks
+      const cleanedText = plainText.replace(/\s+/g, ' ').trim();
+      originalLength = cleanedText.length;
+      // Truncate the cleaned text to fit within available space
+      finalData = cleanedText.substring(0, availableSpace);
+    } else {
+      // For plain text, clean it up and truncate directly
+      const cleanedText = pasteData.replace(/\s+/g, ' ').trim();
+      originalLength = cleanedText.length;
+      finalData = cleanedText.substring(0, availableSpace);
+    }
+
+    // If content was truncated, trigger the flash animation
+    if (originalLength > availableSpace) {
+      onCharacterLimitExceeded?.();
+    }
+
+    // Insert the truncated text using the Selection API to avoid execCommand issues
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(finalData);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.setEndAfter(textNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      // Fallback: use execCommand
+      document.execCommand('insertText', false, finalData);
+    }
+
+    // Update the letter content state and trigger counter update
+    if (editor) {
+      const updatedHtml = editor.innerHTML;
+      lastContentRef.current = updatedHtml;
+      currentContentRef.current = updatedHtml;
+      setLetterContent(updatedHtml);
+    }
+  }, [MAIN_CONTENT_LIMIT, setLetterContent, onCharacterLimitExceeded]);
 
   const handleTextareaChange = (
     e: React.ChangeEvent<HTMLTextAreaElement>,
     setValue: ((value: string) => void) | undefined,
     charLimit: number
   ) => {
+    const newValue = e.target.value.substring(0, charLimit);
     if (setValue) {
-      setValue(e.target.value.substring(0, charLimit));
+      setValue(newValue);
     }
   };
 
@@ -874,7 +1404,8 @@ export default function MainContent({
 
     setCheckingGrammar(true)
     try {
-      const text = editor.textContent || ''
+      const text = editor.innerText || ''
+      console.log('Extracted text for grammar check:', text)
 
       if (!text.trim()) {
         setGrammarSuggestions([])
@@ -999,7 +1530,7 @@ export default function MainContent({
     if (!replacement) return
 
     // Get current plain text content
-    const currentText = editor.textContent || ''
+    const currentText = editor.innerText || ''
 
     // Apply the replacement to the plain text
     const beforeMatch = currentText.substring(0, match.offset)
@@ -1012,22 +1543,11 @@ export default function MainContent({
     // Update the letter content state
     setLetterContent(fixedText)
 
-    // Calculate offset adjustment for remaining suggestions
-    const offsetAdjustment = replacement.length - match.length
+    // Close the dialog first to prevent showing stale suggestions
+    setGrammarDialogOpen(false)
 
-    // Update offsets for all remaining suggestions that come after this match
-    setGrammarSuggestions(prev => prev
-      .filter(suggestion => suggestion !== match)
-      .map(suggestion => {
-        if (suggestion.offset >= match.offset + match.length) {
-          return {
-            ...suggestion,
-            offset: suggestion.offset + offsetAdjustment
-          }
-        }
-        return suggestion
-      })
-    )
+    // Clear all suggestions after applying a fix - offsets become invalid
+    setGrammarSuggestions(prev => [])
 
     // Trigger input event to update formatting
     const inputEvent = new Event('input', { bubbles: true })
@@ -1039,7 +1559,7 @@ export default function MainContent({
     if (!editor) return
 
     // Get current plain text content
-    let currentText = editor.textContent || ''
+    let currentText = editor.innerText || ''
 
     // Sort matches by offset in reverse order to avoid position shifts
     const sortedMatches = [...grammarSuggestions].sort((a, b) => b.offset - a.offset)
@@ -1059,6 +1579,9 @@ export default function MainContent({
 
     // Update the letter content state
     setLetterContent(currentText)
+
+    // Clear suggestions since all fixes have been applied
+    setGrammarSuggestions([])
 
     // Trigger input event to update formatting
     const inputEvent = new Event('input', { bubbles: true })
@@ -1092,8 +1615,32 @@ export default function MainContent({
   const lineTileHeight = fontSize && fontSize[0] ? Math.round(fontSize[0] * 2.25) : 36
   const rusticAssetUrl = '/textures/rustic.svg'
 
+  // Memoize floral pattern generation to prevent recalculation on every render
+  const floralPattern = useMemo(() => {
+    if (!templateData?.lines || (templateData.lines as any).type !== 'floral') return null;
+    
+    const cfg = templateData.lines as any;
+    const w = containerSize.width || (typeof window !== 'undefined' ? window.innerWidth : 600);
+    const h = containerSize.height || (typeof window !== 'undefined' ? Math.floor(window.innerHeight * 0.6) : 800);
+    
+    return generateFloralPattern({
+      width: w,
+      height: h,
+      spacing: cfg.spacing,
+      thickness: cfg.thickness,
+      color: cfg.color,
+      secondaryColor: cfg.secondaryColor,
+      opacity: cfg.opacity,
+      rotation: cfg.rotation,
+    });
+  }, [
+    templateData?.lines,
+    containerSize.width,
+    containerSize.height
+  ]);
+
   return (
-    <div className="flex-1 h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide">
+    <div className="flex-1 h-full min-h-[600px] max-h-[calc(100vh-70px)] overflow-y-auto scrollbar-hide main-content-area" onClick={() => onFocusModeChange?.(true)} role="main" aria-label="Letter composition main content">
       {/* CSS Animations for line patterns */}
       <style jsx>{`
         @keyframes wave-flow {
@@ -1194,170 +1741,444 @@ export default function MainContent({
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="mb-2">
-          {/* Top row */}
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-2">
-            <div className="flex items-center gap-1 sm:gap-2 sm:gap-3 bg-white/80 border border-amber-100 rounded px-2 sm:px-3 py-2">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant={overlayFontOpen ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => onToggleFontOverlay?.()}
-                  className={`gap-1 hover:scale-105 transition-transform duration-200 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-700 hover:bg-amber-100'}`}
-                >
-                  <Type className="h-4 w-4" />
-                  <span className="text-xs whitespace-nowrap">Fonts</span>
-                </Button>
+        {/* Toolbar - Island Style - STICKY at top */}
+        <div className="toolbar-area sticky top-0 z-40 mb-6 bg-gradient-to-br from-amber-50 to-orange-50 pb-4 -mt-6 pt-6" aria-label="Letter editing toolbar" role="toolbar" aria-orientation="horizontal">
+          <div className="relative group/toolbar select-none">
+            {/* Glow effects */}
+            <div className="absolute inset-[-10px] bg-gradient-to-br from-amber-400/25 via-orange-400/15 to-rose-400/25 rounded-[2rem] blur-lg opacity-60 group-hover/toolbar:opacity-85 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-[-5px] bg-gradient-to-br from-amber-300/15 via-orange-300/10 to-rose-300/15 rounded-[1.75rem] blur-md opacity-70 group-hover/toolbar:opacity-100 transition-all duration-500 pointer-events-none"></div>
+            
+            {/* Toolbar Card */}
+            <div className="relative bg-gradient-to-br from-white via-amber-50/30 to-white shadow-xl backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-slate-200/50 hover:border-amber-300/40 transition-all duration-500">
+              {/* Top row - Stack vertically on very small screens */}
+              <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3 mb-3">
+                <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 bg-white/60 border border-amber-100/50 rounded-lg px-2 sm:px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant={overlayFontOpen ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => onToggleFontOverlay?.()}
+                          className={`gap-1 hover:scale-105 transition-transform duration-200 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-700 hover:bg-amber-100'}`}
+                          aria-label="Choose font style"
+                        >
+                          <Type className="h-4 w-4" />
+                          <span className="text-xs whitespace-nowrap">Fonts</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Choose font style</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 pl-1 sm:pl-2 lg:pl-4">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span className="text-xs text-gray-500 select-none">Tt</span>
+                          <div className="w-32 sm:w-48 md:w-64 lg:w-80 xl:w-92">
+                            <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} aria-label="Font size" />
+                          </div>
+                          <span className="text-lg text-gray-500 select-none">Tt</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Adjust font size</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={checkGrammar}
+                          disabled={checkingGrammar}
+                          aria-label="check-grammar"
+                          className={`gap-1 hover:bg-amber-50 transition-all duration-200 ${isMobile ? 'w-8' : 'w-16 sm:w-20'} justify-center ml-2 sm:ml-3`}
+                        >
+                          {checkingGrammar ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                              {!isMobile && <span className="whitespace-nowrap text-xs sm:text-sm">Checking..</span>}
+                            </>
+                          ) : (
+                            <>
+                              <CheckSquare className={`h-4 w-4`} />
+                              {!isMobile && (
+                                <span className={`whitespace-nowrap text-xs sm:text-sm`}>
+                                  Grammar
+                                  {grammarSuggestions.length > 0 && (
+                                    <span className="ml-1 text-[10px] bg-blue-600 text-white rounded-full px-1.5 py-0.5">
+                                      {grammarSuggestions.length}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Check grammar and spelling</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1 sm:gap-2 sm:gap-3 pl-1 sm:pl-2 sm:pl-4">
-                <span className="text-xs text-gray-500 select-none">Tt</span>
-                <div className="w-30 sm:w-24 md:w-32 lg:w-64">
-                  <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} />
+              {/* Bottom row - More compact on small screens */}
+              <div className="flex flex-wrap items-center justify-start gap-2 sm:gap-1 sm:justify-between toolbar-area">
+                <TooltipProvider>
+                <div className="flex items-center gap-1 bg-white/60 border border-amber-200/50 rounded-lg p-1 overflow-x-auto min-w-0 flex-shrink-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={selectedFormatting.includes('bold') ? 'default' : 'ghost'}
+                        size="sm"
+                        onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('bold') }}
+                        className={selectedFormatting.includes('bold') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Bold text"
+                      >
+                        <Bold className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Bold (Ctrl+B)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={selectedFormatting.includes('italic') ? 'default' : 'ghost'}
+                        size="sm"
+                        onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('italic') }}
+                        className={selectedFormatting.includes('italic') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Italic text"
+                      >
+                        <Italic className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Italic (Ctrl+I)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={selectedFormatting.includes('underline') ? 'default' : 'ghost'}
+                        size="sm"
+                        onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('underline') }}
+                        className={selectedFormatting.includes('underline') ? 'bg-amber-100 text-amber-900' : ''}
+                        aria-label="Underline text"
+                      >
+                        <Underline className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Underline (Ctrl+U)</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <span className="text-lg text-gray-500 select-none">Tt</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={checkGrammar}
-                  disabled={checkingGrammar}
-                  aria-label="check-grammar"
-                  className={`gap-1 hover:bg-amber-50 transition-all duration-200 w-20 justify-center ${
-                    checkingGrammar ? 'animate-pulse' : ''
-                  }`}
-                >
-                  {checkingGrammar ? (
+                
+                <div className="hidden sm:block w-px h-4 sm:h-5 bg-amber-200 mx-1" />
+                
+                {/* Desktop-only advanced controls */}
+                {!isMobile && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="Undo last action">
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Undo (Ctrl+Z)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="Redo last action">
+                          <RotateCw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Redo (Ctrl+Y)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <div className="hidden sm:block w-px h-5 bg-amber-200 mx-1" />
+                  </>
+                )}
+                
+                {/* List buttons - hidden on very small screens */}
+                <div className="hidden sm:flex items-center gap-1">
+                  {!isMobile && (
                     <>
-                      <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs whitespace-nowrap">Checking..</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare className="h-4 w-4" />
-                      <span className="text-xs whitespace-nowrap">Grammar</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={selectedFormatting.includes('olist') ? 'default' : 'ghost'}
+                            size="sm"
+                            onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('olist') }}
+                            aria-label="Insert numbered list"
+                            className={selectedFormatting.includes('olist') ? 'bg-amber-100 text-amber-900' : ''}
+                          >
+                            <ListOrdered className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Numbered List</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={selectedFormatting.includes('ulist') ? 'default' : 'ghost'}
+                            size="sm"
+                            onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('ulist') }}
+                            aria-label="Insert bullet list"
+                            className={selectedFormatting.includes('ulist') ? 'bg-amber-100 text-amber-900' : ''}
+                          >
+                            <ListIcon className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Bullet List</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <div className="hidden sm:block w-px h-5 bg-amber-200 mx-1" />
                     </>
                   )}
-                </Button>
+                </div>
+
+                {/* Emoji Picker - Desktop Only */}
+                {!isMobile && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          if (emojiPickerOpen) {
+                            setEmojiPickerOpen(false);
+                            setEmojiPickerPosition(null);
+                            setEmojiSearchQuery('');
+                          } else {
+                            const button = e.currentTarget;
+                            const rect = button.getBoundingClientRect();
+                            
+                            setEmojiPickerPosition({
+                              x: rect.left,
+                              y: rect.bottom + window.scrollY
+                            });
+                            setEmojiPickerOpen(true);
+                          }
+                        }}
+                        className="emoji-picker-button hover:bg-amber-50 hover:scale-105 transition-all duration-200 w-8"
+                        aria-label="Insert emoji"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Insert emoji (Ctrl+Shift+E)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                {/* Clear letter and Templates - always visible */}
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmOpen(true)}
+                        disabled={sending}
+                        aria-label="Clear letter content"
+                        className="text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Clear letter</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onToggleTemplates?.()}
+                        className="gap-1 border-amber-200 hover:bg-amber-50 hover:scale-105 transition-transform duration-200 text-sm flex-shrink-0"
+                        aria-label="Browse letter templates"
+                      >
+                        <BookTemplate className="h-3 w-3 sm:h-4 sm:w-4" />
+                        Templates
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Browse letter templates</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                </TooltipProvider>
               </div>
-            </div>
-
-            {/* Removed top-row Clear Letter button; moved to bottom toolbar */}
-          </div>
-
-          {/* Bottom row */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1 sm:gap-2 bg-white/80 border border-amber-200 rounded-md p-1 overflow-x-auto">
-              <Button
-                variant={selectedFormatting.includes('bold') ? 'default' : 'ghost'}
-                size="sm"
-                onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('bold') }}
-                className={selectedFormatting.includes('bold') ? 'bg-amber-100 text-amber-900' : ''}
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={selectedFormatting.includes('italic') ? 'default' : 'ghost'}
-                size="sm"
-                onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('italic') }}
-                className={selectedFormatting.includes('italic') ? 'bg-amber-100 text-amber-900' : ''}
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={selectedFormatting.includes('underline') ? 'default' : 'ghost'}
-                size="sm"
-                onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('underline') }}
-                className={selectedFormatting.includes('underline') ? 'bg-amber-100 text-amber-900' : ''}
-              >
-                <Underline className="h-4 w-4" />
-              </Button>
-              <div className="w-px h-5 bg-amber-200 mx-1" />
-              {!isMobile && (
-                <>
-                  <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="undo">
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="redo">
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-5 bg-amber-200 mx-1" />
-                </>
-              )}
-              {!isMobile && (
-                <>
-                  <Button
-                    variant={selectedFormatting.includes('olist') ? 'default' : 'ghost'}
-                    size="sm"
-                    onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('olist') }}
-                    aria-label="ordered-list"
-                    className={selectedFormatting.includes('olist') ? 'bg-amber-100 text-amber-900' : ''}
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={selectedFormatting.includes('ulist') ? 'default' : 'ghost'}
-                    size="sm"
-                    onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('ulist') }}
-                    aria-label="unordered-list"
-                    className={selectedFormatting.includes('ulist') ? 'bg-amber-100 text-amber-900' : ''}
-                  >
-                    <ListIcon className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-5 bg-amber-200 mx-1" />
-                </>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onToggleTemplates?.()}
-                className="gap-1 border-amber-200 hover:bg-amber-50 hover:scale-105 transition-transform duration-200"
-              >
-                <BookTemplate className="h-4 w-4" />
-                Templates
-              </Button>
-              {/* Clear letter moved here as trash icon with confirm */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmOpen(true)}
-                disabled={sending}
-                aria-label="clear-letter"
-                className="text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-{/* Templates will be done in next sprint*/}
-            {/* <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1 border-amber-200" onClick={() => onToggleTemplates?.()}>
-                <BookTemplate className="h-4 w-4" />
-                Templates
-              </Button>
-            </div> */}
           </div>
         </div>
+        </div>
+
+        {/* Error announcements for screen readers */}
+        <div id="error-announcements" className="sr-only" aria-live="assertive" aria-atomic="true">
+          {letterContent.length > MAIN_CONTENT_LIMIT && "Error: Letter content exceeds maximum character limit"}
+        </div>
+
+        {/* Status announcements for screen readers */}
+        <div id="status-announcements" className="sr-only" aria-live="polite" aria-atomic="true">
+          {checkingGrammar && "Checking grammar and spelling..."}
+          {grammarSuggestions.length > 0 && !checkingGrammar && `Found ${grammarSuggestions.length} grammar and spelling suggestion${grammarSuggestions.length === 1 ? '' : 's'}`}
+          {success && "Letter sent successfully"}
+        </div>
+
+        {/* Floating Emoji Picker at Cursor Position */}
+        {emojiPickerPosition && emojiPickerOpen && (
+          <div
+            className="fixed z-50"
+            style={{
+              left: `${emojiPickerPosition.x}px`,
+              top: `${emojiPickerPosition.y}px`,
+            }}
+            role="dialog"
+            aria-label="Emoji picker"
+            aria-modal="true"
+          >
+            <div className="relative bg-white/20 backdrop-blur-md rounded-xl shadow-2xl border-2 border-amber-300 p-2 w-80 max-h-96 overflow-y-auto select-none emoji-picker-container">
+              <div className="flex items-center gap-2 mb-2 px-2 bg-white/20 pb-2 border-b">
+                <input
+                  type="text"
+                  placeholder="Search emojis..."
+                  value={emojiSearchQuery}
+                  onChange={(e) => setEmojiSearchQuery(e.target.value)}
+                  className="flex-1 px-2 py-1 text-sm bg-white/50 border border-amber-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Search emojis"
+                  role="searchbox"
+                  aria-describedby="emoji-search-help"
+                />
+                <div id="emoji-search-help" className="sr-only">
+                  Type to search through emoji categories
+                </div>
+                <button
+                  onClick={() => {
+                    setEmojiPickerOpen(false)
+                    setEmojiPickerPosition(null)
+                    setEmojiSearchQuery('')
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close emoji picker"
+                >
+                  ✕
+                </button>
+              </div>
+              {/* Recently Used Category */}
+              {recentlyUsedEmojis.length > 0 && (
+                <div className="mb-3">
+                  <h4 className="text-sm font-bold text-amber-800 mb-3 px-2 uppercase tracking-wide flex items-center gap-2">
+                    <span className="text-lg">🕒</span> Recently Used
+                  </h4>
+                  <div className="grid grid-cols-8 gap-1" role="grid" aria-label="Recently used emojis">
+                    {recentlyUsedEmojis.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          insertEmoji(emoji)
+                          setEmojiPickerPosition(null)
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-amber-100 hover:shadow-md transition-all duration-200 text-xl hover:scale-110 active:scale-95 border border-transparent hover:border-amber-200"
+                        aria-label={`Insert ${emoji}`}
+                        role="gridcell"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {Object.entries(getFilteredEmojis()).map(([category, emojis]) => (
+                <div key={category} className="mb-3 last:mb-0">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 px-2 uppercase tracking-wide" id={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {category}
+                  </h4>
+                  <div className="grid grid-cols-8 gap-1" role="grid" aria-labelledby={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {emojis.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          insertEmoji(emoji)
+                          setEmojiPickerPosition(null)
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-amber-100 hover:shadow-md transition-all duration-200 text-xl hover:scale-110 active:scale-95 border border-transparent hover:border-amber-200"
+                        aria-label={`Insert ${emoji}`}
+                        role="gridcell"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Confirm Clear Letter Dialog */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Clear this letter?</DialogTitle>
+              <DialogTitle asChild>
+                <VisuallyHidden.Root>Confirm Clear Letter</VisuallyHidden.Root>
+              </DialogTitle>
             </DialogHeader>
-            <div className="text-sm text-gray-700">
-              This will remove your current letter and clear the selected template. This can’t be undone.
+            <div className="text-sm text-gray-700" role="alertdialog" aria-labelledby="clear-dialog-title" aria-describedby="clear-dialog-description">
+              <h2 id="clear-dialog-title" className="text-lg font-semibold text-gray-900 mb-3">Clear this letter?</h2>
+              <p id="clear-dialog-description" className="mb-4">
+                This will remove your current letter and clear the selected template. This can&apos;t be undone.
+              </p>
+              <div className="flex items-center space-x-2 py-2">
+                <input
+                  type="checkbox"
+                  id="clear-background"
+                  checked={clearBackground}
+                  onChange={(e) => setClearBackground(e.target.checked)}
+                  className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                  aria-describedby="clear-background-help"
+                />
+                <label htmlFor="clear-background" className="text-sm text-gray-700">
+                  Also reset background to white
+                </label>
+                <div id="clear-background-help" className="sr-only">
+                  Check this box to also reset the letter background to white when clearing
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} aria-label="Cancel clearing letter">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
-                onClick={() => { setConfirmOpen(false); onNewLetter?.() }}
+                onClick={() => { setConfirmOpen(false); onNewLetter?.(clearBackground); setClearBackground(false); }}
                 className="bg-red-600 hover:bg-red-700 text-white"
+                aria-describedby="clear-confirm-help"
               >
                 Clear Letter
               </Button>
+              <div id="clear-confirm-help" className="sr-only">
+                This action cannot be undone. Your letter content will be permanently removed.
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1366,18 +2187,18 @@ export default function MainContent({
         <Dialog open={grammarDialogOpen} onOpenChange={setGrammarDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[85vh] p-0 z-50 flex flex-col" showCloseButton={false}>
             <DialogTitle asChild>
-              <VisuallyHidden.Root>Grammar Check</VisuallyHidden.Root>
+              <VisuallyHidden.Root>Grammar Check Results</VisuallyHidden.Root>
             </DialogTitle>
 
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0" role="banner">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                   <CheckSquare className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Grammar Check</h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="text-lg font-semibold text-gray-900" id="grammar-dialog-title">Grammar Check</h2>
+                  <p className="text-sm text-gray-500" aria-live="polite">
                     {grammarSuggestions.length === 0
                       ? "No issues found - great job!"
                       : `${grammarSuggestions.length} suggestion${grammarSuggestions.length === 1 ? '' : 's'} found`
@@ -1390,16 +2211,17 @@ export default function MainContent({
                 size="sm"
                 onClick={() => setGrammarDialogOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
+                aria-label="Close grammar check dialog"
               >
                 ✕
               </Button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0" role="main" aria-labelledby="grammar-dialog-title">
               <div className="p-6">
                 {grammarSuggestions.length === 0 ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-12" role="status" aria-live="polite">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
@@ -1409,7 +2231,7 @@ export default function MainContent({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4" role="list" aria-label="Grammar and spelling suggestions">
                     {grammarSuggestions.map((match, index) => {
                       const isSpellingError = match.message.toLowerCase().includes('spelling') ||
                                              match.message.toLowerCase().includes('misspelled');
@@ -1417,7 +2239,7 @@ export default function MainContent({
                                             match.message.toLowerCase().includes('syntax');
 
                       return (
-                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow" role="listitem">
                           <div className="flex items-start gap-3">
                             {/* Error Type Icon */}
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -1426,7 +2248,7 @@ export default function MainContent({
                                 : isGrammarError
                                 ? 'bg-orange-100 text-orange-600'
                                 : 'bg-blue-100 text-blue-600'
-                            }`}>
+                            }`} aria-hidden="true">
                               {isSpellingError ? '🔤' : isGrammarError ? '📝' : '💡'}
                             </div>
 
@@ -1434,14 +2256,14 @@ export default function MainContent({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <h4 className="font-medium text-gray-900 text-sm leading-5">
+                                  <h4 className="font-medium text-gray-900 text-sm leading-5" id={`suggestion-${index}-title`}>
                                     {match.message}
                                   </h4>
 
                                   {/* Context with highlighting */}
                                   {match.context?.text && (
-                                    <div className="mt-2 p-3 bg-gray-50 rounded-md border-l-2 border-gray-300">
-                                      <p className="text-sm text-gray-700 font-mono">
+                                    <div className="mt-2 p-3 bg-gray-50 rounded-md border-l-2 border-gray-300" aria-labelledby={`suggestion-${index}-title`}>
+                                      <p className="text-sm text-gray-700 font-mono" aria-label="Error context">
                                         {(() => {
                                           const contextText = match.context.text;
                                           // Calculate where the error starts within the context
@@ -1456,7 +2278,7 @@ export default function MainContent({
                                           return (
                                             <>
                                               {beforeError}
-                                              <span className="bg-red-200 text-red-900 px-1 rounded font-semibold">
+                                              <span className="bg-red-200 text-red-900 px-1 rounded font-semibold" aria-label={`Error: ${errorText}`}>
                                                 {errorText}
                                               </span>
                                               {afterError}
@@ -1470,10 +2292,10 @@ export default function MainContent({
                                   {/* Suggestions */}
                                   {match.replacements && match.replacements.length > 0 && (
                                     <div className="mt-3 space-y-2">
-                                      <p className="text-xs font-medium text-gray-700 uppercase tracking-wide">
+                                      <p className="text-xs font-medium text-gray-700 uppercase tracking-wide" id={`suggestions-${index}-label`}>
                                         Suggestions
                                       </p>
-                                      <div className="flex flex-wrap gap-2">
+                                      <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`suggestions-${index}-label`}>
                                         {match.replacements.slice(0, 3).map((replacement: { value: string }, repIndex: number) => (
                                           <Button
                                             key={repIndex}
@@ -1481,6 +2303,7 @@ export default function MainContent({
                                             size="sm"
                                             onClick={() => applyGrammarSuggestion(match, repIndex)}
                                             className="text-sm px-3 py-1 h-auto bg-white hover:bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-300"
+                                            aria-label={`Apply suggestion: ${replacement.value}`}
                                           >
                                             {replacement.value}
                                           </Button>
@@ -1497,6 +2320,7 @@ export default function MainContent({
                                     size="sm"
                                     onClick={() => applyGrammarSuggestion(match, 0)}
                                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0"
+                                    aria-label="Apply first suggestion"
                                   >
                                     <CheckCircle2 className="w-4 h-4 mr-1" />
                                     Fix
@@ -1515,18 +2339,22 @@ export default function MainContent({
 
             {/* Footer */}
             {grammarSuggestions.length > 0 && (
-              <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50 flex-shrink-0">
-                <div className="text-sm text-gray-600">
+              <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50 flex-shrink-0" role="contentinfo">
+                <div className="text-sm text-gray-600" aria-live="polite">
                   {grammarSuggestions.length} issue{grammarSuggestions.length === 1 ? '' : 's'} found
                 </div>
                 <div className="flex gap-3">
                   <Button
                     onClick={applyAllGrammarSuggestions}
                     className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    aria-describedby="apply-all-help"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Apply All Fixes
                   </Button>
+                  <div id="apply-all-help" className="sr-only">
+                    Apply all grammar and spelling suggestions at once
+                  </div>
                 </div>
               </div>
             )}
@@ -1561,7 +2389,7 @@ export default function MainContent({
               borderRadius: 'inherit' // Ensure corners stay rounded
             }} />
             {/* Static line pattern overlay */}
-            {templateData?.lines && (() => {
+            {isClient && templateData?.lines && (() => {
               const cfg = templateData.lines as any;
               // Fallback to viewport dimensions if container hasn't measured yet (common on mobile)
               const w = containerSize.width || (typeof window !== 'undefined' ? window.innerWidth : 600);
@@ -1596,7 +2424,17 @@ export default function MainContent({
                     rotation: cfg.rotation,
                   });
                   break;
-                // Spiral pattern removed to improve performance
+                case 'spiral':
+                  pattern = generateSpiralPattern({
+                    width: w,
+                    height: h,
+                    spacing: cfg.spacing,
+                    thickness: cfg.thickness,
+                    color: cfg.color,
+                    opacity: cfg.opacity,
+                    rotation: cfg.rotation,
+                    secondaryColor: cfg.secondaryColor,
+                  });
                   break;
                 case 'swirls':
                   pattern = generateSwirlGrid({ width: w, height: h, spacing: cfg.spacing, thickness: cfg.thickness, color: cfg.color, opacity: cfg.opacity, rotation: cfg.rotation });
@@ -1620,7 +2458,8 @@ export default function MainContent({
                   };
                   pattern = generateDotsPattern(dottedConfig);
                   break;
-                // Floral pattern removed to improve performance
+                case 'floral':
+                  pattern = floralPattern;
                   break;
                 default:
                   pattern = null;
@@ -1649,7 +2488,7 @@ export default function MainContent({
               marginBottom: '16px' // Add spacing to ensure the end of the page is visible
             }}
           >
-            <div className="w-full bg-transparent space-y-0 overflow-hidden md:pl-4">
+            <div className="w-full bg-transparent space-y-0 overflow-hidden md:px-4">
               <p className={`${fontClass} bg-transparent`} style={{ 
                 fontSize: `${headerFooterSize}px`, 
                 color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -1673,14 +2512,18 @@ export default function MainContent({
               <textarea
                 rows={1}
                 value={letterHeading}
-                onChange={(e) => handleTextareaChange(e, setLetterHeading, 100)}
+                onChange={(e) => handleTextareaChange(e, setLetterHeading, HEADING_LIMIT)}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = 'auto';
                   target.style.height = `${target.scrollHeight}px`;
                 }}
-                onPaste={(e) => handlePaste(e, 100)}
+                onPaste={(e) => handlePaste(e, HEADING_LIMIT)}
                 className={`w-full md:w-auto bg-transparent ${fontClass}`}
+                aria-label="Letter heading"
+                aria-required="true"
+                aria-invalid={letterHeading.trim().length === 0 ? "true" : "false"}
+                aria-describedby="heading-character-count"
                 style={{ 
                   fontSize: `${headerFooterSize}px`, 
                   color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -1700,9 +2543,13 @@ export default function MainContent({
                   ...(fontInlineStyle || {}) 
                 }}
               />
+              {/* Heading character count for screen readers */}
+              <div id="heading-character-count" className="sr-only" aria-live="polite">
+                Heading: {letterHeading.length}/{HEADING_LIMIT} characters
+              </div>
             </div>
 
-            <Card className="pt-5 pb-2 px-4 sm:px-5 bg-transparent shadow-none" style={{ 
+            <Card className="pt-5 pb-2 px-4 sm:px-5 bg-transparent shadow-none relative main-content-area" onClick={() => onFocusModeChange?.(true)} style={{ 
               backgroundColor: 'transparent', 
               marginTop: '-1px', // Eliminate any gap between heading and card
               border: 'none',
@@ -1710,17 +2557,26 @@ export default function MainContent({
               WebkitBackdropFilter: 'none',
               boxShadow: 'none'
             }}>
-              <div className="relative flex flex-col bg-transparent" style={{ width: '100%' }}>
+              
+              <div className="relative flex flex-col bg-transparent z-10" style={{ width: '100%' }}>
                 <div
+                  id="letter-editor"
                   ref={editorRef}
                   contentEditable={!success}
                   suppressContentEditableWarning
+                  onBeforeInput={handleBeforeInput}
                   onInput={handleInput}
-                  onPaste={(e) => handlePaste(e, 5000)}
+                  onPaste={(e) => handlePaste(e, MAIN_CONTENT_LIMIT)}
                   onTouchStart={handleTouchStart}
                   spellCheck="true"
                   className={`flex-1 border-none leading-relaxed ${fontClass} resize-none pb-2 min-h-[200px] bg-transparent`}
                   tabIndex={0}
+                  role="textbox"
+                  aria-label="Letter content"
+                  aria-multiline="true"
+                  aria-describedby="letter-stats character-limit-status"
+                  aria-required="true"
+                  aria-invalid={letterContent.trim().length === 0 ? "true" : "false"}
                   style={{
                     fontSize: `${fontSize[0]}px`,
                     color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -1744,19 +2600,34 @@ export default function MainContent({
                   }}
                 />
 
-                <div className="text-right pt-1 pb-1 z-20 bg-transparent overflow-hidden">
+                {/* Character limit status for screen readers */}
+                <div id="character-limit-status" className="sr-only" aria-live="polite" aria-atomic="true">
+                  {letterContent.length}/{MAIN_CONTENT_LIMIT} characters used
+                  {letterContent.length >= MAIN_CONTENT_LIMIT * 0.9 && (
+                    <span>. Warning: Approaching character limit</span>
+                  )}
+                  {letterContent.length >= MAIN_CONTENT_LIMIT && (
+                    <span>. Character limit exceeded</span>
+                  )}
+                </div>
+
+                <div className="text-right pt-1 pb-1 z-20 bg-transparent">
                   {/* Footer prefix full width on small, right-aligned */}
                   <textarea
                     rows={1}
                     value={letterFooterPrefix}
-                    onChange={(e) => handleTextareaChange(e, setLetterFooterPrefix, 100)}
+                    onChange={(e) => handleTextareaChange(e, setLetterFooterPrefix, FOOTER_LIMIT)}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
                       target.style.height = 'auto';
                       target.style.height = `${target.scrollHeight}px`;
                     }}
-                    onPaste={(e) => handlePaste(e, 100)}
+                    onPaste={(e) => handlePaste(e, FOOTER_LIMIT)}
                     className={`w-full md:w-48 text-right bg-transparent ${fontClass}`}
+                    aria-label="Letter footer signature"
+                    aria-required="true"
+                    aria-invalid={letterFooterPrefix.trim().length === 0 ? "true" : "false"}
+                    aria-describedby="footer-character-count"
                     style={{ 
                       fontSize: `${fontSize[0]}px`, 
                       color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,
@@ -1772,10 +2643,16 @@ export default function MainContent({
                       padding: 0,
                       paddingBottom: '2px',
                       resize: 'none',
-                      overflow: 'hidden',
+                      minHeight: '1.2em',
+                      maxHeight: '6em',
+                      overflow: 'visible',
                       ...(fontInlineStyle || {}) 
                     }}
                   />
+                  {/* Footer character count for screen readers */}
+                  <div id="footer-character-count" className="sr-only" aria-live="polite">
+                    Footer: {letterFooterPrefix.length}/{FOOTER_LIMIT} characters
+                  </div>
                   <div className={`${fontClass} bg-transparent`} style={{ 
                     fontSize: `${fontSize[0]}px`, 
                     color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined,

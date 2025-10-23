@@ -459,13 +459,12 @@ export function generateFlowerPattern({
 
 // -------------------- Spiral --------------------
 /**
- * Draws an enhanced Archimedean spiral with decorative elements.
+ * Draws a clean Archimedean spiral.
  * @param width Canvas width
  * @param height Canvas height
  * @param spacing Controls distance between successive loops
  * @param thickness Stroke width
  * @param color Primary stroke color
- * @param secondaryColor Optional secondary color for complementary spiral
  * @param opacity Stroke opacity
  * @param rotation Rotation to apply around center
  */
@@ -488,53 +487,65 @@ export function generateSpiralPattern({
   color = '#000',
   opacity = 1,
   rotation = 0,
-  secondaryColor,
 }: SpiralParams): React.ReactNode {
+  // Adjust center point to better fill rectangular space
+  // Move center slightly toward the center of mass for better space utilization
   const cx = width / 2;
   const cy = height / 2;
-  const maxRadius = Math.min(width, height) / 2;
-  
-  // Adjust spiral characteristics based on spacing
-  // Spacing affects both turns and growth rate
-  const spacingFactor = Math.max(0.5, Math.min(2, 60 / spacing));
-  const turns = Math.max(2, 8 * spacingFactor); // More responsive to spacing changes
-  const growthFactor = Math.max(0.4, 0.6 / spacingFactor);
-  const samples = Math.max(500, 700 * spacingFactor); // More points for smoother curves
-  const elements: React.ReactNode[] = [];
 
-  // Use d3 curve for smoother spiral - adjust tension
+  // Use distance to farthest corner for better space filling
+  const cornerDistances = [
+    Math.sqrt(cx * cx + cy * cy), // top-left
+    Math.sqrt((width - cx) * (width - cx) + cy * cy), // top-right
+    Math.sqrt(cx * cx + (height - cy) * (height - cy)), // bottom-left
+    Math.sqrt((width - cx) * (width - cx) + (height - cy) * (height - cy)) // bottom-right
+  ];
+  const maxRadius = Math.max(...cornerDistances) * 0.85; // Fill 85% of the space to corners
+
+  // Calculate spiral parameters based on spacing
+  const spacingFactor = Math.max(0.3, Math.min(3, 50 / spacing));
+  const turns = Math.max(3, 12 * spacingFactor);
+  const samples = Math.max(200, 400 * spacingFactor);
+
+  // Use d3 curve for smooth spiral
   const spiralLine = line()
     .x(d => d[0])
     .y(d => d[1])
-    .curve(curveCardinal.tension(0.2)); // Lower tension for smoother curves
-  
-  // Generate points for the main spiral with improved formula
+    .curve(curveCardinal.tension(0.1));
+
+  // Generate points for a clean Archimedean spiral
   const spiralPoints: [number, number][] = [];
-  const step = (turns * 2 * Math.PI) / samples;
-  
+  const maxTheta = turns * 2 * Math.PI;
+
+  // Adjust parameters to better fill the available space
+  const startRadius = Math.max(1, spacing / 6); // Even smaller starting point
+  const growthRate = (maxRadius - startRadius) / maxTheta;
+
   for (let i = 0; i <= samples; i++) {
-    const progress = i / samples;
-    const theta = i * step;
-    
-    // Enhanced formula with non-linear growth
-    const r = growthFactor * Math.pow(theta, 0.85) * (maxRadius / Math.pow(turns * 2 * Math.PI, 0.85));
-    
-    // Add subtle variation for more organic feel
-    const variation = Math.sin(theta * 5) * (thickness / 4);
-    
-    const x = cx + r * Math.cos(theta) + variation * Math.cos(theta + Math.PI/2);
-    const y = cy + r * Math.sin(theta) + variation * Math.sin(theta + Math.PI/2);
-    
+    const t = i / samples;
+    const theta = t * maxTheta;
+
+    // Archimedean spiral: r = a + b * theta, ensuring it fills the space
+    const r = startRadius + growthRate * theta;
+
+    // Allow it to go slightly beyond maxRadius to ensure full coverage
+    if (r > maxRadius * 1.05) break;
+
+    const x = cx + r * Math.cos(theta);
+    const y = cy + r * Math.sin(theta);
+
     spiralPoints.push([x, y]);
   }
 
   // Create the spiral path
   const spiralPath = spiralLine(spiralPoints);
-  
+
   if (spiralPath) {
-    elements.push(
+    return React.createElement('g', {
+      transform: `rotate(${rotation} ${cx} ${cy})`
+    },
       React.createElement('path', {
-        key: 'main-spiral',
+        key: 'spiral',
         d: spiralPath,
         stroke: color,
         strokeWidth: thickness,
@@ -544,102 +555,9 @@ export function generateSpiralPattern({
         strokeLinejoin: 'round'
       })
     );
-
-    // Add secondary spiral if color provided
-    if (secondaryColor) {
-      // Create offset points for secondary spiral with different characteristics
-      const secondaryPoints: [number, number][] = [];
-      
-      // Create a complementary spiral with different characteristics
-      const secondaryTurns = turns * 0.8; // Slightly fewer turns
-      const secondaryGrowth = growthFactor * 1.1; // Slightly different growth rate
-      const secondaryStep = (secondaryTurns * 2 * Math.PI) / samples;
-      
-      for (let i = 0; i <= samples; i++) {
-        const progress = i / samples;
-        const theta = i * secondaryStep + Math.PI; // 180° phase shift
-        
-        // Slightly different formula for interesting contrast
-        const r = maxRadius * 0.85 * secondaryGrowth * Math.pow(theta, 0.85) / Math.pow(secondaryTurns * 2 * Math.PI, 0.85);
-        
-        // Different variation pattern
-        const variation = Math.sin(theta * 7) * (thickness / 5);
-        
-        const x = cx + r * Math.cos(theta) + variation * Math.cos(theta + Math.PI/2);
-        const y = cy + r * Math.sin(theta) + variation * Math.sin(theta + Math.PI/2);
-        
-        secondaryPoints.push([x, y]);
-      }
-
-      const secondarySpiralPath = spiralLine(secondaryPoints);
-      if (secondarySpiralPath) {
-        elements.push(
-          React.createElement('path', {
-            key: 'secondary-spiral',
-            d: secondarySpiralPath,
-            stroke: secondaryColor,
-            strokeWidth: thickness * 0.8,
-            fill: 'none',
-            opacity: opacity * 0.8,
-            strokeLinecap: 'round',
-            strokeLinejoin: 'round',
-          })
-        );
-      }
-      
-      // Add small decorative elements at regular intervals along main spiral
-      if (spacing < 30) { // Only add details when spacing is smaller
-        for (let i = 0; i < spiralPoints.length; i += Math.max(5, Math.floor(samples / 20))) {
-          const [x, y] = spiralPoints[i];
-          
-          // Small circle at point
-          elements.push(
-            React.createElement('circle', {
-              key: `spiral-dot-${i}`,
-              cx: x,
-              cy: y,
-              r: thickness * 0.7,
-              fill: secondaryColor,
-              opacity: opacity * 0.7
-            })
-          );
-        }
-      }
-    } else {
-      // If no secondary spiral, add small decorative elements to the main spiral
-      for (let i = 10; i < spiralPoints.length; i += Math.max(10, Math.floor(samples / 15))) {
-        const [x, y] = spiralPoints[i];
-        const prevPoint = spiralPoints[Math.max(0, i-3)];
-        
-        // Calculate angle for consistent orientation
-        const angle = Math.atan2(y - prevPoint[1], x - prevPoint[0]);
-        const perpAngle = angle + Math.PI/2;
-        
-        // Small perpendicular line
-        const lineLength = thickness * 2;
-        const x1 = x + Math.cos(perpAngle) * lineLength;
-        const y1 = y + Math.sin(perpAngle) * lineLength;
-        const x2 = x - Math.cos(perpAngle) * lineLength;
-        const y2 = y - Math.sin(perpAngle) * lineLength;
-        
-        elements.push(
-          React.createElement('line', {
-            key: `spiral-tick-${i}`,
-            x1,
-            y1,
-            x2,
-            y2,
-            stroke: color,
-            strokeWidth: thickness * 0.5,
-            opacity: opacity * 0.7,
-            strokeLinecap: 'round'
-          })
-        );
-      }
-    }
   }
 
-  return React.createElement('g', { transform: `rotate(${rotation} ${cx} ${cy})` }, ...elements);
+  return null;
 }
 
 // -------------------- Swirl Grid --------------------
@@ -934,167 +852,446 @@ export function generateFloralPattern({
   opacity = 1,
   rotation = 0,
 }: FloralParams): React.ReactNode {
-  const cx = width / 2;
-  const cy = height / 2;
   const elements: React.ReactNode[] = [];
-
-  // Create line generators for smooth curves with different tensions
-  const vineLine = line()
-    .x(d => d[0])
-    .y(d => d[1])
-    .curve(curveCardinal.tension(0.5)); // Smoother curve for main vines
-
-  // Create a more organic curve generator for leaves
-  const leafLine = line()
-    .x(d => d[0])
-    .y(d => d[1])
-    .curve(curveBundle.beta(0.7)); // More compact curve for leaves
-
-  // Adjust pattern complexity based on spacing
-  const vineCount = Math.max(2, Math.min(7, Math.floor(120 / spacing) + 1));
-  const vineLength = Math.min(width, height) * (0.35 + spacing/300); // Longer with more spacing
-
-  // Generate main vine structure
-  for (let v = 0; v < vineCount; v++) {
-    const startAngle = (v * 2 * Math.PI) / vineCount;
-    
-    // Create main vine path points with enhanced variation
-    const points: [number, number][] = [];
-    const segments = Math.max(12, Math.min(24, Math.floor(60 / spacing) * 3)); // More detail with smaller spacing
-
-    // Add center point
-    points.push([cx, cy]);
-
-    for (let s = 1; s <= segments; s++) {
-      const progress = s / segments;
-      // Create more natural spiral by varying the curl factor
-      const curl = 1.5 + (spacing / 200); // Spacing affects curl
-      const angle = startAngle + progress * Math.PI * curl;
-      
-      // Non-linear growth for more natural look
-      const radius = vineLength * Math.pow(progress, 0.9);
-      
-      // Multi-layered variation for more organic feel
-      const variation1 = Math.sin(progress * Math.PI * 4) * (spacing / 15);
-      const variation2 = Math.cos(progress * Math.PI * 7) * (spacing / 30);
-      
-      points.push([
-        cx + radius * Math.cos(angle) + variation1 * Math.cos(angle + Math.PI/2) + variation2,
-        cy + radius * Math.sin(angle) + variation1 * Math.sin(angle + Math.PI/2) + variation2
-      ]);
+  // simple color helpers (moved here so both main loop and fallback can use them)
+  const hexToRgb = (hex: string) => {
+    const h = hex.replace('#', '');
+    const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return [r, g, b];
+  };
+  const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  const shade = (hex: string, pct: number) => {
+    try {
+      const [r, g, b] = hexToRgb(hex);
+      const nr = Math.max(0, Math.min(255, Math.round(r * (1 + pct))));
+      const ng = Math.max(0, Math.min(255, Math.round(g * (1 + pct))));
+      const nb = Math.max(0, Math.min(255, Math.round(b * (1 + pct))));
+      return rgbToHex(nr, ng, nb);
+    } catch (e) {
+      return hex;
     }
+  };
+  // Use the same rotated-bounds approach for consistent behavior with swirl grid
+  // Expand the rotated bounds slightly so the generated block is larger and fills corners
+  const bounds = getRotatedBounds(width, height, rotation);
+  const marginFactor = 0.18; // 18% extra coverage around rotated bounds
+  const rotatedWidth = bounds.rotatedWidth * (1 + marginFactor);
+  const rotatedHeight = bounds.rotatedHeight * (1 + marginFactor);
 
-    // Generate vine path
-    const vinePath = vineLine(points);
+  // Map user spacing (0..600) to 0..1
+  const maxParam = 600;
+  const p = Math.max(0, Math.min(spacing, maxParam)) / maxParam;
 
-    if (vinePath) {
-      // Draw the main vine
+  // Make desired columns responsive: more columns (denser) when user spacing is small
+  const minColumns = 6;
+  const maxColumns = 36; // allow up to 36 columns for higher density
+  const desiredColumns = Math.max(1, Math.round(minColumns + (1 - p) * (maxColumns - minColumns)));
+
+  // Base cell derived from rotated width and desired columns
+  const defaultCell = Math.max(6, rotatedWidth / Math.max(1, desiredColumns));
+
+  // Spacing multipliers (user can push spacing up to make fewer per row)
+  const multiplierMin = 0.45;
+  const multiplierMax = 2.8;
+  let adjustedSpacing = defaultCell * (multiplierMin + p * (multiplierMax - multiplierMin));
+
+  // Thickness should both increase flower size and increase spacing to avoid overlap
+  // Make thickness more influential but clamped to a reasonable range
+  const thicknessInfluence = 1 + Math.max(0, thickness - 6) * 0.08; // e.g. thickness 16 => ~1.8
+  adjustedSpacing *= thicknessInfluence;
+
+  // Flower size bounds
+  const minFlowerSize = 5;
+  const maxFlowerSize = Math.min(Math.max(18, defaultCell * 0.9), Math.min(width, height) * 0.38);
+
+  // Preliminary flower size derived from spacing and thickness
+  let flowerSize = Math.max(minFlowerSize, Math.min(adjustedSpacing * 0.36, maxFlowerSize));
+
+  // Enforce minimum spacing relative to flowerSize to avoid overlap
+  const overlapFactor = 2.0; // spacing must be >= flowerSize * overlapFactor
+  adjustedSpacing = Math.max(adjustedSpacing, flowerSize * overlapFactor);
+
+  // Prevent pathological cases (spacing=0 and thickness=0) from creating huge grids.
+  // Enforce a safe minimum spacing and a hard cap on total SVG elements.
+  const safeMinSpacing = Math.max(10, Math.min(width, height) / 24); // reasonable minimum cell size
+  adjustedSpacing = Math.max(adjustedSpacing, safeMinSpacing);
+
+  // Cap rules to avoid freezing the UI
+  const MAX_CELLS = 44; // relax per-dimension cap to allow denser layouts
+  const MAX_ELEMENTS = 800; // increase total cap so more flowers can be shown while still being safe
+
+  // Estimate required elements and increase spacing until the estimate is below MAX_ELEMENTS
+  let cols = Math.max(1, Math.min(MAX_CELLS, Math.floor(rotatedWidth / adjustedSpacing) + 1));
+  let rows = Math.max(1, Math.min(MAX_CELLS, Math.floor(rotatedHeight / adjustedSpacing) + 1));
+
+  // Average petals per flower estimate (will be clamped later)
+  const avgPetalsGuess = 3.5; // assume fewer petals so we allow more centers
+  let estimated = cols * rows * (1 + avgPetalsGuess);
+  let safetyIter = 0;
+  while (estimated > MAX_ELEMENTS && safetyIter < 8) {
+    // increase spacing to reduce density but be conservative so we don't kill the pattern
+    adjustedSpacing *= 1.22;
+    adjustedSpacing = Math.max(adjustedSpacing, safeMinSpacing);
+    cols = Math.max(1, Math.min(MAX_CELLS, Math.floor(rotatedWidth / adjustedSpacing) + 1));
+    rows = Math.max(1, Math.min(MAX_CELLS, Math.floor(rotatedHeight / adjustedSpacing) + 1));
+    estimated = cols * rows * (1 + avgPetalsGuess);
+    safetyIter++;
+  }
+
+  // Recompute final spacing to evenly distribute across rotated bounds
+  const finalSpacingX = rotatedWidth / cols;
+  const finalSpacingY = rotatedHeight / rows;
+
+  // Ensure final spacings respect minimum spacing and thickness influence
+  const minSpacing = flowerSize * overlapFactor;
+  const spacingX = Math.max(finalSpacingX, minSpacing);
+  const spacingY = Math.max(finalSpacingY, minSpacing);
+
+  // Recalculate flowerSize relative to final spacing (keeps flowers proportional and safe)
+  flowerSize = Math.max(minFlowerSize, Math.min(flowerSize, spacingX * 0.44));
+
+  // Slightly reduce jitter and bound it as a small fraction of spacing so it can't cause overlap
+  const jitterCap = Math.min(8, spacingX * 0.07);
+
+  // Loop using the derived spacing and ensure full-area coverage
+  const rowSpacing = spacingY;
+  for (let row = 0; row < rows; row++) {
+    const y = row * rowSpacing + rowSpacing / 2;
+    const rowOffset = (row % 2) * (spacingX / 2);
+
+    for (let col = 0; col < cols; col++) {
+      const x = col * spacingX + spacingX / 2 + rowOffset;
+
+      // Map rotated grid position back into canvas coordinates
+      const tx = x - rotatedWidth / 2 + width / 2;
+      const ty = y - rotatedHeight / 2 + height / 2;
+
+      // More realistic flower: two rings of petals (outer then inner) and a filled center
+      const seed = (row * 73856093) ^ (col * 19349663);
+      const rand = (n: number) => {
+        let x = (seed + n) | 0;
+        x ^= x << 13;
+        x ^= x >>> 17;
+        x ^= x << 5;
+        return Math.abs(x) / 0x7fffffff;
+      };
+
+      // Bounded jitter for organic look (using seeded random for consistency)
+      const jitterX = (rand(6) - 0.5) * jitterCap;
+      const jitterY = (rand(7) - 0.5) * jitterCap;
+
+      const centerX = tx + jitterX;
+      const centerY = ty + jitterY;
+
+      // Petal counts for rings
+      const outerCount = 6 + Math.floor(rand(1) * 3); // 6..8
+      const innerCount = Math.max(4, Math.floor(outerCount * (0.6 + rand(2) * 0.3))); // smaller inner ring
+
+      // Sizes
+      const outerLength = flowerSize * (0.9 + Math.min(0.6, thickness / 28));
+      const innerLength = outerLength * (0.52 + rand(3) * 0.12);
+      const outerWidth = flowerSize * (1.0 + rand(4) * 0.6);
+      const innerWidth = flowerSize * (0.6 + rand(5) * 0.4);
+
+      // simple color helpers
+      const hexToRgb = (hex: string) => {
+        const h = hex.replace('#', '');
+        const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return [r,g,b];
+      };
+      const rgbToHex = (r:number,g:number,b:number) => '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      const shade = (hex: string, pct: number) => {
+        try{
+          const [r,g,b] = hexToRgb(hex);
+          const nr = Math.max(0, Math.min(255, Math.round(r * (1 + pct))));
+          const ng = Math.max(0, Math.min(255, Math.round(g * (1 + pct))));
+          const nb = Math.max(0, Math.min(255, Math.round(b * (1 + pct))));
+          return rgbToHex(nr,ng,nb);
+        } catch(e){
+          return hex;
+        }
+      };
+
+      const petalStroke = shade(color, -0.25);
+      const petalFillColor = color;
+      const petalInnerFill = secondaryColor || shade(color, 0.25);
+
+      // Replace abstract Bezier petals with two concentric rings of filled, rounded ellipses
+      // Helper: create a Lissajous-perturbed ellipse path
+      // We perturb a base ellipse (rx,ry) by adding small sinusoidal offsets controlled by
+      // amplitudes A/B and frequencies alpha/beta. Relationship: alpha = 2*pi*freqHz
+      const createLissajousPetalPath = (
+        cx0: number,
+        cy0: number,
+        ang0: number,
+        rx0: number,
+        ry0: number,
+        A: number,
+        freqAlphaHz: number,
+        B: number,
+        freqBetaHz: number,
+        samples = 34
+      ) => {
+        const alpha = 2 * Math.PI * Math.max(0, freqAlphaHz);
+        const beta = 2 * Math.PI * Math.max(0, freqBetaHz);
+        let d = '';
+
+        // small deterministic phase offsets for per-petal variety
+        const ph1 = rand(71) * Math.PI * 2;
+        const ph2 = rand(72) * Math.PI * 2;
+
+        for (let s = 0; s <= samples; s++) {
+          const t = (s / samples) * 2 * Math.PI;
+
+          // base ellipse coords with mild harmonic modulation so shape isn't perfectly circular
+          let ex = rx0 * Math.cos(t) * (1 + 0.22 * Math.sin(2 * t + ph1));
+          let ey = ry0 * Math.sin(t) * (1 + 0.16 * Math.cos(3 * t + ph2));
+
+          // radial bias to elongate the forward-facing tip (when cos(t) is positive)
+          const tipBias = 1 + 0.9 * Math.pow(Math.max(0, Math.cos(t)), 8);
+          ex *= 1 + 0.35 * (tipBias - 1);
+          ey *= 1 + 0.18 * (tipBias - 1);
+
+          // Lissajous perturbations
+          ex += A * Math.sin(alpha * t + 0.3 + rand(73));
+          ey += B * Math.cos(beta * t + 0.7 + rand(74));
+
+          // subtle skew to avoid perfect symmetry
+          const skew = 0.14 * Math.sin(t * 1.3 + rand(75));
+          ex += rx0 * skew;
+
+          // rotate by ang0 and translate
+          const rx = ex * Math.cos(ang0) - ey * Math.sin(ang0) + cx0;
+          const ry = ex * Math.sin(ang0) + ey * Math.cos(ang0) + cy0;
+
+          // Add points with a smooth polyline (samples high enough to appear smooth)
+          d += s === 0 ? `M ${rx} ${ry}` : ` L ${rx} ${ry}`;
+        }
+
+        d += ' Z';
+        return d;
+      };
+
+      // create per-flower radial gradients for depth
+      const outerGradId = `flower-grad-outer-${row}-${col}`;
+      const innerGradId = `flower-grad-inner-${row}-${col}`;
       elements.push(
-        React.createElement('path', {
-          key: `vine-${v}`,
-          d: vinePath,
-          stroke: color,
-          strokeWidth: thickness,
-          opacity,
-          fill: 'none',
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round'
-        })
+        React.createElement('defs', { key: `defs-${row}-${col}` },
+          React.createElement('radialGradient', { id: outerGradId, cx: '50%', cy: '45%', r: '60%' },
+            React.createElement('stop', { key: `s1-${row}-${col}`, offset: '0%', stopColor: shade(petalFillColor, 0.28), stopOpacity: 1 }),
+            React.createElement('stop', { key: `s2-${row}-${col}`, offset: '65%', stopColor: petalFillColor, stopOpacity: 0.96 }),
+            React.createElement('stop', { key: `s3-${row}-${col}`, offset: '100%', stopColor: shade(petalFillColor, -0.18), stopOpacity: 1 })
+          ),
+          React.createElement('radialGradient', { id: innerGradId, cx: '50%', cy: '50%', r: '60%' },
+            React.createElement('stop', { key: `is1-${row}-${col}`, offset: '0%', stopColor: shade(petalInnerFill, 0.28), stopOpacity: 1 }),
+            React.createElement('stop', { key: `is2-${row}-${col}`, offset: '68%', stopColor: petalInnerFill, stopOpacity: 0.94 }),
+            React.createElement('stop', { key: `is3-${row}-${col}`, offset: '100%', stopColor: shade(petalInnerFill, -0.12), stopOpacity: 1 })
+          )
+        )
       );
 
-      // Add decorative elements along the vine
-      const leafInterval = Math.max(2, Math.ceil(segments / (spacing < 20 ? 8 : 6))); // Fewer leaves with more spacing
-      
-      for (let l = leafInterval; l < points.length - 2; l += leafInterval) {
-        const [x, y] = points[l];
-        const prevPoint = points[l - 1];
-        const nextPoint = points[l + 1];
+      // Outer ring: use perturbed ellipse petals for more organic shapes
+      for (let i = 0; i < outerCount; i++) {
+        const ang = (i / outerCount) * Math.PI * 2 + rand(i + 10) * 0.06;
+        const petalLen = outerLength * (0.9 + rand(i + 11) * 0.24);
+        const petalWid = outerWidth * (0.7 + rand(i + 12) * 0.45);
 
-        // Calculate direction for leaf orientation
-        const dx = nextPoint[0] - prevPoint[0];
-        const dy = nextPoint[1] - prevPoint[1];
-        const angle = Math.atan2(dy, dx);
+        const petalCX = centerX + Math.cos(ang) * (petalLen * 0.6);
+        const petalCY = centerY + Math.sin(ang) * (petalLen * 0.6);
 
-        // Leaf size based on spacing
-        const leafSize = Math.max(4, spacing / 6);
+        const rx = Math.max(1, petalWid * 0.46);
+        const ry = Math.max(1, petalLen * 0.7);
 
-        // Create complex leaf shape with multiple control points
-        const leafPoints: [number, number][] = [];
-        
-        // Base of leaf
-        leafPoints.push([0, 0]);
-        
-        // First side of leaf
-        leafPoints.push([leafSize * 0.3, -leafSize * 0.3]);
-        leafPoints.push([leafSize * 0.7, -leafSize * 0.4]);
-        leafPoints.push([leafSize, -leafSize * 0.2]);
-        
-        // Tip of leaf
-        leafPoints.push([leafSize * 1.2, 0]);
-        
-        // Second side of leaf
-        leafPoints.push([leafSize, leafSize * 0.2]);
-        leafPoints.push([leafSize * 0.7, leafSize * 0.4]);
-        leafPoints.push([leafSize * 0.3, leafSize * 0.3]);
-        
-        // Back to base
-        leafPoints.push([0, 0]);
-        
-        const leafPath = leafLine(leafPoints);
-        
-        if (leafPath) {
+        // Perturbation amplitudes and frequencies scaled to size so effect is visible but not extreme
+        const A = Math.min(rx * 0.42, 8) * (0.6 + rand(i + 50) * 0.8);
+        const B = Math.min(ry * 0.32, 6) * (0.5 + rand(i + 51) * 0.9);
+        const freqAlphaHz = 0.9 + rand(i + 52) * 1.6; // 0.9..2.5 Hz
+        const freqBetaHz = 0.8 + rand(i + 53) * 1.4; // 0.8..2.2 Hz
+
+        const d = createLissajousPetalPath(petalCX, petalCY, ang, rx, ry, A, freqAlphaHz, B, freqBetaHz, 36);
+
+        elements.push(
+          React.createElement('path', {
+            key: `flower-outer-${row}-${col}-${i}`,
+            d,
+            fill: `url(#${outerGradId})`,
+            stroke: '#000',
+            strokeWidth: Math.max(0.6, Math.min(2, thickness * 0.12)),
+            strokeOpacity: 0.96 * opacity,
+            opacity: Math.min(0.98, 0.72 + thickness * 0.009 + rand(i + 30) * 0.2) * opacity,
+          })
+        );
+      }
+
+      // Inner ring: slightly tighter, higher-frequency perturbations for detail
+      for (let i = 0; i < innerCount; i++) {
+        const ang = (i / innerCount) * Math.PI * 2 + rand(i + 20) * 0.06 + 0.35;
+        const petalLen = innerLength * (0.78 + rand(i + 21) * 0.2);
+        const petalWid = innerWidth * (0.65 + rand(i + 22) * 0.36);
+
+        const petalCX = centerX + Math.cos(ang) * (petalLen * 0.45);
+        const petalCY = centerY + Math.sin(ang) * (petalLen * 0.45);
+
+        const rx = Math.max(1, petalWid * 0.42);
+        const ry = Math.max(1, petalLen * 0.6);
+
+        const A = Math.min(rx * 0.36, 6) * (0.5 + rand(i + 60) * 0.9);
+        const B = Math.min(ry * 0.28, 5) * (0.45 + rand(i + 61) * 0.95);
+        const freqAlphaHz = 1.4 + rand(i + 62) * 2.2; // higher frequency for inner details
+        const freqBetaHz = 1.0 + rand(i + 63) * 1.8;
+
+        const d = createLissajousPetalPath(petalCX, petalCY, ang, rx, ry, A, freqAlphaHz, B, freqBetaHz, 32);
+
+        elements.push(
+          React.createElement('path', {
+            key: `flower-inner-${row}-${col}-${i}`,
+            d,
+            fill: `url(#${innerGradId})`,
+            stroke: '#000',
+            strokeWidth: Math.max(0.5, Math.min(1.6, thickness * 0.1)),
+            strokeOpacity: 0.9 * opacity,
+            opacity: Math.min(0.96, 0.62 + thickness * 0.006 + rand(i + 40) * 0.2) * opacity,
+          })
+        );
+      }
+
+      // Center disk on top (filled) — use the primary color so centers aren't gray
+      const centerFill = color || '#FFD54F';
+      elements.push(
+        React.createElement('circle', {
+          key: `flower-core-${row}-${col}`,
+          cx: centerX,
+          cy: centerY,
+          r: Math.max(2, flowerSize * 0.22),
+          fill: centerFill,
+          stroke: shade(centerFill, -0.25),
+          strokeWidth: Math.max(0.6, Math.min(6, thickness * 0.6)),
+          opacity,
+        })
+      );
+    }
+  }
+
+  // Guarantee something is drawn: if parameter combos filtered out all centers, draw a small 3x3 fallback
+  if (elements.length === 0) {
+    const fallbackSize = Math.max(minFlowerSize, Math.min(24, Math.min(width, height) * 0.12));
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const fallbackSpacing = fallbackSize * 2.6;
+    // create 3x3 fallback flowers using the same style as the main flowers
+    for (let rx = -1; rx <= 1; rx++) {
+      for (let ry = -1; ry <= 1; ry++) {
+        const fx = centerX + rx * fallbackSpacing;
+        const fy = centerY + ry * fallbackSpacing;
+
+        // per-fallback gradients
+        const outerGradId = `fallback-grad-outer-${rx + 1}-${ry + 1}`;
+        const innerGradId = `fallback-grad-inner-${rx + 1}-${ry + 1}`;
+        elements.push(
+          React.createElement('defs', { key: `fallback-defs-${rx}-${ry}` },
+            React.createElement('radialGradient', { id: outerGradId, cx: '50%', cy: '45%', r: '60%' },
+              React.createElement('stop', { key: `fs1-${rx}-${ry}`, offset: '0%', stopColor: shade(color, 0.28), stopOpacity: 1 }),
+              React.createElement('stop', { key: `fs2-${rx}-${ry}`, offset: '65%', stopColor: color, stopOpacity: 0.96 }),
+              React.createElement('stop', { key: `fs3-${rx}-${ry}`, offset: '100%', stopColor: shade(color, -0.18), stopOpacity: 1 })
+            ),
+            React.createElement('radialGradient', { id: innerGradId, cx: '50%', cy: '50%', r: '60%' },
+              React.createElement('stop', { key: `fis1-${rx}-${ry}`, offset: '0%', stopColor: shade(secondaryColor || color, 0.28), stopOpacity: 1 }),
+              React.createElement('stop', { key: `fis2-${rx}-${ry}`, offset: '68%', stopColor: secondaryColor || color, stopOpacity: 0.94 }),
+              React.createElement('stop', { key: `fis3-${rx}-${ry}`, offset: '100%', stopColor: shade(secondaryColor || color, -0.12), stopOpacity: 1 })
+            )
+          )
+        );
+
+        // small helper to create a perturbed petal path (fallback-local)
+        const createFallbackPetal = (cx0: number, cy0: number, ang0: number, rx0: number, ry0: number, A: number, B: number, samples = 20) => {
+          let d = '';
+          for (let s = 0; s <= samples; s++) {
+            const t = (s / samples) * 2 * Math.PI;
+            let ex = rx0 * Math.cos(t) * (1 + 0.16 * Math.sin(2 * t));
+            let ey = ry0 * Math.sin(t) * (1 + 0.12 * Math.cos(3 * t));
+            ex += A * Math.sin(2.2 * t + 0.2);
+            ey += B * Math.cos(1.9 * t + 0.4);
+            const rxp = ex * Math.cos(ang0) - ey * Math.sin(ang0) + cx0;
+            const ryp = ex * Math.sin(ang0) + ey * Math.cos(ang0) + cy0;
+            d += s === 0 ? `M ${rxp} ${ryp}` : ` L ${rxp} ${ryp}`;
+          }
+          d += ' Z';
+          return d;
+        };
+
+        const petalCount = 6;
+        const outerLen = fallbackSize * 0.9;
+        const innerLen = fallbackSize * 0.52;
+        const outerWid = fallbackSize * 0.95;
+        const innerWid = fallbackSize * 0.56;
+
+        for (let pidx = 0; pidx < petalCount; pidx++) {
+          const angle = (pidx * 2 * Math.PI) / petalCount + (pidx % 2 === 0 ? 0.02 : -0.02);
+          const petalCX = fx + Math.cos(angle) * (outerLen * 0.55);
+          const petalCY = fy + Math.sin(angle) * (outerLen * 0.55);
+          const rxp = Math.max(1, outerWid * 0.46);
+          const ryp = Math.max(1, outerLen * 0.68);
+          const A = Math.min(rxp * 0.4, 6);
+          const B = Math.min(ryp * 0.3, 5);
+          const d = createFallbackPetal(petalCX, petalCY, angle, rxp, ryp, A, B, 20);
+
           elements.push(
             React.createElement('path', {
-              key: `leaf-${v}-${l}`,
-              d: leafPath,
-              stroke: secondaryColor,
-              strokeWidth: thickness * 0.7,
-              opacity: opacity * 0.8,
-              fill: 'none',
-              transform: `translate(${x} ${y}) rotate(${angle * 180 / Math.PI})`
+              key: `fallback-outer-${rx}-${ry}-${pidx}`,
+              d,
+              fill: `url(#${outerGradId})`,
+              stroke: '#000',
+              strokeWidth: Math.max(0.6, Math.min(1.6, thickness * 0.12)),
+              opacity: 0.9 * opacity,
             })
           );
         }
-        
-        // Add flower buds at some leaf junctions for visual interest
-        if (l % (leafInterval * 2) === 0) {
-          // Add a small flower bud
-          const budSize = leafSize / 3;
-          
-          // Create small petals around center
-          for (let p = 0; p < 5; p++) {
-            const petalAngle = (p * 2 * Math.PI) / 5;
-            elements.push(
-              React.createElement('circle', {
-                key: `bud-petal-${v}-${l}-${p}`,
-                cx: x + budSize * Math.cos(petalAngle),
-                cy: y + budSize * Math.sin(petalAngle),
-                r: budSize / 2,
-                stroke: color,
-                strokeWidth: thickness * 0.6,
-                opacity: opacity * 0.9,
-                fill: 'none'
-              })
-            );
-          }
-          
-          // Add center of bud
+
+        // inner ring
+        for (let pidx = 0; pidx < Math.max(4, Math.floor(petalCount * 0.7)); pidx++) {
+          const angle = (pidx * 2 * Math.PI) / Math.max(4, Math.floor(petalCount * 0.7)) + 0.3;
+          const petalCX = fx + Math.cos(angle) * (innerLen * 0.45);
+          const petalCY = fy + Math.sin(angle) * (innerLen * 0.45);
+          const rxp = Math.max(1, innerWid * 0.42);
+          const ryp = Math.max(1, innerLen * 0.62);
+          const A = Math.min(rxp * 0.34, 5);
+          const B = Math.min(ryp * 0.26, 4.5);
+          const d = createFallbackPetal(petalCX, petalCY, angle, rxp, ryp, A, B, 18);
+
           elements.push(
-            React.createElement('circle', {
-              key: `bud-center-${v}-${l}`,
-              cx: x,
-              cy: y,
-              r: budSize / 3,
-              stroke: secondaryColor,
-              strokeWidth: thickness * 0.6,
-              opacity: opacity * 0.9,
-              fill: 'none'
+            React.createElement('path', {
+              key: `fallback-inner-${rx}-${ry}-${pidx}`,
+              d,
+              fill: `url(#${innerGradId})`,
+              stroke: '#000',
+              strokeWidth: Math.max(0.5, Math.min(1.2, thickness * 0.09)),
+              opacity: 0.82 * opacity,
             })
           );
         }
+
+        // center disk
+        elements.push(
+          React.createElement('circle', {
+            key: `fallback-center-${rx}-${ry}`,
+            cx: fx,
+            cy: fy,
+            r: Math.max(2, fallbackSize * 0.22),
+            fill: color,
+            stroke: shade(color, -0.25),
+            strokeWidth: Math.max(0.6, Math.min(6, thickness * 0.6)),
+            opacity,
+          })
+        );
       }
     }
   }
 
-  return React.createElement('g', { transform: `rotate(${rotation} ${cx} ${cy})` }, ...elements);
+  return React.createElement('g', { transform: `rotate(${rotation} ${width / 2} ${height / 2})` }, ...elements);
 }

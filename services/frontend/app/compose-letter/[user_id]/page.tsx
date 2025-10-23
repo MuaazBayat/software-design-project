@@ -12,7 +12,8 @@ import {
 import TemplateSidePanel from "../components/TemplateSidePanel";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, AlertCircle, PanelLeft, PanelRight } from "lucide-react"
-import MessagingApiClient, { SearchUsersRequest, SendLetterRequest, ApiError } from "@/lib/MessagingApiClient"
+import MessagingApiClient, { SearchUsersRequest, SendLetterRequest, ApiError, SearchUsersResponseItem } from "@/lib/MessagingApiClient"
+import { ProfilesApiClient } from "@/lib/profilesApiClient"
 import { useSyncProfile } from "@/lib/context/ProfileContext"
 import LeftSidebar from "../components/LeftSidebar"
 import MainContent from "../components/MainContent"
@@ -27,6 +28,10 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { toJpeg, toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { moderationApi } from "@/lib/moderationApiClient";
+import { DEFAULT_FONT_ID } from '../fonts';
+
+// Force dynamic rendering to avoid static generation issues with client-side libraries
+export const dynamic = 'force-dynamic';
 
 // FONT_PRESETS definition
 const FONT_PRESETS = [
@@ -44,6 +49,8 @@ export type LetterTemplate = {
   category: string;
   estimated_minutes?: number;
   tags?: string[]
+  heading?: string;
+  footer?: string;
 }
 
 interface Match {
@@ -70,45 +77,38 @@ function LetterPageContent() {
     if (!editor) return "A1";
 
     const html = editor.innerHTML;
-    const text = editor.textContent || editor.innerText || "";
+    // Strip HTML tags to get plain text
+    const text = html.replace(/<[^>]*>/g, '').trim();
 
-    const words = text.trim().split(/\s+/);
-    const wordCount = words[0] === "" ? 0 : words.length;
-
-    // Check for formatting elements using case-insensitive regex that allows for attributes
-    const hasBullets = /<li/i.test(html);
-    const hasBold = /<(b|strong)[\s>]/i.test(html);
-    const hasItalic = /<(i|em)[\s>]/i.test(html);
-    const hasUnderline = /<u[\s>]/i.test(html);
-    const hasAnyEmphasis = hasBold || hasItalic || hasUnderline;
+    const words = text ? text.split(/\s+/).length : 0;
 
     // --- Rule-based Mapping ---
 
     // C2: Highest tier (most specific)
     if (
-      (wordCount > 250 && hasBullets && hasAnyEmphasis) ||
-      (wordCount > 50 && hasBullets && hasBold && hasItalic && hasUnderline)
+      (words > 250) ||
+      (words > 50)
     ) {
       return "C2";
     }
 
     // C1: Advanced
-    if (wordCount > 150 && hasBullets && hasAnyEmphasis) {
+    if (words > 150) {
       return "C1";
     }
 
     // B2: Upper Intermediate
-    if (wordCount > 100 && hasBullets) {
+    if (words > 100) {
       return "B2";
     }
 
     // B1: Intermediate
-    if (wordCount > 75) {
+    if (words > 75) {
       return "B1";
     }
 
     // A2: Elementary
-    if (wordCount > 40) {
+    if (words > 40) {
       return "A2";
     }
 
@@ -138,6 +138,141 @@ function LetterPageContent() {
       description: 'A gentle way to reconnect after some time.',
       content: `It's been a little while and I wanted to check in and see how you're doing. I hope life has been treating you kindly. What's been keeping you busy these days?`,
       category: 'reconnect'
+    },
+    {
+      id: 't4',
+      name: 'Share a Hobby',
+      description: 'Talk about one of your passions and ask about theirs.',
+      content: `Lately, I've been spending a lot of my free time painting with watercolors. There's something so relaxing about watching the colors blend on the paper, creating something beautiful from nothing. I started with simple landscapes, but now I'm experimenting with abstract patterns. The best part is that there's no right or wrong way to do it - it's all about expressing yourself. What's a hobby that you're passionate about right now? Do you have any creative outlets or activities that bring you joy? I'd love to hear about what you enjoy doing in your spare time.`,
+      category: 'hobby',
+      estimated_minutes: 2,
+      tags: ['hobbies', 'passion']
+    },
+    {
+      id: 't5',
+      name: 'Book/Movie Corner',
+      description: 'Share a recent favorite book, movie, or song.',
+      content: `I just finished reading an incredible novel that I can't stop thinking about. The story was so beautifully written, and the characters felt so real that I found myself staying up late just to see what would happen next. The author's way of describing emotions and relationships really resonated with me. It made me reflect on my own experiences and relationships. Have you read or watched anything amazing recently? I'd love a recommendation! What kinds of stories or genres do you enjoy most? I'm always looking for my next great read or watch.`,
+      category: 'media',
+      estimated_minutes: 2,
+      tags: ['books', 'movies', 'recommendation']
+    },
+    {
+      id: 't6',
+      name: 'A Little Question',
+      description: 'A small, thoughtful question to get to know someone better.',
+      content: `Here's a small question for you: What's a small act of kindness you witnessed recently that made you smile? It could be something as simple as a stranger holding the door open for someone with their hands full, or a coworker bringing coffee for a colleague having a tough day. I love hearing about these moments because they remind us that kindness exists everywhere, even in the smallest gestures. Your answer might inspire me to look for similar moments in my own day-to-day life.`,
+      category: 'question',
+      estimated_minutes: 1,
+      tags: ['icebreaker', 'kindness']
+    },
+    {
+      id: 't7',
+      name: 'Food Adventures',
+      description: 'Talk about favorite foods or recent culinary discoveries.',
+      content: `Food has such a way of bringing back memories, doesn't it? I recently tried making homemade pasta for the first time, and while it was messy and took longer than I expected, the taste was worth every bit of effort. The sauce was simple - just tomatoes, garlic, and fresh basil from my windowsill garden - but it tasted like something from an Italian trattoria. It reminded me of the summers I spent in Italy as a child, watching my grandmother roll out dough on the kitchen table. What's your favorite comfort food and why? Is there a dish that always takes you back to happy memories or special times in your life? I'd love to hear about your culinary adventures or favorite recipes.`,
+      category: 'food',
+      estimated_minutes: 2,
+      tags: ['food', 'cooking', 'memories']
+    },
+    {
+      id: 't8',
+      name: 'Nature Walks',
+      description: 'Share thoughts on outdoor activities and nature.',
+      content: `I took a long walk in the park yesterday and noticed how the leaves are just starting to change color. There's something so peaceful about being outdoors, listening to the crunch of fallen leaves underfoot and feeling the crisp autumn air on my skin. I found a perfect spot by the lake where I could sit and watch the ducks swimming lazily, and for a moment, all my worries seemed to fade away. It made me realize how important it is to take time for these quiet moments in nature. Do you have a favorite spot in nature that you like to visit? Is there a particular season or time of day when you feel most connected to the outdoors? I'd love to hear about your experiences with nature and what it means to you.`,
+      category: 'nature',
+      estimated_minutes: 2,
+      tags: ['nature', 'outdoors', 'peaceful']
+    },
+    {
+      id: 't9',
+      name: 'Music Discovery',
+      description: 'Discuss favorite songs, artists, or musical moments.',
+      content: `I've been listening to a lot of jazz lately, and I discovered this amazing saxophone player whose music just transports me to another world. The way the notes weave together, telling a story without words, is absolutely mesmerizing. I found myself closing my eyes and letting the melody carry me away. Music has such power to evoke emotions and memories, don't you think? What's a song that always cheers you up, no matter what kind of day you're having? Or perhaps there's a piece of music that holds special meaning for you - maybe it's connected to a particular memory or time in your life. I'd love to hear about your musical discoveries and what songs or artists mean the most to you.`,
+      category: 'music',
+      estimated_minutes: 2,
+      tags: ['music', 'emotions', 'discovery']
+    },
+    {
+      id: 't10',
+      name: 'Weekend Plans',
+      description: 'Share what you have planned for the upcoming weekend.',
+      content: `The weekend is coming up, and I'm looking forward to some quiet time at home with a good book and maybe some baking. I have this recipe for chocolate chip cookies that I've been wanting to try - the kind with sea salt on top that makes them extra special. There's something so satisfying about measuring ingredients, mixing the dough, and watching them transform in the oven. How about you? Do you have any exciting plans or are you keeping it low-key? I'm always interested in how people spend their weekends - whether it's adventurous outings or cozy stay-at-home activities. What does a perfect weekend look like for you?`,
+      category: 'plans',
+      estimated_minutes: 1,
+      tags: ['weekend', 'plans', 'relaxation']
+    },
+    {
+      id: 't11',
+      name: 'Childhood Memories',
+      description: 'Reflect on happy memories from your childhood.',
+      content: `Thinking back to my childhood, I remember spending summers at my grandparents' farm, helping with the garden and chasing fireflies at dusk. Those simple joys stick with you forever, don't they? The smell of fresh earth after rain, the taste of sun-warmed tomatoes picked straight from the vine, and the feeling of complete freedom as I ran through the fields. My grandmother would tell me stories while we shelled peas on the porch, and those moments shaped who I am today. What's a happy childhood memory that comes to mind for you? Was there a special place, person, or activity that made your childhood magical? I'd love to hear about the moments that shaped your early years and the memories you cherish most.`,
+      category: 'memories',
+      estimated_minutes: 2,
+      tags: ['childhood', 'memories', 'nostalgia']
+    },
+    {
+      id: 't12',
+      name: 'Learning Something New',
+      description: 'Talk about recent learning experiences or aspirations.',
+      content: `I've been trying to learn Spanish through an app, and it's challenging but rewarding to see progress. There's something satisfying about acquiring new knowledge and feeling your brain make new connections. I started with basic phrases, and now I can have simple conversations about daily life. The hardest part is remembering irregular verbs, but the feeling of accomplishment when I understand a native speaker is worth every struggle. There's something so invigorating about stepping outside your comfort zone and learning something new. Is there anything new you're learning or want to learn? Maybe a language, an instrument, a sport, or even a new skill for work? I'd love to hear about your learning journey and what motivates you to keep growing and expanding your horizons.`,
+      category: 'learning',
+      estimated_minutes: 2,
+      tags: ['learning', 'growth', 'aspirations']
+    },
+    {
+      id: 't13',
+      name: 'Dreams & Goals',
+      description: 'Share your aspirations and what you hope to achieve.',
+      content: `I've been doing a lot of thinking about my dreams and goals lately. There's something about quiet moments that brings these thoughts to the surface. One of my biggest dreams is to travel to Japan and experience the culture firsthand - the food, the temples, the cherry blossoms in spring. I want to learn about the philosophy of wabi-sabi and how it influences their approach to life. What's a dream you've been nurturing? It could be something big like traveling the world, or something smaller like learning to play an instrument. I'd love to hear about what inspires you and what you're working toward. Sometimes sharing our dreams with others makes them feel more real and achievable.`,
+      category: 'goals',
+      estimated_minutes: 3,
+      tags: ['dreams', 'goals', 'aspirations']
+    },
+    {
+      id: 't14',
+      name: 'Family & Pets',
+      description: 'Talk about your loved ones and furry friends.',
+      content: `Family and pets have such a special way of bringing joy into our lives, don't they? My dog has this hilarious habit of stealing socks and hiding them under the couch, and I spend half my mornings hunting for matching pairs. But honestly, those little moments of playfulness make coming home the best part of my day. He's always so excited to see me, with his tail wagging furiously and his whole body shaking with happiness. Tell me about your family or pets - do you have any furry, feathered, or scaly companions? What's the funniest or most endearing thing they've done recently? I'd love to hear about the people and animals that make your home feel special.`,
+      category: 'family',
+      estimated_minutes: 2,
+      tags: ['family', 'pets', 'home']
+    },
+    {
+      id: 't15',
+      name: 'Funny Moments',
+      description: 'Share a lighthearted, embarrassing, or hilarious story.',
+      content: `I had the most embarrassing moment the other day that I can't stop laughing about now. I was at the grocery store, confidently reaching for what I thought was a perfectly ripe avocado, when it slipped from my hands and rolled all the way down the produce aisle. I chased after it like it was trying to escape, and when I finally caught it, I looked up to see half a dozen people watching me with amused smiles. I just shrugged and said, "Well, at least it wasn't a watermelon!" What's the funniest or most embarrassing thing that's happened to you recently? Those awkward moments often make the best stories, and I love hearing about them. They remind us not to take ourselves too seriously.`,
+      category: 'funny',
+      estimated_minutes: 2,
+      tags: ['humor', 'embarrassing', 'stories']
+    },
+    {
+      id: 't16',
+      name: 'Gratitude Practice',
+      description: 'Express thankfulness for the good things in life.',
+      content: `I've been trying to cultivate a gratitude practice lately, and it's amazing how it shifts your perspective on life. Even on challenging days, there are always small things to be thankful for - the way the morning light filters through the curtains, the smell of fresh coffee, or the sound of birds singing outside my window. Yesterday, I found myself grateful for something as simple as having a warm coat on a chilly day. It made me realize how many comforts we often take for granted. What are you feeling grateful for right now? It could be something big like good health or loving relationships, or something small like your favorite mug or a beautiful sunset you saw recently. I'd love to hear what brings you joy and thankfulness.`,
+      category: 'gratitude',
+      estimated_minutes: 2,
+      tags: ['gratitude', 'thankfulness', 'positivity']
+    },
+    {
+      id: 't17',
+      name: 'Work & Career',
+      description: 'Discuss your professional life and passions.',
+      content: `Work and career can be such interesting topics when you dig beneath the surface. I love what I do because it combines creativity with problem-solving, and every day brings new challenges and opportunities to learn. Lately, I've been working on a project that really excites me - it's pushing me to develop skills I never thought I'd need, but the growth feels incredible. That said, I also value work-life balance and making time for the things that recharge me. What's your relationship with your work like? Do you have a career you're passionate about, or are you still exploring what you want to do? I'd love to hear about what fulfills you professionally and what you enjoy most about your work or studies.`,
+      category: 'career',
+      estimated_minutes: 3,
+      tags: ['work', 'career', 'professional']
+    },
+    {
+      id: 't18',
+      name: 'Cultural Exchange',
+      description: 'Share about your culture, traditions, or heritage.',
+      content: `Culture and traditions have such a beautiful way of connecting us to our roots and to each other. I grew up celebrating festivals that combined food, music, and family gatherings, and those traditions still bring me comfort and joy. There's something special about sharing cultural practices with others and learning about different ways of life. Recently, I've been exploring traditional crafts from my heritage, and it's been a wonderful way to connect with my family's history. What about you? Are there cultural traditions, foods, or celebrations that are important to you? I'd love to learn about your background and the customs that shape your life. Sometimes the most meaningful connections come from understanding and appreciating our differences.`,
+      category: 'culture',
+      estimated_minutes: 3,
+      tags: ['culture', 'traditions', 'heritage']
     }
   ];
 
@@ -150,12 +285,12 @@ function LetterPageContent() {
   const [rightOpen, setRightOpen] = useState(false);
   const [mobilePanelType, setMobilePanelType] = useState<'left' | 'font' | null>(null);
 
-  const [fontStyle, setFontStyle] = useState("handwritten");
-  const [fontSize, setFontSize] = useState([16]);
+  const [fontStyle, setFontStyle] = useState(DEFAULT_FONT_ID);
+  const [fontSize, setFontSize] = useState([20]); // Default size, will be adjusted after mount
   const [fontColor, setFontColor] = useState("#000000");
   const [fontOpacity, setFontOpacity] = useState(1);
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
-  const [backgroundOpacity, setBackgroundOpacity] = useState(1);
+  const [backgroundColor, setBackgroundColor] = useState("#FFC0CB"); // floral pink background
+  const [backgroundOpacity, setBackgroundOpacity] = useState(0.7); // floral background opacity
   const [previewConfig, setPreviewConfig] = useState<{
     lineConfig: LineConfig;
     backgroundColor: string;
@@ -190,18 +325,47 @@ function LetterPageContent() {
     opacity: number;
     rotation: number;
   }
-  const [lineConfig, setLineConfig] = useState<LineConfig>({
-    type: 'none',
-    spacing: 24,
-    thickness: 1,
-    color: '#e5e7eb',
-    opacity: 0.5,
-    rotation: 0
+  const [lineConfig, setLineConfig] = useState<LineConfig | null>({
+    type: 'floral',
+    spacing: 170,
+    thickness: 80,
+    color: '#008000',
+    opacity: 0.55,
+    rotation: 15
   });
 
   const [stats, setStats] = useState({ wordCount: 0, charCount: 0, readingTime: "0:00" });
+  const [limitViolation, setLimitViolation] = useState(false);
   const [readability, setReadability] = useState("A1");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      // If clicking outside the main content area and toolbar, deactivate focus mode
+      if (!target.closest('.main-content-area') && !target.closest('.toolbar-area')) {
+        setIsFocusMode(false)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
+  // Set responsive font size after component mounts to avoid hydration mismatch
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    const defaultSize = isMobile ? 14 : 24; // Even smaller for mobile, larger for desktop
+    setFontSize([defaultSize]);
+  }, []);
+
+  // Character limit flash trigger
+  const [characterLimitFlashTrigger, setCharacterLimitFlashTrigger] = useState(0);
+
+  // Callback to trigger character limit flash
+  const triggerCharacterLimitFlash = useCallback(() => {
+    setCharacterLimitFlashTrigger(prev => prev + 1);
+  }, []);
 
   // Add request deduplication using refs to avoid dependency issues
   const isFetchingMatchesRef = useRef(false);
@@ -216,7 +380,8 @@ function LetterPageContent() {
 
 
   // Map lineConfig to generator parameters
-  const mapLineConfigToParams = useCallback((config: LineConfig) => {
+  const mapLineConfigToParams = useCallback((config: LineConfig | null) => {
+    if (!config) return null;
     const { type, spacing, thickness, color, opacity, rotation } = config;
   // Use viewport dimensions so patterns fill full area
   const width = typeof window !== 'undefined' ? window.innerWidth : 600;
@@ -247,9 +412,11 @@ function LetterPageContent() {
       case 'arc':
         return { type, centerX: width / 2, centerY: height / 2, radius: Math.min(width, height) / 4, startAngle: 0, endAngle: Math.PI, count: Math.ceil((Math.min(width, height) / 2) / spacing), spacing, samples: 100, thickness, color, opacity, rotation };
       case 'spiral':
-        return { type, centerX: width / 2, centerY: height / 2, a: 0, b: spacing, turns: 3, startAngle: 0, samples: 500, thickness, color, opacity, rotation };
+        return { type, width, height, spacing, thickness, color, opacity, rotation };
       case 'dotted':
         return { type, width, height, originX: 0, originY: 0, spacing, thickness, jitter: 0, gridType: 'rect', color, opacity, rotation };
+      case 'floral':
+        return { type, width, height, spacing, thickness, color, opacity, rotation, secondaryColor: '#666' };
       default:
         return null;
     }
@@ -260,6 +427,10 @@ function LetterPageContent() {
   const userId = profile?.user_id ?? '';
   const anonymousHandle = synced ? (profile?.anonymous_handle ?? '') : '';
   const api = useMemo(() => new MessagingApiClient({ timeoutMs: 30000, getToken }), [getToken]);
+  const profilesClient = useMemo(() => new ProfilesApiClient(
+    process.env.NEXT_PUBLIC_CORE_SERVICE_URL || "http://localhost:8000",
+    getToken
+  ), [getToken]);
 
   const handleSendWithImage = async (jpgDataUrl: string | null) => {
     if (!selectedMatch || !userId) return;
@@ -422,18 +593,13 @@ function LetterPageContent() {
 
         while (retryCount <= maxRetries) {
           try {
-            res = await api.searchUsers(searchBody);
+            res = await profilesClient.getMatches(userId);
             break; // Success, exit retry loop
           } catch (err: unknown) {
             const error = err as Error;
-            if (error instanceof ApiError && error.status === 408 && retryCount < maxRetries) {
+            if (error.message.includes('timeout') && retryCount < maxRetries) {
               // Timeout error, retry after delay
               await new Promise(r => setTimeout(r, 800 * (retryCount + 1)));
-              retryCount++;
-              continue;
-            } else if (error instanceof ApiError && error.status === 500 && retryCount < maxRetries) {
-              // Server error, retry after delay
-              await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
               retryCount++;
               continue;
             } else {
@@ -448,18 +614,14 @@ function LetterPageContent() {
           throw new Error('Failed to fetch matches after retries');
         }
 
-        const mappedMatches: Match[] = res.items.map((item: unknown) => {
-          const userItem = item as { latest_message?: { conversation_thread_id?: string; match_id?: string }; user_profile: { user_id: string; anonymous_handle: string; country_code?: string } };
-          const threadId = userItem.latest_message?.conversation_thread_id;
-          const matchId: string = userItem.latest_message?.match_id || '';
-
+        const mappedMatches: Match[] = res.matches.map((match) => {
           return {
-            id: userItem.user_profile.user_id,
-            name: userItem.user_profile.anonymous_handle,
-            location: userItem.user_profile.country_code || "Unknown",
-            interests: [],
-            conversation_thread_id: threadId || '',
-            match_id: matchId || ''
+            id: match.penpal_profile.user_id,
+            name: match.penpal_profile.anonymous_handle,
+            location: match.penpal_profile.country_code || "Unknown",
+            interests: match.penpal_profile.interests || [],
+            conversation_thread_id: match.conversation_thread_id || '',
+            match_id: match.match_id
           };
         });
 
@@ -505,7 +667,7 @@ function LetterPageContent() {
     };
 
     fetchMatches();
-  }, [synced, userId, urlUserId, api]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [synced, userId, urlUserId, profilesClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || null;
 
@@ -513,15 +675,23 @@ function LetterPageContent() {
     if (typeof document === 'undefined') {
       return { wordCount: 0, charCount: 0, readingTime: "0:00" };
     }
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    const text = tempDiv.textContent || tempDiv.innerText || "";
+    // Strip HTML tags to get plain text
+    const text = html.replace(/<[^>]*>/g, '').trim();
     
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const words = text ? text.split(/\s+/).length : 0;
     const chars = text.length;
     
-    // Calculate reading time in seconds, rounded to nearest 5 seconds
-    const totalSeconds = (words / 200) * 60;
+    // Calculate reading time using both word count and character count for better accuracy
+    // Standard reading speed: ~200 words per minute or ~750 characters per minute (for 2-minute max at 1500 chars)
+    // Use the higher of the two calculations to account for long words
+    const wordsPerMinute = 200;
+    const charsPerMinute = 750;
+    
+    const wordBasedSeconds = (words / wordsPerMinute) * 60;
+    const charBasedSeconds = (chars / charsPerMinute) * 60;
+    
+    // Use the maximum to ensure long words don't make reading time too short
+    const totalSeconds = Math.max(wordBasedSeconds, charBasedSeconds);
     const roundedSeconds = Math.round(totalSeconds / 5) * 5;
     const minutes = Math.floor(roundedSeconds / 60);
     const seconds = roundedSeconds % 60;
@@ -1066,7 +1236,7 @@ function LetterPageContent() {
     setLeftOpen(open => !open);
   }, []);
 
-  const resetLetter = useCallback(() => {
+  const resetLetter = useCallback((clearBackground: boolean = false) => {
     // Confirmation is handled in MainContent's dialog
     // Clear letter content and reset template/styling back to defaults
     setLetterContent("");
@@ -1075,18 +1245,13 @@ function LetterPageContent() {
     setTemplatesOpen(false);
     setTemplateBackground(null);
     setPreviewConfig(null);
-    setBackgroundColor("#ffffff");
-    setBackgroundOpacity(1);
+    if (clearBackground) {
+      setBackgroundColor("#FFFFFF"); // white background
+      setBackgroundOpacity(1); // full opacity
+      setLineConfig({ type: 'none', spacing: 0, thickness: 0, color: '#000000', opacity: 0, rotation: 0 }); // remove any line patterns
+    }
     setFontColor("#000000");
     setFontOpacity(1);
-    setLineConfig({
-      type: 'none',
-      spacing: 24,
-      thickness: 1,
-      color: '#e5e7eb',
-      opacity: 0.5,
-      rotation: 0
-    });
   }, []);
 
   const handleAnimationComplete = () => {
@@ -1094,28 +1259,44 @@ function LetterPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 relative" role="main" aria-label="Letter composition page">
+      {/* Skip Links for Keyboard Navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#letter-editor"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-8 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to letter editor
+      </a>
+      <a
+        href="#sidebar-navigation"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-12 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to sidebar navigation
+      </a>
+
       <Toaster richColors position="top-center" />
       <LetterSendAnimation key={animationKey} show={showAnimation} onAnimationComplete={handleAnimationComplete} onSendWithImage={handleSendWithImage} />
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10" role="banner" aria-label="Letter composition header">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/inbox')} aria-label="Back to inbox" className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Back to inbox</span>
-            </Button>
           </div>
           <div className="flex items-center gap-3" />
         </div>
       </header>
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-auto max-w-7xl mt-2">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-auto max-w-7xl mt-2" role="alert" aria-live="assertive">
           <p>{error}</p>
         </div>
       )}
-      <div className="mx-auto w-full max-w-7xl px-3 xl:px-6">
+      <div className="mx-auto w-full max-w-7xl px-3 xl:px-6 xl:max-w-[calc(100vw-20rem)] xl:ml-auto xl:mr-32">
         {/* Mobile top bar (only visible < md) */}
-        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between">
+        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between" aria-label="Mobile navigation bar">
           <Button 
             size="sm" 
             variant="outline" 
@@ -1127,29 +1308,50 @@ function LetterPageContent() {
                 setMobilePanelType('left');
               }
             }}
+            aria-label={mobilePanelType === 'left' ? 'Close matches panel' : 'Open matches panel'}
           >
-            <PanelLeft className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" aria-hidden="true" />
             Matches
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)}>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)} aria-label="Open preview and send panel">
             Preview & Send
-            <PanelRight className="h-4 w-4" />
+            <PanelRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
         {/* Desktop layout: 3 columns */}
-        <div className="xl:flex xl:gap-6">
+        <div className="xl:flex xl:gap-6" aria-label="Desktop layout with sidebars">
           {/* Left sidebar (desktop only) */}
-          <div className="hidden xl:block xl:w-72 xl:w-80 shrink-0">
+          <aside id="sidebar-navigation" className={`hidden xl:block xl:w-72 xl:w-80 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`} aria-label="Left sidebar with matches and settings" role="complementary">
             <LeftSidebar
               selectedMatch={selectedMatch}
               matches={matches}
               loading={loading}
               onChangeRecipient={handleRecipientChange}
-              onApplyTemplate={(templateId: string) => {
+              onApplyTemplate={(templateOrId: string | LetterTemplate) => {
+                // If it's a full template object (AI-generated), use it directly
+                if (typeof templateOrId === 'object') {
+                  console.log('Applying AI template:', templateOrId);
+                  setLetterContent(templateOrId.content);
+                  if (templateOrId.heading && templateOrId.heading.trim()) {
+                    console.log('Setting heading to:', templateOrId.heading);
+                    setLetterHeading(templateOrId.heading);
+                  } else {
+                    console.log('No heading found, keeping default');
+                  }
+                  if (templateOrId.footer && templateOrId.footer.trim()) {
+                    console.log('Setting footer to:', templateOrId.footer);
+                    setLetterFooterPrefix(templateOrId.footer);
+                  } else {
+                    console.log('No footer found, keeping default');
+                  }
+                  return;
+                }
+                
+                // Otherwise, it's a template ID, look it up in default templates
                 getLetterTemplates()
                   .then((list: LetterTemplate[]) => {
-                    const t = list.find((x: LetterTemplate) => x.id === templateId);
+                    const t = list.find((x: LetterTemplate) => x.id === templateOrId);
                     if (t) setLetterContent(t.content);
                   })
                   .catch((err: unknown) =>
@@ -1171,11 +1373,12 @@ function LetterPageContent() {
               fontOpacity={fontOpacity}
               backgroundColor={backgroundColor}
               backgroundOpacity={backgroundOpacity}
+              userInterests={profile?.interests || []}
             />
-          </div>
+          </aside>
 
           {/* Main editor (always visible) */}
-          <div className="flex-1">
+          <div id="main-content" className="flex-1" aria-label="Main letter editor" role="main">
             <MainContent
               letterContent={letterContent}
               setLetterContent={setLetterContent}
@@ -1220,11 +1423,15 @@ function LetterPageContent() {
               onToggleTemplates={handleToggleTemplates}
               toggleLeftSidebar={handleToggleLeft}
               templateData={{ lines: mapLineConfigToParams(previewConfig?.lineConfig ?? lineConfig) }}
+              onCharacterLimitExceeded={triggerCharacterLimitFlash}
+              onFocusModeChange={setIsFocusMode}
+              userInterests={profile?.interests || []}
+              selectedMatch={selectedMatch}
             />
           </div>
 
           {/* Right sidebar (desktop only) */}
-          <div className="hidden xl:block xl:w-80 xl:w-96 shrink-0">
+          <aside className={`hidden xl:block xl:w-80 xl:w-96 shrink-0 h-[calc(100vh-70px)] overflow-hidden transition-opacity duration-300 ${isFocusMode ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`} aria-label="Right sidebar with preview and send options" role="complementary">
             <RightSidebar
               onSend={handleSend}
               onExportPDF={handleExportPDF}
@@ -1265,8 +1472,9 @@ function LetterPageContent() {
               onFontOpacityChange={setFontOpacity}
               backgroundOpacity={backgroundOpacity}
               onBackgroundOpacityChange={setBackgroundOpacity}
+              triggerFlash={characterLimitFlashTrigger}
             />
-          </div>
+          </aside>
         </div>
       </div>
 
@@ -1333,16 +1541,36 @@ function LetterPageContent() {
                   handleRecipientChange(m);
                   setMobilePanelType(null);
                 }}
-                onApplyTemplate={(templateId: string) => {
-                  getLetterTemplates()
-                    .then((list: LetterTemplate[]) => {
-                      const t = list.find((x: LetterTemplate) => x.id === templateId);
-                      if (t) setLetterContent(t.content);
-                      setMobilePanelType(null);
-                    })
-                    .catch((err: unknown) =>
-                      console.error("Failed to apply template from left sidebar:", err)
-                    );
+                onApplyTemplate={(templateIdOrTemplate: string | LetterTemplate) => {
+                  if (typeof templateIdOrTemplate === 'string') {
+                    // Handle regular template ID
+                    getLetterTemplates()
+                      .then((list: LetterTemplate[]) => {
+                        const t = list.find((x: LetterTemplate) => x.id === templateIdOrTemplate);
+                        if (t) setLetterContent(t.content);
+                        setMobilePanelType(null);
+                      })
+                      .catch((err: unknown) =>
+                        console.error("Failed to apply template from left sidebar:", err)
+                      );
+                  } else {
+                    // Handle AI-generated template object
+                    console.log('Applying AI template (mobile):', templateIdOrTemplate);
+                    setLetterContent(templateIdOrTemplate.content);
+                    if (templateIdOrTemplate.heading && templateIdOrTemplate.heading.trim()) {
+                      console.log('Setting heading to (mobile):', templateIdOrTemplate.heading);
+                      setLetterHeading(templateIdOrTemplate.heading);
+                    } else {
+                      console.log('No heading found (mobile), keeping default');
+                    }
+                    if (templateIdOrTemplate.footer && templateIdOrTemplate.footer.trim()) {
+                      console.log('Setting footer to (mobile):', templateIdOrTemplate.footer);
+                      setLetterFooterPrefix(templateIdOrTemplate.footer);
+                    } else {
+                      console.log('No footer found (mobile), keeping default');
+                    }
+                    setMobilePanelType(null);
+                  }
                 }}
                 showFontOverlay={(mobilePanelType as 'left' | 'font' | null) === 'font'}
                 onToggleFontOverlay={() => {
@@ -1367,6 +1595,8 @@ function LetterPageContent() {
                 fontOpacity={fontOpacity}
                 backgroundColor={backgroundColor}
                 backgroundOpacity={backgroundOpacity}
+                onCloseMobilePanel={() => setMobilePanelType(null)}
+                userInterests={profile?.interests || []}
               />
             )}
           </div>

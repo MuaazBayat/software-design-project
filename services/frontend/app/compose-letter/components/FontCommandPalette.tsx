@@ -76,8 +76,9 @@ export function FontCommandPalette({ open, onClose, onSelect, onPreview, current
             onKeyDown={onKey}
             placeholder="Search fonts or type category (serif, handwritten, mono)..."
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-amber-400"
+            aria-label="Search fonts by name or category"
           />
-          <button aria-label="close" onClick={() => onClose()} className="p-1 rounded hover:bg-amber-100 text-amber-600"><X className="h-4 w-4" /></button>
+          <button aria-label="Close font selection dialog" onClick={() => onClose()} className="p-1 rounded hover:bg-amber-100 text-amber-600"><X className="h-4 w-4" /></button>
         </div>
         <ul className="max-h-80 overflow-y-auto divide-y divide-amber-50">
           {filtered.map((fp, idx) => {
@@ -89,6 +90,7 @@ export function FontCommandPalette({ open, onClose, onSelect, onPreview, current
                 onMouseEnter={() => { setHighlightIndex(idx); onPreview(fp.id) }}
                 onClick={() => { onSelect(fp.id); onClose() }}
                 className={`px-4 py-3 cursor-pointer text-sm flex items-center justify-between gap-4 ${active ? 'bg-amber-100/70' : 'hover:bg-amber-50'} ${fp.id===currentId ? 'ring-1 ring-amber-300' : ''}`}
+                aria-label={`Select ${fp.label} font from ${fp.category} category`}
               >
                 <div className="flex flex-col min-w-0">
                   <span className={`${fp.className} font-medium leading-snug`}>{fp.label}</span>
@@ -98,7 +100,7 @@ export function FontCommandPalette({ open, onClose, onSelect, onPreview, current
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(fp.id) }}
                   className="p-1 rounded hover:bg-amber-200 text-amber-700"
-                  aria-label={fav ? 'remove-favorite' : 'add-favorite'}
+                  aria-label={fav ? `Remove ${fp.label} font from favorites` : `Add ${fp.label} font to favorites`}
                 >
                   {fav ? <Star className="h-4 w-4 fill-amber-500" /> : <StarOff className="h-4 w-4" />}
                 </button>
