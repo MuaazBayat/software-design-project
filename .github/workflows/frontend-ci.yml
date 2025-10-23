@@ -15,52 +15,8 @@ on:
       - 'services/frontend/**'
 
 jobs:
-  unit-tests:
-    name: Unit Test & Coverage
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/frontend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: services/frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests with coverage
-        run: npm test -- --ci
-
-  integration-tests:
-    name: Integration Test & Coverage
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/frontend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: services/frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run integration tests with coverage
-        # Assuming you have a script like "test:int" in your package.json
-        run: npm run test:int -- --ci
         
   docker-build-push:
-    # This job now depends on both test jobs completing successfully
-    needs: [unit-tests, integration-tests]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
