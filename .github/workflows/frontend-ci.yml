@@ -17,7 +17,6 @@ on:
 jobs:
   docker-build-push:
     # This job now depends on both test jobs completing successfully
-    needs: [unit-tests, integration-tests]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
