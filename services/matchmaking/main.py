@@ -30,7 +30,7 @@ app = FastAPI(title="PenPal Matchmaking API", version="2.0.0")
 ALLOWED_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|globetalk-frontend-388957617777\.us-central1\.run\.app)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+    allow_origins=["*"],
     allow_methods=["*"],     
     allow_headers=["*"],      
     allow_credentials=False,  
