@@ -11,11 +11,11 @@ export default function DebugPage() {
   }, []);
 
   if (!mounted) {
-    return <div className="min-h-screen bg-black text-white p-6">Loading...</div>;
+    return <div className="min-h-screen bg-transparent text-white p-6">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-transparent text-white p-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-2">Debug Page</h1>
         <p className="text-gray-400 mb-8">Environment variable testing</p>

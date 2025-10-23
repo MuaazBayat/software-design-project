@@ -150,7 +150,7 @@ const ModerationDashboard = () => {
   // Check if user is a moderator
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="flex items-center space-x-2">
           <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
           <span className="text-gray-600">Loading...</span>
@@ -161,7 +161,7 @@ const ModerationDashboard = () => {
 
   if (!profile?.moderator) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md text-center">
           <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
@@ -198,7 +198,7 @@ const ModerationDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-transparent p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="bg-white rounded-lg shadow-sm p-6 mb-6" role="banner" aria-label="Moderation Dashboard Header">

@@ -702,7 +702,7 @@ const MatchScreen: React.FC = () => {
   // Loading and error states
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <Loader />
       </div>
     );
@@ -710,7 +710,7 @@ const MatchScreen: React.FC = () => {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-24 h-24 bg-gradient-to-r from-violet-200 to-pink-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <Globe className="w-12 h-12 text-white" />
@@ -727,7 +727,7 @@ const MatchScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
+    <div className="min-h-screen bg-transparent">
       {/* Main Content */}
       <Toaster position="top-center" richColors />
       <main
@@ -756,7 +756,7 @@ const MatchScreen: React.FC = () => {
                 aria-label="Open matching preferences filters"
                 type="button"
               >
-                <UserSearch className="w-5 h-5" aria-hidden="true" />
+                <UserSearch className="w-5 h-5 text-stone-600" aria-hidden="true" />
               </button>
             </div>
 
@@ -974,7 +974,7 @@ const MatchScreen: React.FC = () => {
                     </h2>
                     <div className="flex items-center gap-4 mb-3">
                       <div className="flex items-center gap-1 text-stone-500 text-sm">
-                        <MapPin className="w-4 h-4" />
+                        <MapPin className="w-4 h-4 text-stone-500" />
                         {getLocationDisplay(currentProfile)}
                       </div>
                       {currentProfile.age_range && (

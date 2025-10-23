@@ -71,6 +71,19 @@ export const __test__ = {
   }
 };
 
+// Helper function to lighten colors for dark mode
+const lightenColor = (color: string, amount: number = 0.5): string => {
+  if (!color.startsWith('#')) return color;
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const newR = Math.round(r + (255 - r) * amount);
+  const newG = Math.round(g + (255 - g) * amount);
+  const newB = Math.round(b + (255 - b) * amount);
+  return `rgb(${newR}, ${newG}, ${newB})`;
+};
+
 interface LanguageToolResult {
   matches: LanguageToolMatch[];
 }
@@ -133,97 +146,58 @@ const getLinePattern = (lines: LineConfigType): string => {
               repeating-linear-gradient(0deg, transparent 0px, transparent ${noteSpacing * 0.8}px, ${color} ${noteSpacing * 0.8}px, ${color} ${noteSpacing * 0.85}px, transparent ${noteSpacing * 0.85}px, transparent ${noteSpacing}px)`;
     
     case 'geometric':
-      const geoSpacing = spacing * density;
+      const isDarkGeo = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+      const adjustedColorGeo = isDarkGeo ? lightenColor(color, 0.7) : color;
+      const adjustedSecondaryColorGeo = isDarkGeo ? lightenColor(secondaryColor, 0.7) : secondaryColor;
       return `repeating-conic-gradient(from ${rotation}deg, 
-        ${color} 0deg, 
-        ${color} 60deg, 
+        ${adjustedColorGeo} 0deg, 
+        ${adjustedColorGeo} 60deg, 
         transparent 60deg, 
         transparent 120deg, 
-        ${secondaryColor} 120deg, 
-        ${secondaryColor} 180deg, 
+        ${adjustedSecondaryColorGeo} 120deg, 
+        ${adjustedSecondaryColorGeo} 180deg, 
         transparent 180deg, 
         transparent 240deg,
-        ${color} 240deg,
-        ${color} 300deg,
+        ${adjustedColorGeo} 240deg,
+        ${adjustedColorGeo} 300deg,
         transparent 300deg,
         transparent 360deg)`;
     
     case 'mesh':
+      const isDarkMesh = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+      const adjustedColorMesh = isDarkMesh ? lightenColor(color, 0.7) : color;
+      const adjustedSecondaryColorMesh = isDarkMesh ? lightenColor(secondaryColor, 0.7) : secondaryColor;
       return `repeating-linear-gradient(${rotation}deg, 
         transparent 0px, 
         transparent ${spacing * 0.3}px, 
-        ${color} ${spacing * 0.3}px, 
-        ${color} ${spacing * 0.35}px, 
+        ${adjustedColorMesh} ${spacing * 0.3}px, 
+        ${adjustedColorMesh} ${spacing * 0.35}px, 
         transparent ${spacing * 0.35}px, 
         transparent ${spacing * 0.65}px,
-        ${secondaryColor} ${spacing * 0.65}px, 
-        ${secondaryColor} ${spacing * 0.7}px, 
+        ${adjustedSecondaryColorMesh} ${spacing * 0.65}px, 
+        ${adjustedSecondaryColorMesh} ${spacing * 0.7}px, 
         transparent ${spacing * 0.7}px, 
         transparent ${spacing}px),
       repeating-linear-gradient(${rotation + 90}deg, 
         transparent 0px, 
         transparent ${spacing * 0.3}px, 
-        ${color} ${spacing * 0.3}px, 
-        ${color} ${spacing * 0.35}px, 
-
-            {/* Mobile: collapse formatting into a menu */}
-            <div className="flex md:hidden items-center gap-2">
-              {/* Bold and Italic buttons only */}
-              <Button
-                variant={selectedFormatting.includes('bold') ? 'default' : 'ghost'}
-                size="sm"
-                onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('bold') }}
-                className={selectedFormatting.includes('bold') ? 'bg-amber-100 text-amber-900' : ''}
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={selectedFormatting.includes('italic') ? 'default' : 'ghost'}
-                size="sm"
-                onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('italic') }}
-                className={selectedFormatting.includes('italic') ? 'bg-amber-100 text-amber-900' : ''}
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
-
-              <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="undo">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="redo">
-                <RotateCw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onToggleTemplates?.()}
-                className="gap-1 border-amber-200 hover:bg-amber-50 hover:scale-105 transition-transform duration-200"
-              >
-                <BookTemplate className="h-4 w-4" />
-                Templates
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmOpen(true)}
-                disabled={sending}
-                aria-label="clear-letter"
-                className="text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+        ${adjustedColorMesh} ${spacing * 0.3}px, 
+        ${adjustedColorMesh} ${spacing * 0.35}px, 
         transparent ${spacing * 0.35}px, 
         transparent ${spacing * 0.65}px,
-        ${secondaryColor} ${spacing * 0.65}px, 
-        ${secondaryColor} ${spacing * 0.7}px, 
+        ${adjustedSecondaryColorMesh} ${spacing * 0.65}px, 
+        ${adjustedSecondaryColorMesh} ${spacing * 0.7}px, 
         transparent ${spacing * 0.7}px, 
         transparent ${spacing}px)`;
     
     case 'gradient':
+      const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+      const adjustedColor = isDark ? lightenColor(color, 0.7) : color;
+      const adjustedSecondaryColor = isDark ? lightenColor(secondaryColor, 0.7) : secondaryColor;
       return `repeating-linear-gradient(${rotation}deg, 
-        ${color} 0px, 
-        ${secondaryColor} ${spacing * 0.5}px, 
-        ${color} ${spacing}px)`;
+        ${adjustedColor} 0px, 
+        ${adjustedSecondaryColor} ${spacing * 0.5}px, 
+        ${adjustedColor} ${spacing}px)`;
     
     case 'wavy':
       return `repeating-linear-gradient(${rotation}deg,
@@ -1647,7 +1621,7 @@ export default function MainContent({
   ]);
 
   return (
-    <div className="flex-1 h-full min-h-[600px] max-h-[calc(100vh-70px)] overflow-y-auto scrollbar-hide main-content-area" onClick={() => onFocusModeChange?.(true)} role="main" aria-label="Letter composition main content">
+  <div className="flex-1 h-full min-h-[600px] max-h-[calc(100vh-70px)] overflow-y-auto scrollbar-hide main-content-area dark:bg-slate-900/10 dark:border-l dark:border-slate-700/30" onClick={() => onFocusModeChange?.(true)} role="main" aria-label="Letter composition main content">
       {/* CSS Animations for line patterns */}
       <style jsx>{`
         @keyframes wave-flow {
@@ -1739,6 +1713,71 @@ export default function MainContent({
         }
       `}</style>
 
+      {/* Glassy UI helpers */}
+      <style jsx>{`
+        :root {
+          /* lighter glass variables to work well in both light and dark */
+          --glass-bg: rgba(255,255,255,0.06);
+          --glass-border: rgba(255,255,255,0.06);
+          --glass-accent: rgba(255, 184, 96, 0.10);
+          --glass-dark-bg: rgba(25,25,30,0.22);
+        }
+
+        .glassy-card {
+          background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+          border: 1px solid var(--glass-border);
+          backdrop-filter: blur(6px) saturate(110%);
+          -webkit-backdrop-filter: blur(6px) saturate(110%);
+          box-shadow: 0 6px 14px rgba(2,6,23,0.18);
+          transition: transform 180ms ease, box-shadow 180ms ease, background 250ms ease;
+        }
+
+        .glassy-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(2,6,23,0.22);
+        }
+
+        .glassy-bg {
+          background: linear-gradient(180deg, var(--glass-bg), rgba(255,255,255,0.01));
+          border: 1px solid rgba(217,119,6,0.05);
+          backdrop-filter: blur(5px) saturate(105%);
+          -webkit-backdrop-filter: blur(5px) saturate(105%);
+        }
+
+        /* Dark mode overrides tuned to be softer and avoid crushing blacks */
+        :global(.dark) .glassy-card {
+          background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+          border: 1px solid rgba(255,255,255,0.025);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.38);
+        }
+
+        :global(.dark) .glassy-bg {
+          background: linear-gradient(180deg, var(--glass-dark-bg), rgba(255,255,255,0.01));
+          border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        /* Dark-mode overlay tint for depth and to avoid washed-out white; reduced opacity */
+        :global(.dark) .glassy-overlay {
+          background: linear-gradient(180deg, rgba(10,12,18,0.36), rgba(20,22,28,0.18));
+          border: 1px solid rgba(255,255,255,0.01);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.01), 0 4px 12px rgba(0,0,0,0.38);
+        }
+
+        /* Subtle accent for emoji-like picker */
+        .emoji-glow {
+          box-shadow: 0 6px 22px rgba(255,170,30,0.08), 0 1px 0 rgba(255,255,255,0.02) inset;
+        }
+
+        /* Persistent overlay that sits above background patterns but below interactive content */
+        .glassy-overlay {
+          background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+          border: 1px solid rgba(255,255,255,0.03);
+          backdrop-filter: blur(8px) saturate(120%);
+          -webkit-backdrop-filter: blur(8px) saturate(120%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 4px 12px rgba(2,6,23,0.25);
+        }
+      `}</style>
+
       {/* FIXED WIDTH: maintain max constraint at all screen sizes */}
       <div className="w-full max-w-2xl mx-auto">
         {success && (
@@ -1749,17 +1788,13 @@ export default function MainContent({
         )}
 
         {/* Toolbar - Island Style - STICKY at top */}
-        <div className="toolbar-area sticky top-0 z-40 mb-6 bg-gradient-to-br from-amber-50 to-orange-50 pb-4 -mt-6 pt-6" aria-label="Letter editing toolbar" role="toolbar" aria-orientation="horizontal">
-          <div className="relative group/toolbar select-none">
-            {/* Glow effects */}
-            <div className="absolute inset-[-10px] bg-gradient-to-br from-amber-400/25 via-orange-400/15 to-rose-400/25 rounded-[2rem] blur-lg opacity-60 group-hover/toolbar:opacity-85 transition-all duration-500 pointer-events-none"></div>
-            <div className="absolute inset-[-5px] bg-gradient-to-br from-amber-300/15 via-orange-300/10 to-rose-300/15 rounded-[1.75rem] blur-md opacity-70 group-hover/toolbar:opacity-100 transition-all duration-500 pointer-events-none"></div>
-            
+        <div className="toolbar-area sticky top-0 z-40 mb-6 bg-transparent pb-4 -mt-6 pt-6" aria-label="Letter editing toolbar" role="toolbar" aria-orientation="horizontal">
+          <div className="relative select-none">
             {/* Toolbar Card */}
-            <div className="relative bg-gradient-to-br from-white via-amber-50/30 to-white shadow-xl backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-slate-200/50 hover:border-amber-300/40 transition-all duration-500">
+            <div className="relative bg-white rounded-2xl shadow-lg border border-gray-200 p-3 sm:p-4 transition-all duration-300 dark:bg-gray-800 dark:border-gray-700">
               {/* Top row - Stack vertically on very small screens */}
               <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3 mb-3">
-                <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 bg-white/60 border border-amber-100/50 rounded-lg px-2 sm:px-3 py-2">
+                <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 bg-white/80 border border-slate-200/50 rounded-lg px-2 sm:px-3 py-2">
                   <div className="flex items-center gap-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1768,7 +1803,7 @@ export default function MainContent({
                           variant={overlayFontOpen ? 'secondary' : 'ghost'}
                           size="sm"
                           onClick={() => onToggleFontOverlay?.()}
-                          className={`gap-1 hover:scale-105 transition-transform duration-200 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-700 hover:bg-amber-100'}`}
+                          className={`gap-1 hover:scale-105 transition-transform duration-200 ${overlayFontOpen ? 'text-amber-900 bg-amber-100' : 'text-amber-800 hover:bg-amber-50'}`}
                           aria-label="Choose font style"
                         >
                           <Type className="h-4 w-4" />
@@ -1785,11 +1820,11 @@ export default function MainContent({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-1 sm:gap-2">
-                          <span className="text-xs text-gray-500 select-none">Tt</span>
+                          <span className="text-xs text-slate-700 select-none">Tt</span>
                           <div className="w-32 sm:w-48 md:w-64 lg:w-80 xl:w-92">
-                            <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} aria-label="Font size" />
+                            <Slider value={fontSize} onValueChange={setFontSize} min={8} max={36} step={0.5} aria-label="Font size" className="[&_[data-slot=slider-track]]:bg-gray-200 [&_[data-slot=slider-range]]:bg-amber-600 [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-thumb]]:border-amber-600" />
                           </div>
-                          <span className="text-lg text-gray-500 select-none">Tt</span>
+                          <span className="text-lg text-slate-700 select-none">Tt</span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -1804,7 +1839,7 @@ export default function MainContent({
                           onClick={checkGrammar}
                           disabled={checkingGrammar}
                           aria-label="check-grammar"
-                          className={`gap-1 hover:bg-amber-50 transition-all duration-200 ${isMobile ? 'w-8' : 'w-16 sm:w-20'} justify-center ml-2 sm:ml-3`}
+                          className={`gap-1 hover:bg-slate-50 transition-all duration-200 text-slate-800 ${isMobile ? 'w-8' : 'w-16 sm:w-20'} justify-center ml-2 sm:ml-3`}
                         >
                           {checkingGrammar ? (
                             <>
@@ -1839,14 +1874,14 @@ export default function MainContent({
               {/* Bottom row - More compact on small screens */}
               <div className="flex flex-wrap items-center justify-start gap-2 sm:gap-1 sm:justify-between toolbar-area">
                 <TooltipProvider>
-                <div className="flex items-center gap-1 bg-white/60 border border-amber-200/50 rounded-lg p-1 overflow-x-auto min-w-0 flex-shrink-0">
+                <div className="flex items-center gap-1 bg-white/80 border border-slate-200/50 rounded-lg p-1 overflow-x-auto min-w-0 flex-shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant={selectedFormatting.includes('bold') ? 'default' : 'ghost'}
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('bold') }}
-                        className={selectedFormatting.includes('bold') ? 'bg-amber-100 text-amber-900' : ''}
+                        className={selectedFormatting.includes('bold') ? 'bg-slate-100 text-slate-900' : 'text-slate-800'}
                         aria-label="Bold text"
                       >
                         <Bold className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1862,7 +1897,7 @@ export default function MainContent({
                         variant={selectedFormatting.includes('italic') ? 'default' : 'ghost'}
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('italic') }}
-                        className={selectedFormatting.includes('italic') ? 'bg-amber-100 text-amber-900' : ''}
+                        className={selectedFormatting.includes('italic') ? 'bg-slate-100 text-slate-900' : 'text-slate-800'}
                         aria-label="Italic text"
                       >
                         <Italic className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1878,7 +1913,7 @@ export default function MainContent({
                         variant={selectedFormatting.includes('underline') ? 'default' : 'ghost'}
                         size="sm"
                         onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('underline') }}
-                        className={selectedFormatting.includes('underline') ? 'bg-amber-100 text-amber-900' : ''}
+                        className={selectedFormatting.includes('underline') ? 'bg-slate-100 text-slate-900' : 'text-slate-800'}
                         aria-label="Underline text"
                       >
                         <Underline className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1890,37 +1925,39 @@ export default function MainContent({
                   </Tooltip>
                 </div>
                 
-                <div className="hidden sm:block w-px h-4 sm:h-5 bg-amber-200 mx-1" />
+                <div className="hidden sm:block w-px h-4 sm:h-5 bg-slate-200 mx-1" />
                 
                 {/* Desktop-only advanced controls */}
                 {!isMobile && (
                   <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="Undo last action">
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Undo (Ctrl+Z)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="Redo last action">
-                          <RotateCw className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Redo (Ctrl+Y)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <div className="hidden sm:block w-px h-5 bg-amber-200 mx-1" />
+                    <div className="bg-white/80 border border-slate-200/50 rounded-lg p-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleUndo() }} disabled={!undoStack.length} aria-label="Undo last action" className="text-slate-800">
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Undo (Ctrl+Z)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); handleRedo() }} disabled={!redoStack.length} aria-label="Redo last action" className="text-slate-800">
+                            <RotateCw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Redo (Ctrl+Y)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="hidden sm:block w-px h-5 bg-slate-200 mx-1" />
                   </>
                 )}
                 
                 {/* List buttons - hidden on very small screens */}
-                <div className="hidden sm:flex items-center gap-1">
+                <div className="hidden sm:flex items-center gap-1 bg-white/80 border border-slate-200/50 rounded-lg p-1">
                   {!isMobile && (
                     <>
                       <Tooltip>
@@ -1930,7 +1967,7 @@ export default function MainContent({
                             size="sm"
                             onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('olist') }}
                             aria-label="Insert numbered list"
-                            className={selectedFormatting.includes('olist') ? 'bg-amber-100 text-amber-900' : ''}
+                            className={selectedFormatting.includes('olist') ? 'bg-amber-100 text-amber-900' : 'text-amber-800'}
                           >
                             <ListOrdered className="h-4 w-4" />
                           </Button>
@@ -1946,7 +1983,7 @@ export default function MainContent({
                             size="sm"
                             onMouseDown={(e) => { captureSelection(); e.preventDefault(); toggleFormatting('ulist') }}
                             aria-label="Insert bullet list"
-                            className={selectedFormatting.includes('ulist') ? 'bg-amber-100 text-amber-900' : ''}
+                            className={selectedFormatting.includes('ulist') ? 'bg-amber-100 text-amber-900' : 'text-amber-800'}
                           >
                             <ListIcon className="h-4 w-4" />
                           </Button>
@@ -1962,41 +1999,43 @@ export default function MainContent({
 
                 {/* Emoji Picker - Desktop Only */}
                 {!isMobile && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          if (emojiPickerOpen) {
-                            setEmojiPickerOpen(false);
-                            setEmojiPickerPosition(null);
-                            setEmojiSearchQuery('');
-                          } else {
-                            const button = e.currentTarget;
-                            const rect = button.getBoundingClientRect();
-                            
-                            setEmojiPickerPosition({
-                              x: rect.left,
-                              y: rect.bottom + window.scrollY
-                            });
-                            setEmojiPickerOpen(true);
-                          }
-                        }}
-                        className="emoji-picker-button hover:bg-amber-50 hover:scale-105 transition-all duration-200 w-8"
-                        aria-label="Insert emoji"
-                      >
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Insert emoji (Ctrl+Shift+E)</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="bg-white/80 border border-amber-200/50 rounded-lg p-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            if (emojiPickerOpen) {
+                              setEmojiPickerOpen(false);
+                              setEmojiPickerPosition(null);
+                              setEmojiSearchQuery('');
+                            } else {
+                              const button = e.currentTarget;
+                              const rect = button.getBoundingClientRect();
+                              
+                              setEmojiPickerPosition({
+                                x: rect.left,
+                                y: rect.bottom + window.scrollY
+                              });
+                              setEmojiPickerOpen(true);
+                            }
+                          }}
+                          className="emoji-picker-button hover:bg-amber-50 hover:scale-105 transition-all duration-200 w-8 text-amber-800"
+                          aria-label="Insert emoji"
+                        >
+                          <Smile className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Insert emoji (Ctrl+Shift+E)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 )}
                 
                 {/* Clear letter and Templates - always visible */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 bg-white/80 border border-amber-200/50 rounded-lg p-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -2020,7 +2059,7 @@ export default function MainContent({
                         variant="outline"
                         size="sm"
                         onClick={() => onToggleTemplates?.()}
-                        className="gap-1 border-amber-200 hover:bg-amber-50 hover:scale-105 transition-transform duration-200 text-sm flex-shrink-0"
+                        className="gap-1 border-amber-200 hover:bg-amber-50 hover:border-amber-300 hover:scale-105 transition-transform duration-200 text-sm flex-shrink-0 text-amber-800 bg-white hover:text-amber-900 hover:shadow-md hover:opacity-100 dark:hover:bg-amber-50 dark:hover:text-amber-900"
                         aria-label="Browse letter templates"
                       >
                         <BookTemplate className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -2062,14 +2101,14 @@ export default function MainContent({
             aria-label="Emoji picker"
             aria-modal="true"
           >
-            <div className="relative bg-white/20 backdrop-blur-md rounded-xl shadow-2xl border-2 border-amber-300 p-2 w-80 max-h-96 overflow-y-auto select-none emoji-picker-container">
+            <div className="relative bg-white/20 backdrop-blur-md rounded-xl shadow-2xl border-2 border-rose-300 p-2 w-80 max-h-96 overflow-y-auto select-none emoji-picker-container bg-white">
               <div className="flex items-center gap-2 mb-2 px-2 bg-white/20 pb-2 border-b">
                 <input
                   type="text"
                   placeholder="Search emojis..."
                   value={emojiSearchQuery}
                   onChange={(e) => setEmojiSearchQuery(e.target.value)}
-                  className="flex-1 px-2 py-1 text-sm bg-white/50 border border-amber-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+                  className="flex-1 px-2 py-1 text-sm bg-white/50 border border-amber-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent text-black dark:text-black"
                   onClick={(e) => e.stopPropagation()}
                   aria-label="Search emojis"
                   role="searchbox"
@@ -2093,7 +2132,7 @@ export default function MainContent({
               {/* Recently Used Category */}
               {recentlyUsedEmojis.length > 0 && (
                 <div className="mb-3">
-                  <h4 className="text-sm font-bold text-amber-800 mb-3 px-2 uppercase tracking-wide flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-black dark:text-black mb-3 px-2 uppercase tracking-wide flex items-center gap-2">
                     <span className="text-lg">🕒</span> Recently Used
                   </h4>
                   <div className="grid grid-cols-8 gap-1" role="grid" aria-label="Recently used emojis">
@@ -2116,7 +2155,7 @@ export default function MainContent({
               )}
               {Object.entries(getFilteredEmojis()).map(([category, emojis]) => (
                 <div key={category} className="mb-3 last:mb-0">
-                  <h4 className="text-sm font-bold text-gray-700 mb-3 px-2 uppercase tracking-wide" id={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <h4 className="text-sm font-bold text-black dark:text-black mb-3 px-2 uppercase tracking-wide" id={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
                     {category}
                   </h4>
                   <div className="grid grid-cols-8 gap-1" role="grid" aria-labelledby={`emoji-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -2143,15 +2182,24 @@ export default function MainContent({
 
         {/* Confirm Clear Letter Dialog */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent>
+          <DialogContent className="bg-white dark:bg-white">
             <DialogHeader>
-              <DialogTitle asChild>
-                <VisuallyHidden.Root>Confirm Clear Letter</VisuallyHidden.Root>
-              </DialogTitle>
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-black dark:text-black">Confirm Clear Letter</DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmOpen(false)}
+                  className="text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-100"
+                  aria-label="Close confirmation dialog"
+                >
+                  ✕
+                </Button>
+              </div>
             </DialogHeader>
-            <div className="text-sm text-gray-700" role="alertdialog" aria-labelledby="clear-dialog-title" aria-describedby="clear-dialog-description">
-              <h2 id="clear-dialog-title" className="text-lg font-semibold text-gray-900 mb-3">Clear this letter?</h2>
-              <p id="clear-dialog-description" className="mb-4">
+            <div className="text-sm text-black dark:text-black" role="alertdialog" aria-labelledby="clear-dialog-title" aria-describedby="clear-dialog-description">
+              <h2 id="clear-dialog-title" className="text-lg font-semibold text-black dark:text-black mb-3">Clear this letter?</h2>
+              <p id="clear-dialog-description" className="mb-4 text-black dark:text-black">
                 This will remove your current letter and clear the selected template. This can&apos;t be undone.
               </p>
               <div className="flex items-center space-x-2 py-2">
@@ -2163,7 +2211,7 @@ export default function MainContent({
                   className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                   aria-describedby="clear-background-help"
                 />
-                <label htmlFor="clear-background" className="text-sm text-gray-700">
+                <label htmlFor="clear-background" className="text-sm text-black dark:text-black">
                   Also reset background to white
                 </label>
                 <div id="clear-background-help" className="sr-only">
@@ -2172,7 +2220,7 @@ export default function MainContent({
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirmOpen(false)} aria-label="Cancel clearing letter">
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} aria-label="Cancel clearing letter" className="text-black dark:text-black border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-50">
                 Cancel
               </Button>
               <Button
@@ -2192,7 +2240,7 @@ export default function MainContent({
 
         {/* Grammar Check Dialog */}
         <Dialog open={grammarDialogOpen} onOpenChange={setGrammarDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[85vh] p-0 z-50 flex flex-col" showCloseButton={false}>
+          <DialogContent className="max-w-4xl max-h-[85vh] p-0 z-50 flex flex-col bg-white light" showCloseButton={false}>
             <DialogTitle asChild>
               <VisuallyHidden.Root>Grammar Check Results</VisuallyHidden.Root>
             </DialogTitle>
@@ -2200,7 +2248,7 @@ export default function MainContent({
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0" role="banner">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center dark:from-slate-700 dark:to-slate-700/70 dark:opacity-90">
                   <CheckSquare className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -2370,18 +2418,19 @@ export default function MainContent({
 
         <div
           ref={containerRef}
-          className="relative letter-content overflow-hidden rounded-lg"
+          className="relative letter-content overflow-hidden rounded-lg glassy-bg"
           style={{
-            transition: 'background-image 0.5s ease-in-out, background-size 0.5s ease-in-out',
-            backgroundColor: backgroundColor ? `rgba(${parseInt(backgroundColor.slice(1, 3), 16)}, ${parseInt(backgroundColor.slice(3, 5), 16)}, ${parseInt(backgroundColor.slice(5, 7), 16)}, ${backgroundOpacity})` : 'transparent',
+            transition: 'background-image 0.5s ease-in-out, background-size 0.5s ease-in-out, background-color 250ms',
+            backgroundColor: backgroundColor ? `rgba(${parseInt(backgroundColor.slice(1, 3), 16)}, ${parseInt(backgroundColor.slice(3, 5), 16)}, ${parseInt(backgroundColor.slice(5, 7), 16)}, ${Math.min(backgroundOpacity, 0.95)})` : 'transparent',
             backgroundRepeat: 'repeat-y',
             backgroundSize: '100% auto',
             boxShadow: 'none',
-            border: '1px solid rgba(217, 119, 6, 0.1)',
+            border: '1px solid rgba(217, 119, 6, 0.06)',
             WebkitBackfaceVisibility: 'hidden',
             backfaceVisibility: 'hidden',
             borderRadius: '16px', // Ensure corners stay rounded
-            overflow: 'clip-padding' // Prevent content overflow from affecting border radius
+            overflow: 'clip-padding', // Prevent content overflow from affecting border radius
+            backgroundBlendMode: 'overlay'
           }}
         >
           {/* Solid background color and static line patterns */}
@@ -2556,7 +2605,7 @@ export default function MainContent({
               </div>
             </div>
 
-            <Card className="pt-5 pb-2 px-4 sm:px-5 bg-transparent shadow-none relative main-content-area" onClick={() => onFocusModeChange?.(true)} style={{ 
+              <Card className="pt-5 pb-2 px-4 sm:px-5 bg-transparent shadow-none relative main-content-area" onClick={() => onFocusModeChange?.(true)} style={{ 
               backgroundColor: 'transparent', 
               marginTop: '-1px', // Eliminate any gap between heading and card
               border: 'none',

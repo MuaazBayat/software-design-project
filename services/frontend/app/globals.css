@@ -1,3 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Lora:wght@400..700&family=EB+Garamond:wght@400..800&family=Patrick+Hand:wght@400&family=Special+Elite:wght@400&family=Caveat:wght@400..700&family=Roboto+Mono:wght@100..700&family=Merriweather:wght@300..900&family=Open+Sans:wght@300..800&family=Source+Sans+3:wght@200..900&family=Kalam:wght@300..700&family=Dancing+Script:wght@400..700&family=Satisfy:wght@400&family=Noto+Sans:wght@100..900&family=Noto+Serif:wght@100..900&family=Courier+Prime:wght@400..700&family=Playfair+Display:wght@400..900&family=Montserrat:wght@100..900&family=Raleway:wght@100..900&family=Poppins:wght@100..900&family=Roboto:wght@100..900&family=Cinzel:wght@400..900&family=Amatic+SC:wght@400..700&family=Indie+Flower:wght@400&family=Shadows+Into+Light:wght@400&family=Oswald:wght@200..700&family=Ubuntu:wght@300..700&family=Nunito:wght@200..1000&family=Quicksand:wght@300..700&family=Work+Sans:wght@100..900&family=Heebo:wght@100..900&family=Mulish:wght@200..1000&family=DM+Sans:wght@400..500&family=Manrope:wght@200..800&family=Inter+Tight:wght@100..900&family=Figtree:wght@300..900&family=Lexend:wght@100..900&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:wght@200..800&family=Barlow:wght@100..900&family=Be+Vietnam+Pro:wght@100..900&family=Chivo:wght@100..900&family=Encode+Sans:wght@100..900&family=Exo:wght@100..900&family=Josefin+Sans:wght@100..700&family=Karla:wght@200..800&family=Lato:wght@100..900&family=Oxygen:wght@300..700&family=PT+Sans:wght@400..700&family=Rajdhani:wght@300..700&family=Red+Hat+Display:wght@300..900&family=Red+Hat+Text:wght@300..700&family=Roboto+Condensed:wght@300..700&family=Saira:wght@100..900&family=Signika:wght@300..700&family=Space+Grotesk:wght@300..700&family=Tenor+Sans:wght@400&family=Titillium+Web:wght@200..700&family=Ubuntu+Condensed:wght@400..700&family=Yanone+Kaffeesatz:wght@200..700&family=Libre+Franklin:wght@100..900&family=Crimson+Text:wght@400..600&family=Libre+Baskerville:wght@400&family=Source+Serif+4:wght@200..900&family=Vollkorn:wght@400..900&family=Spectral:wght@200..800&family=Old+Standard+TT:wght@400&family=Cormorant:wght@300..700&family=Cormorant+Garamond:wght@300..700&family=Crimson+Pro:wght@200..900&family=Domine:wght@400..700&family=Literata:wght@400..700&family=Marcellus:wght@400&family=Prata:wght@400&family=Zilla+Slab:wght@300..700&family=JetBrains+Mono:wght@100..800&family=Fira+Code:wght@300..700&family=Space+Mono:wght@400..700&family=IBM+Plex+Mono:wght@100..700&family=Source+Code+Pro:wght@200..900&family=Anonymous+Pro:wght@400..700&family=Overpass+Mono:wght@300..700&family=PT+Mono:wght@400&family=Ubuntu+Mono:wght@400..700&family=Share+Tech+Mono:wght@400&family=Bebas+Neue:wght@400&family=Anton:wght@400&family=Righteous:wght@400&family=Bungee:wght@400&family=Orbitron:wght@400..900&family=Audiowide:wght@400&family=Russo+One:wght@400&family=Fjalla+One:wght@400&family=Teko:wght@300..700&family=Staatliches:wght@400&family=Abril+Fatface:wght@400&family=Graduate:wght@400&family=Bellefair:wght@400&family=Caprasimo:wght@400&family=Courgette:wght@400&family=Pacifico:wght@400&family=Comfortaa:wght@300..700&family=Fredoka:wght@300..700&family=Chewy:wght@400&family=Luckiest+Guy:wght@400&family=Bubblegum+Sans:wght@400&family=Boogaloo:wght@400&family=Great+Vibes:wght@400&family=Allura:wght@400&family=Alex+Brush:wght@400&family=Tangerine:wght@400..700&family=Parisienne:wght@400&family=Sacramento:wght@400&family=Rochester:wght@400&family=Yellowtail:wght@400&family=Grand+Hotel:wght@400&family=Kavoon:wght@400&family=Gloria+Hallelujah:wght@400&family=Coming+Soon:wght@400&family=Just+Another+Hand:wght@400&family=Rancho:wght@400&family=Covered+By+Your+Grace:wght@400&family=Permanent+Marker:wght@400&family=Rock+Salt:wght@400&family=Homemade+Apple:wght@400&family=Schoolbell:wght@400&family=Crafty+Girls:wght@400&family=The+Girl+Next+Door:wght@400&family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -41,11 +48,139 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-family-inter: 'Inter', sans-serif;
+  --font-family-lora: 'Lora', serif;
+  --font-family-eb-garamond: 'EB Garamond', serif;
+  --font-family-patrick-hand: 'Patrick Hand', cursive;
+  --font-family-special-elite: 'Special Elite', cursive;
+  --font-family-caveat: 'Caveat', cursive;
+  --font-family-roboto-mono: 'Roboto Mono', monospace;
+  --font-family-merriweather: 'Merriweather', serif;
+  --font-family-open-sans: 'Open Sans', sans-serif;
+  --font-family-source-sans-3: 'Source Sans 3', sans-serif;
+  --font-family-kalam: 'Kalam', cursive;
+  --font-family-dancing-script: 'Dancing Script', cursive;
+  --font-family-satisfy: 'Satisfy', cursive;
+  --font-family-noto-sans: 'Noto Sans', sans-serif;
+  --font-family-noto-serif: 'Noto Serif', serif;
+  --font-family-courier-prime: 'Courier Prime', monospace;
+  --font-family-playfair-display: 'Playfair Display', serif;
+  --font-family-montserrat: 'Montserrat', sans-serif;
+  --font-family-raleway: 'Raleway', sans-serif;
+  --font-family-poppins: 'Poppins', sans-serif;
+  --font-family-roboto: 'Roboto', sans-serif;
+  --font-family-cinzel: 'Cinzel', serif;
+  --font-family-amatic-sc: 'Amatic SC', cursive;
+  --font-family-indie-flower: 'Indie Flower', cursive;
+  --font-family-shadows-into-light: 'Shadows Into Light', cursive;
+  --font-family-oswald: 'Oswald', sans-serif;
+  --font-family-ubuntu: 'Ubuntu', sans-serif;
+  --font-family-nunito: 'Nunito', sans-serif;
+  --font-family-quicksand: 'Quicksand', sans-serif;
+  --font-family-work-sans: 'Work Sans', sans-serif;
+  --font-family-heebo: 'Heebo', sans-serif;
+  --font-family-mulish: 'Mulish', sans-serif;
+  --font-family-dm-sans: 'DM Sans', sans-serif;
+  --font-family-manrope: 'Manrope', sans-serif;
+  --font-family-inter-tight: 'Inter Tight', sans-serif;
+  --font-family-figtree: 'Figtree', sans-serif;
+  --font-family-lexend: 'Lexend', sans-serif;
+  --font-family-outfit: 'Outfit', sans-serif;
+  --font-family-plus-jakarta-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-family-barlow: 'Barlow', sans-serif;
+  --font-family-be-vietnam-pro: 'Be Vietnam Pro', sans-serif;
+  --font-family-chivo: 'Chivo', sans-serif;
+  --font-family-encode-sans: 'Encode Sans', sans-serif;
+  --font-family-exo: 'Exo', sans-serif;
+  --font-family-josefin-sans: 'Josefin Sans', sans-serif;
+  --font-family-karla: 'Karla', sans-serif;
+  --font-family-lato: 'Lato', sans-serif;
+  --font-family-oxygen: 'Oxygen', sans-serif;
+  --font-family-pt-sans: 'PT Sans', sans-serif;
+  --font-family-rajdhani: 'Rajdhani', sans-serif;
+  --font-family-red-hat-display: 'Red Hat Display', sans-serif;
+  --font-family-red-hat-text: 'Red Hat Text', sans-serif;
+  --font-family-roboto-condensed: 'Roboto Condensed', sans-serif;
+  --font-family-saira: 'Saira', sans-serif;
+  --font-family-signika: 'Signika', sans-serif;
+  --font-family-space-grotesk: 'Space Grotesk', sans-serif;
+  --font-family-tenor-sans: 'Tenor Sans', sans-serif;
+  --font-family-titillium-web: 'Titillium Web', sans-serif;
+  --font-family-ubuntu-condensed: 'Ubuntu Condensed', sans-serif;
+  --font-family-yanone-kaffeesatz: 'Yanone Kaffeesatz', sans-serif;
+  --font-family-libre-franklin: 'Libre Franklin', sans-serif;
+  --font-family-crimson-text: 'Crimson Text', serif;
+  --font-family-libre-baskerville: 'Libre Baskerville', serif;
+  --font-family-source-serif-4: 'Source Serif 4', serif;
+  --font-family-vollkorn: 'Vollkorn', serif;
+  --font-family-spectral: 'Spectral', serif;
+  --font-family-old-standard-tt: 'Old Standard TT', serif;
+  --font-family-cormorant: 'Cormorant', serif;
+  --font-family-cormorant-garamond: 'Cormorant Garamond', serif;
+  --font-family-crimson-pro: 'Crimson Pro', serif;
+  --font-family-domine: 'Domine', serif;
+  --font-family-literata: 'Literata', serif;
+  --font-family-marcellus: 'Marcellus', serif;
+  --font-family-prata: 'Prata', serif;
+  --font-family-zilla-slab: 'Zilla Slab', serif;
+  --font-family-jetbrains-mono: 'JetBrains Mono', monospace;
+  --font-family-fira-code: 'Fira Code', monospace;
+  --font-family-space-mono: 'Space Mono', monospace;
+  --font-family-ibm-plex-mono: 'IBM Plex Mono', monospace;
+  --font-family-source-code-pro: 'Source Code Pro', monospace;
+  --font-family-anonymous-pro: 'Anonymous Pro', monospace;
+  --font-family-overpass-mono: 'Overpass Mono', monospace;
+  --font-family-pt-mono: 'PT Mono', monospace;
+  --font-family-ubuntu-mono: 'Ubuntu Mono', monospace;
+  --font-family-share-tech-mono: 'Share Tech Mono', monospace;
+  --font-family-bebas-neue: 'Bebas Neue', cursive;
+  --font-family-anton: 'Anton', sans-serif;
+  --font-family-righteous: 'Righteous', cursive;
+  --font-family-bungee: 'Bungee', cursive;
+  --font-family-orbitron: 'Orbitron', sans-serif;
+  --font-family-audiowide: 'Audiowide', cursive;
+  --font-family-russo-one: 'Russo One', sans-serif;
+  --font-family-fjalla-one: 'Fjalla One', sans-serif;
+  --font-family-teko: 'Teko', sans-serif;
+  --font-family-staatliches: 'Staatliches', cursive;
+  --font-family-abril-fatface: 'Abril Fatface', cursive;
+  --font-family-graduate: 'Graduate', cursive;
+  --font-family-bellefair: 'Bellefair', serif;
+  --font-family-caprasimo: 'Caprasimo', cursive;
+  --font-family-courgette: 'Courgette', cursive;
+  --font-family-pacifico: 'Pacifico', cursive;
+  --font-family-comfortaa: 'Comfortaa', cursive;
+  --font-family-fredoka: 'Fredoka', cursive;
+  --font-family-chewy: 'Chewy', cursive;
+  --font-family-luckiest-guy: 'Luckiest Guy', cursive;
+  --font-family-bubblegum-sans: 'Bubblegum Sans', cursive;
+  --font-family-boogaloo: 'Boogaloo', cursive;
+  --font-family-great-vibes: 'Great Vibes', cursive;
+  --font-family-allura: 'Allura', cursive;
+  --font-family-alex-brush: 'Alex Brush', cursive;
+  --font-family-tangerine: 'Tangerine', cursive;
+  --font-family-parisienne: 'Parisienne', cursive;
+  --font-family-sacramento: 'Sacramento', cursive;
+  --font-family-rochester: 'Rochester', cursive;
+  --font-family-yellowtail: 'Yellowtail', cursive;
+  --font-family-grand-hotel: 'Grand Hotel', cursive;
+  --font-family-kavoon: 'Kavoon', cursive;
+  --font-family-gloria-hallelujah: 'Gloria Hallelujah', cursive;
+  --font-family-coming-soon: 'Coming Soon', cursive;
+  --font-family-just-another-hand: 'Just Another Hand', cursive;
+  --font-family-rancho: 'Rancho', cursive;
+  --font-family-covered-by-your-grace: 'Covered By Your Grace', cursive;
+  --font-family-permanent-marker: 'Permanent Marker', cursive;
+  --font-family-rock-salt: 'Rock Salt', cursive;
+  --font-family-homemade-apple: 'Homemade Apple', cursive;
+  --font-family-schoolbell: 'Schoolbell', cursive;
+  --font-family-crafty-girls: 'Crafty Girls', cursive;
+  --font-family-the-girl-next-door: 'The Girl Next Door', cursive;
 }
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: #f4f1e8; /* Light parchment base */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -76,22 +211,24 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --font-geist-sans: 'Geist', sans-serif;
+  --font-geist-mono: 'Geist Mono', monospace;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #2d1810; /* Dark parchment base */
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.18 0.01 240);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.18 0.01 240);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.22 0.015 240);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.22 0.015 240);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.22 0.015 240);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
@@ -102,11 +239,11 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.18 0.01 240);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: oklch(0.22 0.015 240);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
@@ -117,7 +254,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-transparent text-foreground;
   }
 }
 
@@ -177,15 +314,146 @@
       backdrop-filter: none;
     }
   }
+
+  /* Hide scrollbar but maintain functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }
 
 
 
-/* Scrollbar hide utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
-}
+/* Custom font classes */
+.font-inter { font-family: var(--font-family-inter); }
+.font-lora { font-family: var(--font-family-lora); }
+.font-eb-garamond { font-family: var(--font-family-eb-garamond); }
+.font-patrick-hand { font-family: var(--font-family-patrick-hand); }
+.font-special-elite { font-family: var(--font-family-special-elite); }
+.font-caveat { font-family: var(--font-family-caveat); }
+.font-roboto-mono { font-family: var(--font-family-roboto-mono); }
+.font-merriweather { font-family: var(--font-family-merriweather); }
+.font-open-sans { font-family: var(--font-family-open-sans); }
+.font-source-sans-3 { font-family: var(--font-family-source-sans-3); }
+.font-kalam { font-family: var(--font-family-kalam); }
+.font-dancing-script { font-family: var(--font-family-dancing-script); }
+.font-satisfy { font-family: var(--font-family-satisfy); }
+.font-noto-sans { font-family: var(--font-family-noto-sans); }
+.font-noto-serif { font-family: var(--font-family-noto-serif); }
+.font-courier-prime { font-family: var(--font-family-courier-prime); }
+.font-playfair-display { font-family: var(--font-family-playfair-display); }
+.font-montserrat { font-family: var(--font-family-montserrat); }
+.font-raleway { font-family: var(--font-family-raleway); }
+.font-poppins { font-family: var(--font-family-poppins); }
+.font-roboto { font-family: var(--font-family-roboto); }
+.font-cinzel { font-family: var(--font-family-cinzel); }
+.font-amatic-sc { font-family: var(--font-family-amatic-sc); }
+.font-indie-flower { font-family: var(--font-family-indie-flower); }
+.font-shadows-into-light { font-family: var(--font-family-shadows-into-light); }
+.font-oswald { font-family: var(--font-family-oswald); }
+.font-ubuntu { font-family: var(--font-family-ubuntu); }
+.font-nunito { font-family: var(--font-family-nunito); }
+.font-quicksand { font-family: var(--font-family-quicksand); }
+.font-work-sans { font-family: var(--font-family-work-sans); }
+.font-heebo { font-family: var(--font-family-heebo); }
+.font-mulish { font-family: var(--font-family-mulish); }
+.font-dm-sans { font-family: var(--font-family-dm-sans); }
+.font-manrope { font-family: var(--font-family-manrope); }
+.font-inter-tight { font-family: var(--font-family-inter-tight); }
+.font-figtree { font-family: var(--font-family-figtree); }
+.font-lexend { font-family: var(--font-family-lexend); }
+.font-outfit { font-family: var(--font-family-outfit); }
+.font-plus-jakarta-sans { font-family: var(--font-family-plus-jakarta-sans); }
+.font-barlow { font-family: var(--font-family-barlow); }
+.font-be-vietnam-pro { font-family: var(--font-family-be-vietnam-pro); }
+.font-chivo { font-family: var(--font-family-chivo); }
+.font-encode-sans { font-family: var(--font-family-encode-sans); }
+.font-exo { font-family: var(--font-family-exo); }
+.font-josefin-sans { font-family: var(--font-family-josefin-sans); }
+.font-karla { font-family: var(--font-family-karla); }
+.font-lato { font-family: var(--font-family-lato); }
+.font-oxygen { font-family: var(--font-family-oxygen); }
+.font-pt-sans { font-family: var(--font-family-pt-sans); }
+.font-rajdhani { font-family: var(--font-family-rajdhani); }
+.font-red-hat-display { font-family: var(--font-family-red-hat-display); }
+.font-red-hat-text { font-family: var(--font-family-red-hat-text); }
+.font-roboto-condensed { font-family: var(--font-family-roboto-condensed); }
+.font-saira { font-family: var(--font-family-saira); }
+.font-signika { font-family: var(--font-family-signika); }
+.font-space-grotesk { font-family: var(--font-family-space-grotesk); }
+.font-tenor-sans { font-family: var(--font-family-tenor-sans); }
+.font-titillium-web { font-family: var(--font-family-titillium-web); }
+.font-ubuntu-condensed { font-family: var(--font-family-ubuntu-condensed); }
+.font-yanone-kaffeesatz { font-family: var(--font-family-yanone-kaffeesatz); }
+.font-libre-franklin { font-family: var(--font-family-libre-franklin); }
+.font-crimson-text { font-family: var(--font-family-crimson-text); }
+.font-libre-baskerville { font-family: var(--font-family-libre-baskerville); }
+.font-source-serif-4 { font-family: var(--font-family-source-serif-4); }
+.font-vollkorn { font-family: var(--font-family-vollkorn); }
+.font-spectral { font-family: var(--font-family-spectral); }
+.font-old-standard-tt { font-family: var(--font-family-old-standard-tt); }
+.font-cormorant { font-family: var(--font-family-cormorant); }
+.font-cormorant-garamond { font-family: var(--font-family-cormorant-garamond); }
+.font-crimson-pro { font-family: var(--font-family-crimson-pro); }
+.font-domine { font-family: var(--font-family-domine); }
+.font-literata { font-family: var(--font-family-literata); }
+.font-marcellus { font-family: var(--font-family-marcellus); }
+.font-prata { font-family: var(--font-family-prata); }
+.font-zilla-slab { font-family: var(--font-family-zilla-slab); }
+.font-jetbrains-mono { font-family: var(--font-family-jetbrains-mono); }
+.font-fira-code { font-family: var(--font-family-fira-code); }
+.font-space-mono { font-family: var(--font-family-space-mono); }
+.font-ibm-plex-mono { font-family: var(--font-family-ibm-plex-mono); }
+.font-source-code-pro { font-family: var(--font-family-source-code-pro); }
+.font-anonymous-pro { font-family: var(--font-family-anonymous-pro); }
+.font-overpass-mono { font-family: var(--font-family-overpass-mono); }
+.font-pt-mono { font-family: var(--font-family-pt-mono); }
+.font-ubuntu-mono { font-family: var(--font-family-ubuntu-mono); }
+.font-share-tech-mono { font-family: var(--font-family-share-tech-mono); }
+.font-bebas-neue { font-family: var(--font-family-bebas-neue); }
+.font-anton { font-family: var(--font-family-anton); }
+.font-righteous { font-family: var(--font-family-righteous); }
+.font-bungee { font-family: var(--font-family-bungee); }
+.font-orbitron { font-family: var(--font-family-orbitron); }
+.font-audiowide { font-family: var(--font-family-audiowide); }
+.font-russo-one { font-family: var(--font-family-russo-one); }
+.font-fjalla-one { font-family: var(--font-family-fjalla-one); }
+.font-teko { font-family: var(--font-family-teko); }
+.font-staatliches { font-family: var(--font-family-staatliches); }
+.font-abril-fatface { font-family: var(--font-family-abril-fatface); }
+.font-graduate { font-family: var(--font-family-graduate); }
+.font-bellefair { font-family: var(--font-family-bellefair); }
+.font-caprasimo { font-family: var(--font-family-caprasimo); }
+.font-courgette { font-family: var(--font-family-courgette); }
+.font-pacifico { font-family: var(--font-family-pacifico); }
+.font-comfortaa { font-family: var(--font-family-comfortaa); }
+.font-fredoka { font-family: var(--font-family-fredoka); }
+.font-chewy { font-family: var(--font-family-chewy); }
+.font-luckiest-guy { font-family: var(--font-family-luckiest-guy); }
+.font-bubblegum-sans { font-family: var(--font-family-bubblegum-sans); }
+.font-boogaloo { font-family: var(--font-family-boogaloo); }
+.font-great-vibes { font-family: var(--font-family-great-vibes); }
+.font-allura { font-family: var(--font-family-allura); }
+.font-alex-brush { font-family: var(--font-family-alex-brush); }
+.font-tangerine { font-family: var(--font-family-tangerine); }
+.font-parisienne { font-family: var(--font-family-parisienne); }
+.font-sacramento { font-family: var(--font-family-sacramento); }
+.font-rochester { font-family: var(--font-family-rochester); }
+.font-yellowtail { font-family: var(--font-family-yellowtail); }
+.font-grand-hotel { font-family: var(--font-family-grand-hotel); }
+.font-kavoon { font-family: var(--font-family-kavoon); }
+.font-gloria-hallelujah { font-family: var(--font-family-gloria-hallelujah); }
+.font-coming-soon { font-family: var(--font-family-coming-soon); }
+.font-just-another-hand { font-family: var(--font-family-just-another-hand); }
+.font-rancho { font-family: var(--font-family-rancho); }
+.font-covered-by-your-grace { font-family: var(--font-family-covered-by-your-grace); }
+.font-permanent-marker { font-family: var(--font-family-permanent-marker); }
+.font-rock-salt { font-family: var(--font-family-rock-salt); }
+.font-homemade-apple { font-family: var(--font-family-homemade-apple); }
+.font-schoolbell { font-family: var(--font-family-schoolbell); }
+.font-crafty-girls { font-family: var(--font-family-crafty-girls); }
+.font-the-girl-next-door { font-family: var(--font-family-the-girl-next-door); }

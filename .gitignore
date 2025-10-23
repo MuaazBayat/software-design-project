@@ -232,3 +232,6 @@ copilot-instructions.md
 
 #latex
 Wits_Report_Template/
+
+# Azure Functions - ai-facts (deployed separately)
+services/frontend/app/cultural-explorer/ai-facts/

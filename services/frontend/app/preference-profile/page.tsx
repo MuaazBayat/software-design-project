@@ -157,7 +157,7 @@ const PreferenceProfileSelector = () => {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-600 mx-auto"></div>
           <p className="mt-4 text-stone-600">Loading authentication...</p>
@@ -168,7 +168,7 @@ const PreferenceProfileSelector = () => {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-4">
             You need to be signed in to access this page.
@@ -440,7 +440,7 @@ const PreferenceProfileSelector = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-600 mx-auto"></div>
           <p className="mt-4 text-stone-600">Loading profiles...</p>
@@ -451,7 +451,7 @@ const PreferenceProfileSelector = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <button
@@ -466,7 +466,7 @@ const PreferenceProfileSelector = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100">
+    <div className="min-h-screen bg-transparent">
       <Toaster richColors position="top-center" />
       <main className="max-w-6xl mx-auto px-6 py-12" role="main" aria-label="Preference Profile Selection">
         <h1 className="text-4xl font-light text-stone-700 text-center mb-6 tracking-wide" tabIndex={0}>

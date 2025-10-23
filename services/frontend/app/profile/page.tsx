@@ -114,7 +114,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center space-y-4" role="status" aria-live="polite">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto" aria-hidden="true"></div>
           <p className="text-amber-800 font-medium">Loading profile...</p>
@@ -126,7 +126,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center" role="alert">
           <h1 className="text-2xl font-bold text-amber-800 mb-2">Profile not found</h1>
           <p className="text-amber-700 mb-4">The requested user profile could not be found.</p>
@@ -146,7 +146,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50">
+    <div className="min-h-screen bg-transparent">
       {/* Skip to main content link for screen readers */}
       <a 
         href="#main-content" 

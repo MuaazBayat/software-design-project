@@ -316,7 +316,7 @@ const handleGoToPreferences = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 p-4">
+    <div className="min-h-screen bg-transparent p-4">
       <div className="text-center pt-8 pb-4 relative z-10">
         <h1 className="text-3xl font-bold text-stone-800 mb-2">
           Welcome to Our Community!

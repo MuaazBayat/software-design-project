@@ -1259,7 +1259,7 @@ function LetterPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 relative" role="main" aria-label="Letter composition page">
+    <div className="min-h-screen bg-transparent relative light" role="main" aria-label="Letter composition page">
       {/* Skip Links for Keyboard Navigation */}
       <a
         href="#main-content"
@@ -1282,13 +1282,6 @@ function LetterPageContent() {
 
       <Toaster richColors position="top-center" />
       <LetterSendAnimation key={animationKey} show={showAnimation} onAnimationComplete={handleAnimationComplete} onSendWithImage={handleSendWithImage} />
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 px-6 py-4 sticky top-0 z-10" role="banner" aria-label="Letter composition header">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-4">
-          </div>
-          <div className="flex items-center gap-3" />
-        </div>
-      </header>
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-auto max-w-7xl mt-2" role="alert" aria-live="assertive">
           <p>{error}</p>
@@ -1296,11 +1289,11 @@ function LetterPageContent() {
       )}
       <div className="mx-auto w-full max-w-7xl px-3 xl:px-6 xl:max-w-[calc(100vw-20rem)] xl:ml-auto xl:mr-32">
         {/* Mobile top bar (only visible < md) */}
-        <div className="xl:hidden sticky top-0 z-1 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between" aria-label="Mobile navigation bar">
+        <div className="xl:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-amber-100 -mx-3 px-3 py-2 flex items-center justify-between" aria-label="Mobile navigation bar">
           <Button 
             size="sm" 
             variant="outline" 
-            className="gap-2" 
+            className="gap-2 border-amber-300 text-amber-800 hover:bg-amber-50" 
             onClick={() => {
               if (mobilePanelType === 'left') {
                 setMobilePanelType(null);
@@ -1313,7 +1306,7 @@ function LetterPageContent() {
             <PanelLeft className="h-4 w-4" aria-hidden="true" />
             Matches
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => setRightOpen(true)} aria-label="Open preview and send panel">
+          <Button size="sm" variant="outline" className="gap-2 border-amber-300 text-amber-800 hover:bg-amber-50" onClick={() => setRightOpen(true)} aria-label="Open preview and send panel">
             Preview & Send
             <PanelRight className="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -1604,7 +1597,7 @@ function LetterPageContent() {
         </SheetContent>
       </Sheet>      {/* RIGHT drawer (mobile / tablet) */}
       <Sheet open={rightOpen} onOpenChange={setRightOpen}>
-        <SheetContent side="right" className="xl:hidden w-[85vw] p-0">
+        <SheetContent side="right" className="xl:hidden w-[85vw] p-0 bg-background">
           {/* A11y header */}
           <SheetHeader className="sr-only">
             <SheetTitle>Preview and send</SheetTitle>

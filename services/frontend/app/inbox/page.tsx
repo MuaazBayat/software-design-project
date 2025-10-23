@@ -208,7 +208,7 @@ const LetterInbox = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div 
           className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md"
           role="alert"
@@ -230,7 +230,7 @@ const LetterInbox = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-transparent">
       {/* Live region for screen reader announcements */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {announceMessage}

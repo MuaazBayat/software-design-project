@@ -26,6 +26,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface LetterCardProps {
   message: MessageRow;
@@ -38,6 +44,7 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
   const [selectedViolation, setSelectedViolation] = useState('inappropriate_content');
   const [reportLoading, setReportLoading] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [isEnlarged, setIsEnlarged] = useState(false);
 
   const formatDeliveryTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -210,8 +217,19 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
                 </div>
               </div>
 
-              {/* Letter Content Area - Scrollable */}
-              <div className="relative flex-1 overflow-y-auto">
+              {/* Letter Content Area - Hidden Scrollbar, Click to Enlarge */}
+              <div 
+                className="relative flex-1 overflow-y-auto cursor-pointer hover:opacity-90 transition-opacity scrollbar-hide"
+                onClick={() => setIsEnlarged(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsEnlarged(true); }}
+                aria-label="Click to enlarge letter"
+                style={{
+                  scrollbarWidth: 'none', /* Firefox */
+                  msOverflowStyle: 'none', /* IE and Edge */
+                }}
+              >
                 <div className="px-6 py-6 h-full">
                   {/* Lined Paper Effect */}
                   <div className="absolute left-6 right-6 top-0 bottom-0">
@@ -320,6 +338,81 @@ export default function LetterCard({ message, currentUserId, onReportMessage }: 
           </div>
         </div>
       </div>
+
+      {/* Enlarged Letter Dialog */}
+      <Dialog open={isEnlarged} onOpenChange={setIsEnlarged}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-stone-50">
+          <DialogHeader>
+            <DialogTitle className={`${isMine ? 'text-blue-900' : 'text-rose-900'}`}>
+              Letter #{message.message_sequence} {isMine ? '(From You)' : '(From Your Pen Pal)'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Delivery Info */}
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{formatDeliveryTime(message.scheduled_delivery_at)}</span>
+              </div>
+              <Badge variant="secondary" className={`${statusInfo.color} px-3 py-1`}>
+                <StatusIcon className="h-3 w-3 mr-1" />
+                {statusInfo.status}
+              </Badge>
+            </div>
+
+            {/* Full Letter Content */}
+            <div className="bg-white rounded-lg p-8 border-2 border-gray-200 shadow-inner min-h-[400px]">
+              {imageUrl && !imageLoadError ? (
+                /* Display Image Letter */
+                <div className="flex items-center justify-center">
+                  <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden shadow-lg">
+                    <Image
+                      src={imageUrl}
+                      alt="Folded letter with handwritten message"
+                      width={1200}
+                      height={900}
+                      className="w-full h-auto object-contain"
+                      unoptimized
+                      onError={() => {
+                        console.error('Failed to load image:', imageUrl);
+                        setImageLoadError(true);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Display Text Letter - Full Size */
+                <div className={`
+                  ${fontClass}
+                  text-gray-800 leading-relaxed text-lg
+                  ${message.letter_styles?.font_family === 'handwritten' ? 'tracking-wide' : ''}
+                  ${message.letter_styles?.font_family === 'typewriter' ? 'tracking-wider' : ''}
+                `}>
+                  {message.message_sequence && message.message_sequence > 1 && (
+                    <div className="mb-4 text-gray-600">
+                      <em>Dear friend,</em>
+                    </div>
+                  )}
+
+                  <div className="pl-8 whitespace-pre-wrap">
+                    {message.message_content}
+                  </div>
+
+                  <div className="mt-6 text-right pr-6">
+                    <div className="text-gray-600 italic">
+                      {isMine ? 'Yours truly,' : 'With warm regards,'}
+                    </div>
+                    <div className={`mt-2 ${fontClass} ${isMine ? 'text-blue-800' : 'text-rose-800'} font-semibold`}>
+                      {isMine ? 'You' : 'Your Pen Pal'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Report Message Dialog */}
       <AlertDialog open={showReportDialog} onOpenChange={setShowReportDialog}>

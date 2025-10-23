@@ -5,6 +5,7 @@ certifi==2025.8.3
 click==8.2.1
 deprecation==2.1.0
 fastapi==0.116.1
+tzdata==2024.2
 h11==0.16.0
 h2==4.3.0
 hpack==4.1.0

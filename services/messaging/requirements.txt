@@ -7,6 +7,7 @@ deprecation==2.1.0
 dnspython==2.7.0
 email-validator==2.3.0
 fastapi==0.116.1
+tzdata==2024.2
 fastapi-cli==0.0.8
 fastapi-cloud-cli==0.1.5
 h11==0.16.0

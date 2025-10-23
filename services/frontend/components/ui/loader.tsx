@@ -44,13 +44,15 @@ export default function Loader() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 w-full h-full">
-      <LineSpinner
-        size="120"
-        stroke="7"
-        speed="2.5"
-        color="rgb(0 0 0)"
-      />
-      <p className="text-black text-center max-w-sm">
+      <div className="text-black dark:text-white">
+        <LineSpinner
+          size="120"
+          stroke="7"
+          speed="2.5"
+          color="currentColor"
+        />
+      </div>
+      <p className="text-black dark:text-white text-center max-w-sm">
         {funnyMessages[messageIndex]}
       </p>
     </div>

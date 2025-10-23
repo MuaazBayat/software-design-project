@@ -3,8 +3,8 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Palette, Book, Plane, UserRound, Sparkles, MapPin, Calendar, Heart, Search, ArrowLeft, Music, Headphones, Mic, Brush, Image, Trophy, Target, Dumbbell, Utensils, Coffee, Apple, TreePine, Mountain, Leaf, Cpu, Smartphone, Monitor, Camera, ChefHat, PenTool, FileText, Film, Clapperboard, Gamepad2, PawPrint, Bird, Microscope, Atom, Clock, Building, Languages, MessageCircle, Shovel, Waves, Footprints, Timer, Bike, Brain, Aperture, Pencil, Loader2, Wand2, Star, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
+import { Palette, Book, Plane, UserRound, Sparkles, MapPin, Calendar, Heart, Search, ArrowLeft, Music, Headphones, Mic, Brush, Image, Trophy, Target, Dumbbell, Utensils, Coffee, Apple, TreePine, Mountain, Leaf, Cpu, Smartphone, Monitor, Camera, ChefHat, PenTool, FileText, Film, Clapperboard, Gamepad2, PawPrint, Bird, Microscope, Atom, Clock, Building, Languages, MessageCircle, Shovel, Waves, Footprints, Timer, Bike, Brain, Aperture, Pencil, Loader2, Wand2, Star, Trash2, X } from "lucide-react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import { FontSidePanel } from "./FontSidePanel"
 import nlp from 'compromise'
@@ -880,7 +880,10 @@ export default function LeftSidebar({
   // templates are inlined (DEFAULT_TEMPLATES) to avoid a tiny service module.
   
   return (
-    <div className={`relative w-80 bg-gradient-to-b from-slate-50 via-white to-slate-50 backdrop-blur-sm border-r border-slate-200/60 h-[calc(100vh-80px)] shrink-0 overflow-hidden select-none ${mobileCollapsed ? 'hidden' : ''}`}>
+    <div className={`relative w-80 bg-transparent bg-clip-padding h-full h-[calc(100vh-80px)] shrink-0 overflow-hidden select-none ${mobileCollapsed ? 'hidden' : ''}`}>
+  {/* Dark-mode shading: subtle slate-tinted overlays to blend with dark background */}
+  <div className="absolute inset-[-10px] rounded-[2.5rem] blur-sm opacity-30 pointer-events-none hidden dark:block bg-gradient-to-br from-slate-800/18 via-slate-700/12 to-slate-700/10 z-0" style={{mixBlendMode: 'overlay'}} />
+  <div className="absolute inset-[-4px] rounded-[2.25rem] blur-xs opacity-20 pointer-events-none hidden dark:block bg-gradient-to-br from-slate-800/14 via-slate-700/10 to-slate-700/8 z-0" style={{mixBlendMode: 'overlay'}} />
       {/* Conditionally render either normal content or FontSidePanel */}
       {showFontOverlay ? (
         <FontSidePanel
@@ -899,16 +902,16 @@ export default function LeftSidebar({
           backgroundOpacity={backgroundOpacity}
         />
       ) : (
-        <div className="h-full p-6 space-y-6 overflow-y-auto scrollbar-hide">
+  <div className="h-full p-6 space-y-6 overflow-y-auto scrollbar-hide relative z-10">
           {/* Beautiful Back to Inbox Button - Island Style */}
           <div className="relative group/back">
-            <div className="absolute inset-[-8px] bg-gradient-to-br from-blue-400/20 via-cyan-400/15 to-teal-400/20 rounded-[2rem] blur-lg opacity-60 group-hover/back:opacity-90 transition-all duration-500 pointer-events-none"></div>
-            <div className="absolute inset-[-4px] bg-gradient-to-br from-blue-300/15 via-cyan-300/10 to-teal-300/15 rounded-[1.75rem] blur-md opacity-70 group-hover/back:opacity-100 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-[-8px] bg-gradient-to-br from-blue-400/20 via-cyan-400/15 to-teal-400/20 rounded-[2rem] blur-lg opacity-60 group-hover/back:opacity-90 transition-all duration-500 pointer-events-none dark:hidden"></div>
+              <div className="absolute inset-[-4px] bg-gradient-to-br from-blue-300/15 via-cyan-300/10 to-teal-300/15 rounded-[1.75rem] blur-md opacity-70 group-hover/back:opacity-100 transition-all duration-500 pointer-events-none dark:hidden"></div>
             
             <Button 
               variant="ghost" 
               onClick={() => router.push('/inbox')} 
-              className="relative w-full justify-start gap-3 bg-gradient-to-br from-white via-blue-50/30 to-white shadow-lg hover:shadow-xl backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50 hover:border-blue-300/40 transition-all duration-300 group/btn overflow-visible"
+              className="relative w-full justify-start gap-3 bg-gradient-to-br from-white via-blue-50/30 to-white shadow-lg hover:shadow-xl backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50 hover:border-blue-300/40 transition-all duration-300 group/btn overflow-visible dark:bg-white dark:from-white dark:via-white dark:to-white"
               aria-label="Return to inbox"
             >
               {/* Icon circle with gradient */}
@@ -923,12 +926,6 @@ export default function LeftSidebar({
             </Button>
           </div>
 
-          {/* Subtle Section Divider */}
-          <div className="relative h-px">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-200/50 to-transparent blur-sm"></div>
-          </div>
-          
           {/* Recipient Info with Dropdown - Enhanced */}
           <div className="relative mb-6 group/section">
             <div className="absolute inset-[-12px] bg-gradient-to-br from-amber-400/30 via-orange-400/20 to-rose-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
@@ -1136,7 +1133,7 @@ export default function LeftSidebar({
                       onChange={e => setSearch(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                       placeholder="Search by name or location..."
-                      className="w-full pl-10 pr-3 py-2 border border-amber-200 rounded focus:outline-none focus:ring focus:ring-amber-100 text-sm"
+                      className="w-full pl-10 pr-3 py-2 border border-amber-200 dark:border-amber-700 rounded focus:outline-none focus:ring focus:ring-amber-100 dark:focus:ring-amber-900 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                       aria-label="Search pen pals by name or location"
                     />
                   </div>
@@ -1289,12 +1286,6 @@ export default function LeftSidebar({
           </motion.div>
           </div>
 
-          {/* Subtle Section Divider */}
-          <div className="relative h-px">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/50 to-transparent blur-sm"></div>
-          </div>
-
           {/* Shared Interests Section */}
           <div className="relative mb-6 group/section">
             <div className="absolute inset-[-12px] bg-gradient-to-br from-amber-400/30 via-orange-400/20 to-rose-400/30 rounded-[2.5rem] blur-xl opacity-70 group-hover/section:opacity-95 transition-all duration-500 animate-pulse-slow pointer-events-none"></div>
@@ -1356,12 +1347,6 @@ export default function LeftSidebar({
                 )}
               </div>
             </Card>
-          </div>
-
-          {/* Subtle Section Divider */}
-          <div className="relative h-px">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/50 to-transparent blur-sm"></div>
           </div>
 
           {/* Writing Prompts Section */}
@@ -1428,7 +1413,7 @@ export default function LeftSidebar({
                       className="overflow-hidden"
                     >
                       <motion.div
-                        className="bg-gradient-to-br from-slate-50/80 to-white/80 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 shadow-lg mb-4"
+                        className="bg-gradient-to-br from-slate-50/80 to-white/80 dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 dark:border-slate-600/60 shadow-lg mb-4"
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{
@@ -1480,7 +1465,7 @@ export default function LeftSidebar({
                             className={`p-3 rounded-xl border-2 transition-all duration-300 ${
                               writingPromptsMode === 'premade'
                                 ? 'border-amber-400 bg-amber-50 shadow-lg'
-                                : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50'
+                                : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-900/10'
                             }`}
                             aria-label="Select premade writing templates"
                           >
@@ -1496,8 +1481,8 @@ export default function LeftSidebar({
                               >
                                 <Book className="w-6 h-6 text-amber-600" />
                               </motion.div>
-                              <span className="text-sm font-medium text-slate-700">Premade</span>
-                              <span className="text-xs text-slate-500 text-center">Curated templates</span>
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Premade</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 text-center">Curated templates</span>
                             </motion.div>
                           </motion.button>
 
@@ -1545,7 +1530,7 @@ export default function LeftSidebar({
                             className={`p-3 rounded-xl border-2 transition-all duration-300 ${
                               writingPromptsMode === 'ai-assisted'
                                 ? 'border-purple-400 bg-purple-50 shadow-lg'
-                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                                : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-900/10'
                             }`}
                             aria-label="Select AI assisted writing templates"
                           >
@@ -1564,8 +1549,8 @@ export default function LeftSidebar({
                               >
                                 <Sparkles className="w-6 h-6 text-purple-600" />
                               </motion.div>
-                              <span className="text-sm font-medium text-slate-700">AI Assisted</span>
-                              <span className="text-xs text-slate-500 text-center">Your Companion</span>
+                              <span className="text-sm font-medium" style={{ color: '#000000' }}>AI Assisted</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 text-center">Your Companion</span>
                             </motion.div>
                           </motion.button>
                         </div>
@@ -1605,10 +1590,10 @@ export default function LeftSidebar({
                       >
                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
                           writingPromptsMode === 'premade'
-                            ? 'bg-amber-100 text-amber-700'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                             : aiConnectionStatus === 'connected'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}>
                           {writingPromptsMode === 'premade' ? (
                             <>
@@ -1617,8 +1602,8 @@ export default function LeftSidebar({
                             </>
                           ) : aiConnectionStatus === 'connected' ? (
                             <>
-                              <Sparkles className="w-3 h-3 inline mr-1" />
-                              AI Assisted
+                              <Sparkles className="w-3 h-3 inline mr-1" style={{ color: '#581c87' }} />
+                              <span style={{ color: '#581c87' }}>AI Assisted</span>
                             </>
                           ) : (
                             <>
@@ -1659,7 +1644,7 @@ export default function LeftSidebar({
                                 value={templatesSearch}
                                 onChange={e => setTemplatesSearch(e.target.value)}
                                 placeholder="Search templates..."
-                                className="w-full pl-10 pr-3 py-2 border border-amber-200 rounded focus:outline-none focus:ring focus:ring-amber-100 text-sm"
+                                className="w-full pl-10 pr-3 py-2 border border-amber-200 dark:border-amber-700 rounded focus:outline-none focus:ring focus:ring-amber-100 dark:focus:ring-amber-900 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                                 aria-label="Search writing templates"
                               />
                             </div>
@@ -1698,17 +1683,17 @@ export default function LeftSidebar({
                                   }
                                 }}
                               >
-                                <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200" onClick={() => onApplyTemplate?.(t.id)} aria-label={`Apply ${t.name} template`}>
+                                <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600" onClick={() => onApplyTemplate?.(t.id)} aria-label={`Apply ${t.name} template`}>
                                   <div>
                                     <div className="flex items-center justify-between">
-                                      <h4 className="font-medium text-gray-800">{t.name}</h4>
-                                      <div className="text-xs text-amber-600 font-medium">{t.estimated_minutes ? `${t.estimated_minutes} min` : null}</div>
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">{t.name}</h4>
+                                      <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">{t.estimated_minutes ? `${t.estimated_minutes} min` : null}</div>
                                     </div>
-                                    <p className="text-sm text-gray-500 mt-2 line-clamp-3">{t.description}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-3">{t.description}</p>
                                   </div>
                                   <div className="mt-3 flex gap-2">
                                     {t.tags && t.tags.slice(0,2).map((tag, i) => (
-                                      <Badge key={i} className="bg-amber-100 text-amber-700 text-xs">{tag}</Badge>
+                                      <Badge key={i} className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs">{tag}</Badge>
                                     ))}
                                   </div>
                                 </Card>
@@ -1755,7 +1740,7 @@ export default function LeftSidebar({
                                 <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
                               </motion.div>
                               <motion.h4
-                                className="text-lg font-semibold text-slate-700 mb-2"
+                                className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.5, duration: 0.4 }}
@@ -1763,7 +1748,7 @@ export default function LeftSidebar({
                                 Checking AI Connection
                               </motion.h4>
                               <motion.p
-                                className="text-sm text-slate-500"
+                                className="text-sm text-slate-500 dark:text-slate-400"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.6, duration: 0.4 }}
@@ -1792,10 +1777,10 @@ export default function LeftSidebar({
                                   damping: 20
                                 }}
                               >
-                                <Sparkles className="w-8 h-8 text-gray-400" />
+                                <Sparkles className="w-8 h-8 text-gray-600" />
                               </motion.div>
                               <motion.h4
-                                className="text-lg font-semibold text-slate-700 mb-2"
+                                className="text-lg font-semibold text-slate-900 dark:text-slate-200 mb-2"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.5, duration: 0.4 }}
@@ -1803,7 +1788,7 @@ export default function LeftSidebar({
                                 AI Assisted Coming Soon
                               </motion.h4>
                               <motion.p
-                                className="text-sm text-slate-500 mb-4"
+                                className="text-sm text-slate-500 dark:text-slate-400 mb-4"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.6, duration: 0.4 }}
@@ -1839,12 +1824,12 @@ export default function LeftSidebar({
                                     value={aiPrompt}
                                     onChange={(e) => setAiPrompt(e.target.value)}
                                     placeholder="Describe the type of conversation starter you want (e.g., 'something about travel experiences', 'questions about hobbies', 'cultural exchange topics')..."
-                                    className="w-full p-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm resize-none"
+                                    className="w-full p-3 border border-purple-200 dark:border-purple-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-900 text-sm resize-none bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                                     rows={3}
                                     maxLength={200}
                                     aria-label="Describe the type of writing template you want to generate"
                                   />
-                                  <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                                  <div className="absolute bottom-2 right-2 text-xs text-slate-600 dark:text-slate-400">
                                     {aiPrompt.length}/200
                                   </div>
                                 </div>
@@ -1872,7 +1857,7 @@ export default function LeftSidebar({
                               {generatedTemplates.length > 0 && (
                                 <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                                   <motion.div
-                                    className="flex items-center gap-2 mb-3 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200/50"
+                                    className="flex items-center gap-2 mb-3 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200/50 dark:border-purple-700/50"
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 0.2, duration: 0.3 }}
@@ -1880,10 +1865,10 @@ export default function LeftSidebar({
                                     <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                                       <Sparkles className="w-3 h-3 text-white" />
                                     </div>
-                                    <h5 className="text-sm font-semibold text-slate-800 bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
+                                    <h5 className="text-sm font-semibold text-purple-900">
                                       Generated Templates
                                     </h5>
-                                    <Badge className="bg-purple-100 text-purple-700 text-xs ml-auto">
+                                    <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs ml-auto">
                                       {generatedTemplates.length}
                                     </Badge>
                                   </motion.div>
@@ -1920,17 +1905,17 @@ export default function LeftSidebar({
                                         }
                                       }}
                                     >
-                                      <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200" aria-label={`Apply generated template: ${template.name}`}>
+                                      <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-purple-200 to-pink-200 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-300 dark:border-purple-600" aria-label={`Apply generated template: ${template.name}`}>
                                         <div onClick={() => onApplyTemplate?.(template)}>
                                           <div className="flex items-center justify-between">
-                                            <h4 className="font-medium text-gray-800">{template.name}</h4>
+                                            <h4 className="font-medium text-black">{template.name}</h4>
                                             <div className="flex items-center gap-2">
-                                              <div className="text-xs text-purple-600 font-medium">{template.estimated_minutes ? `${template.estimated_minutes} min` : null}</div>
+                                              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">{template.estimated_minutes ? `${template.estimated_minutes} min` : null}</div>
                                               <div className="flex gap-1">
                                                 <Button
                                                   size="sm"
                                                   variant="ghost"
-                                                  className={`p-1 h-6 w-6 ${isTemplateSaved(template.id) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-yellow-500'}`}
+                                                  className={`p-1 h-6 w-6 ${isTemplateSaved(template.id) ? 'text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300' : 'text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-400'}`}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     if (isTemplateSaved(template.id)) {
@@ -1946,11 +1931,11 @@ export default function LeftSidebar({
                                               </div>
                                             </div>
                                           </div>
-                                          <p className="text-sm text-gray-600 mt-2 line-clamp-3">{template.description}</p>
+                                          <p className="text-sm text-black mt-2 line-clamp-3">{template.description}</p>
                                         </div>
                                         <div className="mt-3 flex gap-2">
                                           {template.tags && template.tags.slice(0,2).map((tag, i) => (
-                                            <Badge key={i} className="bg-purple-100 text-purple-700 text-xs">{tag}</Badge>
+                                            <Badge key={i} className="bg-purple-100 dark:bg-purple-900/30 text-black text-xs font-medium hover:bg-purple-200 hover:text-black dark:hover:bg-purple-800/50 dark:hover:text-black transition-colors">{tag}</Badge>
                                           ))}
                                         </div>
                                       </Card>
@@ -1987,7 +1972,7 @@ export default function LeftSidebar({
                                     <Sparkles className="w-8 h-8 text-purple-600" />
                                   </motion.div>
                                   <motion.h4
-                                    className="text-lg font-semibold text-slate-700 mb-2"
+                                    className="text-lg font-semibold text-black mb-2"
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.5, duration: 0.4 }}
@@ -1995,7 +1980,7 @@ export default function LeftSidebar({
                                     AI Writing Assistant
                                   </motion.h4>
                                   <motion.p
-                                    className="text-sm text-slate-500 mb-4"
+                                    className="text-sm text-slate-500 dark:text-slate-400 mb-4"
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.6, duration: 0.4 }}
@@ -2066,17 +2051,17 @@ export default function LeftSidebar({
                           }
                         }}
                       >
-                        <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200" aria-label={`Apply saved template: ${template.name}`}>
+                        <Card className="p-3 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer hover:scale-[1.02] transition-transform duration-200 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border-yellow-200 dark:border-yellow-600" aria-label={`Apply saved template: ${template.name}`}>
                           <div onClick={() => onApplyTemplate?.(template)}>
                             <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-gray-800">{template.name}</h4>
+                              <h4 className="font-medium text-black">{template.name}</h4>
                               <div className="flex items-center gap-2">
-                                <div className="text-xs text-yellow-600 font-medium">{template.estimated_minutes ? `${template.estimated_minutes} min` : null}</div>
+                                <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{template.estimated_minutes ? `${template.estimated_minutes} min` : null}</div>
                                 <div className="flex gap-1">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="p-1 h-6 w-6 text-red-400 hover:text-red-600"
+                                    className="p-1 h-6 w-6 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       removeTemplate(template.id);
@@ -2088,11 +2073,11 @@ export default function LeftSidebar({
                                 </div>
                               </div>
                             </div>
-                            <p className="text-sm text-gray-600 mt-2 line-clamp-3">{template.description}</p>
+                            <p className="text-sm text-black mt-2 line-clamp-3">{template.description}</p>
                           </div>
                           <div className="mt-3 flex gap-2">
                             {template.tags && template.tags.slice(0,2).map((tag, i) => (
-                              <Badge key={i} className="bg-yellow-100 text-yellow-700 text-xs">{tag}</Badge>
+                              <Badge key={i} className="bg-yellow-100 dark:bg-yellow-900/30 text-black text-xs">{tag}</Badge>
                             ))}
                           </div>
                         </Card>
@@ -2108,40 +2093,44 @@ export default function LeftSidebar({
 
       {/* Shared Interests Info Dialog */}
       <Dialog open={showSharedInterestsPopup} onOpenChange={setShowSharedInterestsPopup}>
-        <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl z-[9999]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+        <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl z-[9999]" showCloseButton={false}>
+          <DialogHeader className="relative">
+            <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold pr-8">
               <Heart className="w-5 h-5 text-amber-500" />
               Shared Interests
             </DialogTitle>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-amber-600" />
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-amber-600 dark:text-amber-400" />
               </div>
-              <h4 className="text-xl font-bold text-slate-800 mb-2">Discover Common Ground</h4>
-              <p className="text-slate-600 leading-relaxed">
+              <h4 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Discover Common Ground</h4>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                 Your interests + your pen pal&apos;s interests = perfect conversation starters
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="text-center p-3 bg-blue-50 rounded-xl">
-                <UserRound className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <div className="text-sm font-medium text-slate-700">Smart Matching</div>
-                <div className="text-xs text-slate-500 mt-1">Combines interests automatically</div>
+              <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <UserRound className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Smart Matching</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Combines interests automatically</div>
               </div>
-              <div className="text-center p-3 bg-green-50 rounded-xl">
-                <Palette className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                <div className="text-sm font-medium text-slate-700">Relevant Icons</div>
-                <div className="text-xs text-slate-500 mt-1">Visual interest recognition</div>
+              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                <Palette className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Relevant Icons</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Visual interest recognition</div>
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4 mt-4">
-              <div className="text-sm font-medium text-slate-700 mb-2">💡 Pro Tip</div>
-              <p className="text-xs text-slate-600">
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mt-4">
+              <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">💡 Pro Tip</div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Use shared interests to ask meaningful questions and build deeper connections with your pen pal.
               </p>
             </div>

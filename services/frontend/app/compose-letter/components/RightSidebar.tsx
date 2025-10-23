@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import TemplateSidePanel from "./TemplateSidePanel";
 import { LineConfig, LineType } from "./ComposeLetterContext"; // Import from context
-import { Heart, Send, BarChart3, Clock, Gauge, Info, ChevronDown, FileDown, ImageDown } from "lucide-react";
+import { Heart, Send, BarChart3, Clock, Gauge, Info, ChevronDown, FileDown, ImageDown, X } from "lucide-react";
 import LetterSendAnimation from "./LetterSendAnimation";
 import { adjustFontSizeForExport } from "../lib/jpegGenerator";
 import {
@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -360,7 +361,7 @@ export default function RightSidebar({
   ];
 
   return (
-    <div className="relative h-full flex flex-col bg-gradient-to-b from-slate-50 via-white to-slate-50 backdrop-blur-sm border-l border-slate-200/60 p-6 custom-scrollbar h-[calc(100vh-80px)] shrink-0 shadow-xl select-none overflow-y-auto scrollbar-hide">
+    <div className="relative h-full flex flex-col bg-transparent p-6 custom-scrollbar h-[calc(100vh-80px)] shrink-0 shadow-none select-none overflow-y-auto scrollbar-hide">
       <style jsx>{`
         @keyframes gradient-flow {
           0%, 100% { background-position: 0% 50%; }
@@ -429,7 +430,7 @@ export default function RightSidebar({
                 Letter Preview
               </h4>
             <div
-              className="relative rounded-2xl border border-amber-300 shadow-lg overflow-hidden -ml-3 group/envelope transform scale-80 sm:scale-90 md:scale-100 origin-top-left cursor-pointer"
+              className="relative rounded-b-xl rounded-t-2xl border border-amber-300 shadow-lg overflow-visible -ml-3 group/envelope transform scale-80 sm:scale-90 md:scale-100 origin-top-left cursor-pointer"
               onClick={() => setLetterPreviewDialogOpen(true)}
               style={{
                 background: "linear-gradient(135deg,#f4f1e8 0%,#e8dcc0 30%,#d4c4a8 70%,#c4b08f 100%)",
@@ -437,13 +438,15 @@ export default function RightSidebar({
                   "0 8px 32px -8px rgba(101,67,33,.4), 0 4px 16px rgba(101,67,33,.3), inset 0 2px 0 rgba(255,255,255,.15), inset 0 -1px 0 rgba(0,0,0,.1), 0 0 40px rgba(184,134,11,.2)",
                 minHeight: '220px',
                 width: '310px',
-                filter: 'drop-shadow(0 0 20px rgba(184,134,11,0.15))'
+                filter: 'drop-shadow(0 0 20px rgba(184,134,11,0.15))',
+                transformStyle: 'preserve-3d',
+                perspective: '1000px',
               }}
               aria-label="Preview letter design and envelope"
             >
               {/* Aged paper texture overlays */}
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl opacity-40"
+                className="pointer-events-none absolute inset-0 rounded-b-xl rounded-t-2xl opacity-40"
                 style={{
                   backgroundImage: `
                     radial-gradient(circle at 20% 20%, rgba(139,115,85,0.3) 1px, transparent 1px),
@@ -455,7 +458,7 @@ export default function RightSidebar({
               />
               {/* Subtle parchment creases */}
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl opacity-20"
+                className="pointer-events-none absolute inset-0 rounded-b-xl rounded-t-2xl opacity-20"
                 style={{
                   backgroundImage: `
                     linear-gradient(45deg, transparent 40%, rgba(101,67,33,0.1) 41%, rgba(101,67,33,0.1) 59%, transparent 60%),
@@ -466,7 +469,7 @@ export default function RightSidebar({
               />
               {/* Aged edges */}
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl"
+                className="pointer-events-none absolute inset-0 rounded-b-xl rounded-t-2xl"
                 style={{
                   background: 'linear-gradient(135deg, rgba(139,115,85,0.15) 0%, transparent 20%, transparent 80%, rgba(101,67,33,0.1) 100%)',
                 }}
@@ -474,7 +477,7 @@ export default function RightSidebar({
 
               {/* Magical sparkle effects */}
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl opacity-30"
+                className="pointer-events-none absolute inset-0 rounded-b-xl rounded-t-2xl opacity-30"
                 style={{
                   backgroundImage: `
                     radial-gradient(circle at 15% 25%, rgba(255,215,0,0.8) 1px, transparent 1px),
@@ -488,7 +491,7 @@ export default function RightSidebar({
               />
 
               {/* To: label positioned on the letter */}
-              <div className="absolute top-14 left-4 z-10">
+              <div className="absolute top-14 left-4" style={{ zIndex: 50 }}>
                 <div className="text-base uppercase tracking-wider select-none font-bold mb-1" style={{fontFamily: '"Brush Script MT", cursive', fontStyle: 'italic', color: '#8B4513', textShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>
                   To:
                 </div>
@@ -512,7 +515,7 @@ export default function RightSidebar({
               </div>
 
               {/* From: label positioned on the letter */}
-              <div className="absolute bottom-4 right-4 z-10">
+              <div className="absolute bottom-4 right-4" style={{ zIndex: 50 }}>
                 <div className="text-base uppercase tracking-wider select-none font-bold mb-1" style={{fontFamily: '"Brush Script MT", cursive', fontStyle: 'italic', color: '#8B4513', textShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>
                   From:
                 </div>
@@ -533,41 +536,161 @@ export default function RightSidebar({
                 >
                   {anonymousHandle || "You"}
                 </p>
-              </div>              {/* --------- Envelope Flap ---------- */}
-              <div className="relative overflow-visible animate-envelope-flutter" style={{ height: 80 }}>
-                <div
-                  className="absolute inset-x-0 top-0"
-                  style={{
-                    height: 80,
-                    clipPath: 'polygon(0 0, 50% 100%, 100% 0)',
-                    background: 'linear-gradient(180deg,#2d1810,#1a0f08)',
-                  }}
-                  aria-hidden
-                />
-                <div
-                  className="absolute inset-x-0 top-0 transition-transform duration-300 group-hover/envelope:-translate-y-1 group-hover/envelope:rotate-1"
-                  style={{
-                    height: 80,
-                    clipPath: 'polygon(0 0, 50% 100%, 100% 0)',
-                    background: 'linear-gradient(180deg,#f4f1e8,#e8dcc0)',
-                    border: `1px solid rgba(139,115,85,.7)`,
-                    boxShadow: '0 4px 12px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.2)',
-                  }}
-                  aria-hidden
-                />
-                {/* Wax seal for new letter */}
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none transform-gpu transition-transform duration-300 group-hover/envelope:scale-110 group-hover/envelope:rotate-2"
-                  style={{
-                    top: 45,
-                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))',
-                    width: 64,
-                    height: 64,
-                  }}
-                  aria-hidden
-                >
-                  <Image src={waxseal} alt="Wax seal" fill className="select-none object-contain" />
-                </div>
+              </div>
+              
+              {/* Static Flap */}
+              <div
+                className="absolute overflow-visible"
+                style={{
+                  top: 0,
+                  left: '2.5%',
+                  right: '2.5%',
+                  width: '95%',
+                  height: 100,
+                  clipPath: 'polygon(2.6% 0%, 50% 100%, 97.4% 0%)',
+                  background: 'linear-gradient(180deg, #d4c4a8 0%, #c4b08f 50%, #b8a482 100%)',
+                  border: `1px solid rgba(101,67,33,.85)`,
+                  boxShadow: '0 6px 16px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.25), inset 0 -2px 4px rgba(101,67,33,.2)',
+                  zIndex: 25,
+                }}
+                aria-hidden
+              />
+
+              {/* Left envelope side */}
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  top: 0,
+                  left: 0,
+                  width: '50%',
+                  height: 100,
+                  background: 'linear-gradient(135deg,#f4f1e8 0%,#e8dcc0 30%,#d4c4a8 70%,#c4b08f 100%)',
+                  clipPath: 'polygon(0 0, 5% 0%, 100% 100%, 0 100%)',
+                  zIndex: 40,
+                  borderRadius: '1.5rem 0 0 0',
+                  overflow: 'hidden',
+                }}
+                aria-hidden
+              >
+                {/* Texture overlays for left side */}
+                <div className="absolute inset-0 opacity-40" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 20% 20%, rgba(139,115,85,0.3) 1px, transparent 1px),
+                    radial-gradient(circle at 80% 80%, rgba(160,130,100,0.2) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '25px 25px, 30px 30px'
+                }} />
+                <div className="absolute inset-0 opacity-20" style={{
+                  backgroundImage: `
+                    linear-gradient(45deg, transparent 40%, rgba(101,67,33,0.1) 41%, rgba(101,67,33,0.1) 59%, transparent 60%)
+                  `,
+                  backgroundSize: '18px 18px'
+                }} />
+                <div className="absolute inset-0 opacity-30" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 30% 40%, rgba(255,215,0,0.6) 1px, transparent 1px),
+                    radial-gradient(circle at 70% 60%, rgba(184,134,11,0.5) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '25px 25px, 30px 30px',
+                  animation: 'sparkle-twinkle 4s ease-in-out infinite alternate',
+                }} />
+              </div>
+              
+              {/* Right envelope side */}
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  top: 0,
+                  right: 0,
+                  width: '50%',
+                  height: 100,
+                  background: 'linear-gradient(135deg,#f4f1e8 0%,#e8dcc0 30%,#d4c4a8 70%,#c4b08f 100%)',
+                  clipPath: 'polygon(95% 0%, 100% 0, 100% 100%, 0 100%)',
+                  zIndex: 40,
+                  borderRadius: '0 1.5rem 0 0',
+                  overflow: 'hidden',
+                }}
+                aria-hidden
+              >
+                {/* Texture overlays for right side */}
+                <div className="absolute inset-0 opacity-40" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 20% 20%, rgba(139,115,85,0.3) 1px, transparent 1px),
+                    radial-gradient(circle at 80% 80%, rgba(160,130,100,0.2) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '25px 25px, 30px 30px'
+                }} />
+                <div className="absolute inset-0 opacity-20" style={{
+                  backgroundImage: `
+                    linear-gradient(-45deg, transparent 40%, rgba(101,67,33,0.1) 41%, rgba(101,67,33,0.1) 59%, transparent 60%)
+                  `,
+                  backgroundSize: '18px 18px'
+                }} />
+                <div className="absolute inset-0 opacity-30" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 25% 35%, rgba(255,215,0,0.6) 1px, transparent 1px),
+                    radial-gradient(circle at 65% 70%, rgba(184,134,11,0.5) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '25px 25px, 30px 30px',
+                  animation: 'sparkle-twinkle 4s ease-in-out infinite alternate',
+                }} />
+              </div>
+
+              {/* Bottom envelope body */}
+              <div
+                className="absolute inset-x-0 pointer-events-none"
+                style={{
+                  top: 100,
+                  bottom: 0,
+                  background: 'linear-gradient(135deg,#f4f1e8 0%,#e8dcc0 30%,#d4c4a8 70%,#c4b08f 100%)',
+                  zIndex: 40,
+                  borderRadius: '0 0 0.75rem 0.75rem',
+                }}
+                aria-hidden
+              >
+                {/* Texture overlays for bottom */}
+                <div className="absolute inset-0 rounded-b-xl opacity-40" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 20% 20%, rgba(139,115,85,0.3) 1px, transparent 1px),
+                    radial-gradient(circle at 80% 80%, rgba(160,130,100,0.2) 1px, transparent 1px),
+                    radial-gradient(circle at 60% 40%, rgba(120,90,60,0.25) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '30px 30px, 45px 45px, 25px 25px'
+                }} />
+                <div className="absolute inset-0 rounded-b-xl opacity-20" style={{
+                  backgroundImage: `
+                    linear-gradient(45deg, transparent 40%, rgba(101,67,33,0.1) 41%, rgba(101,67,33,0.1) 59%, transparent 60%),
+                    linear-gradient(-45deg, transparent 40%, rgba(101,67,33,0.08) 41%, rgba(101,67,33,0.08) 59%, transparent 60%)
+                  `,
+                  backgroundSize: '20px 20px'
+                }} />
+                <div className="absolute inset-0 rounded-b-xl" style={{
+                  background: 'linear-gradient(135deg, rgba(139,115,85,0.15) 0%, transparent 20%, transparent 80%, rgba(101,67,33,0.1) 100%)'
+                }} />
+                <div className="absolute inset-0 rounded-b-xl opacity-30" style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 15% 25%, rgba(255,215,0,0.8) 1px, transparent 1px),
+                    radial-gradient(circle at 85% 15%, rgba(255,215,0,0.6) 1px, transparent 1px),
+                    radial-gradient(circle at 45% 75%, rgba(184,134,11,0.7) 1px, transparent 1px),
+                    radial-gradient(circle at 75% 85%, rgba(255,215,0,0.5) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '25px 25px, 35px 35px, 20px 20px, 30px 30px',
+                  animation: 'sparkle-twinkle 4s ease-in-out infinite alternate'
+                }} />
+              </div>
+
+              {/* Wax seal */}
+              <div
+                className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+                style={{
+                  top: 45,
+                  filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))',
+                  width: 64,
+                  height: 64,
+                }}
+                aria-hidden
+              >
+                <Image src={waxseal} alt="Wax seal" fill className="select-none object-contain" />
               </div>
               {/* Recipient's country stamp - positioned outside envelope animation */}
               <div
@@ -686,7 +809,7 @@ export default function RightSidebar({
             {/* Allow the dialog content to be full-bleed so the animation can occupy the
                 entire dialog area. Remove the max width and padding so the child
                 `LetterSendAnimation` can render edge-to-edge. */}
-            <DialogContent className="w-full max-w-none p-0 h-[75vh] flex items-center justify-center">
+            <DialogContent className="w-full max-w-none p-0 h-[75vh] flex items-center justify-center" showCloseButton={false}>
               <DialogTitle className="sr-only">Send Letter Confirmation</DialogTitle>
               <LetterSendAnimation
                 show={sendConfirmationOpen}
@@ -706,9 +829,9 @@ export default function RightSidebar({
 
           {/* Character Limit Dialog */}
           <Dialog open={characterLimitDialogOpen} onOpenChange={setCharacterLimitDialogOpen}>
-            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl" showCloseButton={false}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+                <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center ${
                     characterLimitFlash
                       ? 'bg-red-50'
@@ -734,9 +857,13 @@ export default function RightSidebar({
                   </span>
                   Character Limit
                 </DialogTitle>
-                <DialogDescription className="text-slate-600 leading-relaxed">
+                <DialogDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Your letter has a maximum limit of {MAIN_CONTENT_LIMIT.toLocaleString('en-US')} characters to ensure optimal delivery and readability.
                 </DialogDescription>
+                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
@@ -785,15 +912,19 @@ export default function RightSidebar({
 
           {/* Word Count Dialog */}
           <Dialog open={wordCountDialogOpen} onOpenChange={setWordCountDialogOpen}>
-            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl" showCloseButton={false}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+                <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
                   <BarChart3 className="w-5 h-5 text-blue-500" />
                   Word Count
                 </DialogTitle>
-                <DialogDescription className="text-slate-600 leading-relaxed">
+                <DialogDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Your letter contains {wordCount.toLocaleString('en-US')} words.
                 </DialogDescription>
+                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
@@ -826,15 +957,19 @@ export default function RightSidebar({
 
           {/* Reading Time Dialog */}
           <Dialog open={readingTimeDialogOpen} onOpenChange={setReadingTimeDialogOpen}>
-            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl" showCloseButton={false}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+                <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
                   <Clock className="w-5 h-5 text-purple-500" />
                   Reading Time
                 </DialogTitle>
-                <DialogDescription className="text-slate-600 leading-relaxed">
+                <DialogDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Estimated reading time: {typeof readingTime === "string" ? readingTime : `~${readingTime} minute${readingTime !== 1 ? 's' : ''}`}
                 </DialogDescription>
+                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg border border-purple-200">
@@ -873,15 +1008,19 @@ export default function RightSidebar({
 
           {/* Readability Dialog */}
           <Dialog open={readabilityDialogOpen} onOpenChange={setReadabilityDialogOpen}>
-            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl" showCloseButton={false}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+                <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
                   <Gauge className="w-5 h-5 text-orange-500" />
                   Readability Level (CEFR)
                 </DialogTitle>
-                <DialogDescription className="text-slate-600 leading-relaxed">
+                <DialogDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   CEFR Level: {String(readability).toUpperCase() || "Not available"}
                 </DialogDescription>
+                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg border border-orange-200">
@@ -963,17 +1102,21 @@ export default function RightSidebar({
 
           {/* Letter Preview Explanation Dialog */}
           <Dialog open={letterPreviewDialogOpen} onOpenChange={setLetterPreviewDialogOpen}>
-            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-0 shadow-2xl" showCloseButton={false}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-800 font-semibold">
+                <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
                   <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   Letter Preview
                 </DialogTitle>
-                <DialogDescription className="text-slate-600 leading-relaxed">
+                <DialogDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   This is a preview of how your letter will appear when sent to your recipient.
                 </DialogDescription>
+                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-lg border border-amber-200">

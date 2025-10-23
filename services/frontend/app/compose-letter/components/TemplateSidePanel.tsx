@@ -320,7 +320,7 @@ const TemplateItem = React.memo(({
             </div>
           </div>
         </div>
-        <div className="text-xs text-center font-medium truncate px-1">{preset.name}</div>
+        <div className="text-xs text-center font-medium truncate px-1 text-black">{preset.name}</div>
         <div className="flex justify-center space-x-2 mt-1">
           <button 
             onClick={(e) => {
@@ -329,7 +329,7 @@ const TemplateItem = React.memo(({
                 toggleFavorite(preset.id);
               }
             }}
-            className={`text-gray-500 hover:text-amber-500 p-1 ${preset.id.startsWith('default-') ? 'cursor-default' : 'cursor-pointer'}`}
+            className={`text-gray-500 hover:text-amber-500 p-1 text-black dark:text-black ${preset.id.startsWith('default-') ? 'cursor-default' : 'cursor-pointer'}`}
             aria-label={preset.isFavorite ? `Remove ${preset.name} from favorites` : `Add ${preset.name} to favorites`}
           >
             {preset.isFavorite ? (
@@ -347,7 +347,7 @@ const TemplateItem = React.memo(({
               <AlertDialogTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="text-gray-500 hover:text-red-500 p-1"
+                  className="text-gray-500 hover:text-red-500 p-1 text-black dark:text-black"
                   title="Delete template"
                   aria-label={`Delete ${preset.name} template`}
                 >
@@ -359,16 +359,16 @@ const TemplateItem = React.memo(({
                   </svg>
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()} className="text-black dark:text-black">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogTitle className="text-black dark:text-black">Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-black dark:text-black">
                     This action cannot be undone. This will permanently delete the
                     template &quot;{preset.name}&quot;.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="text-black dark:text-black">Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={(e) => {
                       e.stopPropagation();
@@ -377,7 +377,7 @@ const TemplateItem = React.memo(({
                         onSelect(null);
                       }
                     }}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-black dark:text-black"
                   >
                     Delete
                   </AlertDialogAction>
@@ -791,7 +791,7 @@ export default function TemplateSidePanel({
   };
 
   const baseClasses = anchorWithinSidebar
-    ? 'absolute inset-0 w-full h-full bg-transparent backdrop-blur-sm border-r border-amber-200 shadow-lg flex flex-col z-50 overflow-hidden'
+    ? 'absolute inset-0 w-full h-full bg-transparent backdrop-blur-sm shadow-lg flex flex-col z-50 overflow-hidden'
     : 'w-full h-full bg-transparent border-0 shadow-none flex flex-col min-h-0 overflow-hidden';
 
   if (!open) return null;
@@ -823,7 +823,7 @@ export default function TemplateSidePanel({
             <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gray-300 rounded-full opacity-60 md:hidden"></div>
             
             <div className="flex items-baseline">
-              <h2 className="flex-1 font-bold text-slate-800 mb-2 select-none text-base tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors">
+              <h2 className="flex-1 font-bold text-black mb-2 select-none text-base tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-black transition-colors">
                 <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"></circle>
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -861,10 +861,7 @@ export default function TemplateSidePanel({
             </div>
             <div className="relative">
               <div className="pt-4">
-                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, presets: !prev.presets }))}>
-                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                <h4 className="font-bold text-black mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-black transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, presets: !prev.presets }))}>
                   Templates
                 </h4>
               </div>
@@ -908,14 +905,14 @@ export default function TemplateSidePanel({
                 type="text" 
                 value={searchTerm}
                 placeholder="Search templates by name..." 
-                className="w-full pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 focus:scale-105 transition-all duration-200"
+                className="w-full pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 focus:scale-105 transition-all duration-200 text-black dark:text-black"
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Search letter templates by name"
               />
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')} 
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 text-black dark:text-black"
                   title="Clear search"
                   aria-label="Clear template search"
                 >
@@ -931,7 +928,7 @@ export default function TemplateSidePanel({
                   size="sm" 
                   variant={activeTab===tab?'default':'outline'} 
                   onClick={() => setActiveTab(tab as any)} 
-                  className={`hover:scale-105 transition-transform duration-200 transition-all duration-500 ease-out ${
+                  className={`hover:scale-105 transition-transform duration-200 transition-all duration-500 ease-out text-black dark:text-black ${
                     visibleSections.presets 
                       ? 'opacity-100 translate-y-0' 
                       : 'opacity-0 translate-y-2'
@@ -998,7 +995,7 @@ export default function TemplateSidePanel({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className={`w-full text-xs hover:scale-105 hover:bg-amber-50 transition-all duration-200 transition-all duration-500 ease-out ${
+                className={`w-full text-xs hover:scale-105 hover:bg-amber-50 transition-all duration-200 transition-all duration-500 ease-out text-black dark:text-black ${
                   visibleSections.presets 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-2'
@@ -1018,7 +1015,7 @@ export default function TemplateSidePanel({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className={`w-full text-xs mt-2 hover:scale-105 hover:bg-amber-50 transition-all duration-200 transition-all duration-500 ease-out ${
+                className={`w-full text-xs mt-2 hover:scale-105 hover:bg-amber-50 transition-all duration-200 transition-all duration-500 ease-out text-black dark:text-black ${
                   visibleSections.presets 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-2'
@@ -1039,7 +1036,7 @@ export default function TemplateSidePanel({
             <DialogTrigger asChild>
               <Button 
                 size="sm" 
-                className={`w-full mt-2 hover:scale-105 hover:shadow-md transition-all duration-200 transition-all duration-500 ease-out ${
+                className={`w-full mt-2 hover:scale-105 hover:shadow-md transition-all duration-200 transition-all duration-500 ease-out text-black dark:text-black ${
                   visibleSections.presets 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-2'
@@ -1056,22 +1053,22 @@ export default function TemplateSidePanel({
                 Save Current Template
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] animate-in fade-in-0 zoom-in-95 duration-200">
+            <DialogContent className="sm:max-w-[425px] animate-in fade-in-0 zoom-in-95 duration-200 text-black dark:text-black bg-white dark:bg-white">
               <DialogHeader>
-                <DialogTitle>Save Template</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-black dark:text-black">Save Template</DialogTitle>
+                <DialogDescription className="text-black dark:text-black">
                   Enter a descriptive name for your new template. Click save when you&apos;re done.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right select-none">
+                  <Label htmlFor="name" className="text-right select-none text-black dark:text-black">
                     Name
                   </Label>
                   <Input
                     id="template-name-input"
                     placeholder="My Custom Template"
-                    className={`col-span-3 ${templateNameError ? 'border-red-500' : ''}`}
+                    className={`col-span-3 text-black dark:text-black ${templateNameError ? 'border-red-500' : ''}`}
                     value={templateName}
                     onChange={(e) => {
                       setTemplateName(e.target.value);
@@ -1086,6 +1083,7 @@ export default function TemplateSidePanel({
                 <Button
                   type="button"
                   onClick={handleSaveTemplate}
+                  className="text-black dark:text-black"
                 >
                   Save Template
                 </Button>
@@ -1108,10 +1106,7 @@ export default function TemplateSidePanel({
             <div className="absolute inset-0 rounded-3xl opacity-60 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, transparent 50%, rgba(5, 150, 105, 0.12) 100%)', mixBlendMode: 'overlay'}}></div>
             <div className="relative">
               <div className="pt-4">
-                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, fontColor: !prev.fontColor, backgroundColor: !prev.backgroundColor }))}>
-                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 002-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
-                  </svg>
+                <h4 className="font-bold text-black mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-black transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, fontColor: !prev.fontColor, backgroundColor: !prev.backgroundColor }))}>
                   Colors
                 </h4>
               </div>
@@ -1145,7 +1140,7 @@ export default function TemplateSidePanel({
           initial={{ opacity: 0, y: 20, height: 0 }}
           className="overflow-hidden"
         >
-          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+          <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
               <circle cx="13.5" cy="6.5" r=".5"></circle>
               <circle cx="17.5" cy="10.5" r=".5"></circle>
@@ -1182,7 +1177,7 @@ export default function TemplateSidePanel({
                 className="w-24"
                 aria-label="Font opacity"
               />
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localFontOpacity * 100)}%</span>
+              <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{Math.round(localFontOpacity * 100)}%</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
@@ -1229,7 +1224,7 @@ export default function TemplateSidePanel({
           initial={{ opacity: 0, y: 20, height: 0 }}
           className={`overflow-hidden ${visibleSections.backgroundColor ? 'mt-4' : 'mt-0'}`}
         >
-          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+          <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
               <circle cx="13.5" cy="6.5" r=".5"></circle>
               <circle cx="17.5" cy="10.5" r=".5"></circle>
@@ -1265,7 +1260,7 @@ export default function TemplateSidePanel({
                 className="w-24"
                 aria-label="Background opacity"
               />
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(localBackgroundOpacity * 100)}%</span>
+              <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{Math.round(localBackgroundOpacity * 100)}%</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
@@ -1297,10 +1292,7 @@ export default function TemplateSidePanel({
             <div className="absolute inset-0 rounded-3xl opacity-60 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, transparent 50%, rgba(217, 119, 6, 0.12) 100%)', mixBlendMode: 'overlay'}}></div>
             <div className="relative">
               <div className="pt-4">
-                <h4 className="font-bold text-slate-800 mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-slate-600 transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, pageLines: !prev.pageLines }))}>
-                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
+                <h4 className="font-bold text-black mb-4 select-none text-sm tracking-wide uppercase text-center flex items-center justify-center gap-2 cursor-pointer hover:text-black transition-colors" onClick={() => setVisibleSections(prev => ({ ...prev, pageLines: !prev.pageLines }))}>
                   Page Lines
                 </h4>
               </div>
@@ -1338,7 +1330,7 @@ export default function TemplateSidePanel({
           <div className="space-y-6 animate-fade-in-up">
             {/* Line Style */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+              <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
                   <path d="M2 12h20"></path>
                   <path d="M7 7l5 5-5 5"></path>
@@ -1370,7 +1362,7 @@ export default function TemplateSidePanel({
                     size="sm"
                     variant={lineConfig.type === style.type ? 'default' : 'outline'}
                     onClick={() => style.type === 'none' ? handleLineConfigChange({ type: 'none' }) : handleLineTypeChange(style.type as LineConfig['type'])}
-                    className={`text-xs hover:scale-105 transition-all duration-300 ease-out ${
+                    className={`text-xs hover:scale-105 transition-all duration-300 ease-out text-black dark:text-black ${
                       lineConfig.type === style.type ? 'bg-amber-100 text-amber-900 border-amber-300' : ''
                     } ${
                       visibleSections.pageLines 
@@ -1399,7 +1391,7 @@ export default function TemplateSidePanel({
                 style={{
                   transitionDelay: visibleSections.pageLines ? '500ms' : '0ms'
                 }}>
-                  <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                  <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
                       <circle cx="13.5" cy="6.5" r=".5"></circle>
                       <circle cx="17.5" cy="10.5" r=".5"></circle>
@@ -1428,7 +1420,7 @@ export default function TemplateSidePanel({
                         className="w-24"
                         aria-label="Line opacity"
                       />
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{Math.round(lineConfig.opacity * 100)}%</span>
+                      <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{Math.round(lineConfig.opacity * 100)}%</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#800080'].map((color) => (
@@ -1455,7 +1447,7 @@ export default function TemplateSidePanel({
                   transitionDelay: visibleSections.pageLines ? '600ms' : '0ms'
                 }}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                    <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                         <polyline points="7.5,4.27 12,6.11 16.5,4.27"></polyline>
@@ -1463,7 +1455,7 @@ export default function TemplateSidePanel({
                       </svg>
                       Spacing
                     </h3>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.spacing}px</span>
+                    <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{lineConfig.spacing}px</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1474,10 +1466,10 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ spacing: Math.max(2, lineConfig.spacing - currentStep) });
                       }}
                       disabled={lineConfig.spacing <= 2}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Decrease line spacing"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">-</span>
                     </Button>
                     <Slider
                       value={[lineConfig.spacing]}
@@ -1496,10 +1488,10 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ spacing: Math.min(600, lineConfig.spacing + currentStep) });
                       }}
                       disabled={lineConfig.spacing >= 600}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Increase line spacing"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">+</span>
                     </Button>
                   </div>
                 </div>
@@ -1514,7 +1506,7 @@ export default function TemplateSidePanel({
                   transitionDelay: visibleSections.pageLines ? '700ms' : '0ms'
                 }}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                    <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
                         <line x1="4" y1="21" x2="4" y2="14"></line>
                         <line x1="4" y1="10" x2="4" y2="3"></line>
@@ -1528,7 +1520,7 @@ export default function TemplateSidePanel({
                       </svg>
                       Thickness
                     </h3>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.thickness}px</span>
+                    <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{lineConfig.thickness}px</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1539,10 +1531,10 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ thickness: Math.max(2, lineConfig.thickness - currentStep) });
                       }}
                       disabled={lineConfig.thickness <= 2}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Decrease line thickness"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">-</span>
                     </Button>
                     <Slider
                       value={[lineConfig.thickness]}
@@ -1561,10 +1553,10 @@ export default function TemplateSidePanel({
                         handleLineConfigChange({ thickness: Math.min(300, lineConfig.thickness + currentStep) });
                       }}
                       disabled={lineConfig.thickness >= 300}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Increase line thickness"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">+</span>
                     </Button>
                   </div>
                 </div>
@@ -1579,7 +1571,7 @@ export default function TemplateSidePanel({
                   transitionDelay: visibleSections.pageLines ? '800ms' : '0ms'
                 }}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-amber-700 transition-colors duration-200 cursor-default">
+                    <h3 className="text-sm font-semibold text-black flex items-center gap-2 border-b border-gray-100 pb-2 mb-0 select-none hover:text-black transition-colors duration-200 cursor-default">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-amber-600 hover:scale-110 transition-transform duration-200">
                         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
                         <path d="M21 3v5h-5"></path>
@@ -1588,7 +1580,7 @@ export default function TemplateSidePanel({
                       </svg>
                       Rotation
                     </h3>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 cursor-default">{lineConfig.rotation}°</span>
+                    <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded select-none hover:bg-amber-100 hover:text-black transition-all duration-200 cursor-default">{lineConfig.rotation}°</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1599,10 +1591,10 @@ export default function TemplateSidePanel({
                         const newRotation = (lineConfig.rotation - currentStep + 360) % 360;
                         handleLineConfigChange({ rotation: newRotation });
                       }}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Decrease line rotation"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">-</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">-</span>
                     </Button>
                     <Slider
                       value={[lineConfig.rotation]}
@@ -1621,10 +1613,10 @@ export default function TemplateSidePanel({
                         const newRotation = (lineConfig.rotation + currentStep) % 360;
                         handleLineConfigChange({ rotation: newRotation });
                       }}
-                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200"
+                      className="h-6 w-6 p-0 hover:scale-110 hover:bg-amber-50 transition-all duration-200 text-black dark:text-black"
                       aria-label="Increase line rotation"
                     >
-                      <span className="w-3 h-3 flex items-center justify-center font-bold">+</span>
+                      <span className="w-3 h-3 flex items-center justify-center font-bold text-black dark:text-black">+</span>
                     </Button>
                   </div>
                 </div>

@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/header";
 import "./globals.css";
 import { ConversationUserProvider } from "@/lib/context/ConversationUserContext";
 import { ProfileProvider } from "@/lib/context/ProfileContext";
+import { ThemeProvider } from "@/lib/context/ThemeContext";
 import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
 import { Toaster } from "sonner";
 import { OnboardingGuard } from "@/components/OnboardingGuard";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { BackgroundWrapper } from "@/components/BackgroundWrapper";
 
 export const metadata: Metadata = {
   title: "GlobeTalk",
@@ -39,29 +30,47 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const fpjsKey = process.env.NEXT_PUBLIC_FPJS_KEY;
+  
+  const content = (
+    <ThemeProvider>
+      <ProfileProvider>
+        <ConversationUserProvider>
+          <OnboardingGuard>
+            {/* Background wrapper that responds to theme */}
+            <BackgroundWrapper />
+
+            {/* Content wrapper with relative positioning */}
+            <div className="relative z-10 min-h-screen">
+              <Header />
+              {children}
+              <Toaster richColors position="top-center" />
+            </div>
+          </OnboardingGuard>
+        </ConversationUserProvider>
+      </ProfileProvider>
+    </ThemeProvider>
+  );
+
   return (
     <html lang="en">
       <ClerkProvider>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className="antialiased min-h-screen"
         >
-          <FpjsProvider
-            loadOptions={{
-              apiKey: process.env.NEXT_PUBLIC_FPJS_KEY!,
-              region: "eu",
-              scriptUrlPattern: `/api/fpjs/v3/${process.env.NEXT_PUBLIC_FPJS_KEY}/loader_v3.12.1.js`,
-            }}
-          >
-            <ProfileProvider>
-              <ConversationUserProvider>
-                <OnboardingGuard>
-                  <Header />
-                  {children}
-                  <Toaster richColors position="top-center" />
-                </OnboardingGuard>
-              </ConversationUserProvider>
-            </ProfileProvider>
-          </FpjsProvider>
+          {fpjsKey ? (
+            <FpjsProvider
+              loadOptions={{
+                apiKey: fpjsKey,
+                region: "eu",
+                scriptUrlPattern: `/api/fpjs/v3/${fpjsKey}/loader_v3.12.1.js`,
+              }}
+            >
+              {content}
+            </FpjsProvider>
+          ) : (
+            content
+          )}
         </body>
       </ClerkProvider>
     </html>

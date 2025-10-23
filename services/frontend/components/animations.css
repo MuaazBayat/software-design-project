@@ -1,0 +1,268 @@
+@keyframes envelope-flutter {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  10% {
+    transform: translateY(-1px) rotate(0.2deg);
+  }
+  20% {
+    transform: translateY(0px) rotate(-0.1deg);
+  }
+  30% {
+    transform: translateY(-0.5px) rotate(0.1deg);
+  }
+  40% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  60% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  70% {
+    transform: translateY(-0.8px) rotate(0.15deg);
+  }
+  80% {
+    transform: translateY(0px) rotate(-0.05deg);
+  }
+  90% {
+    transform: translateY(-0.3px) rotate(0.05deg);
+  }
+}
+
+.animate-envelope-flutter {
+  animation: envelope-flutter 8s ease-in-out infinite;
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  25% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  75% {
+    opacity: 0.3;
+  }
+}
+
+.animate-sparkle-twinkle {
+  animation: sparkle-twinkle 4s ease-in-out infinite;
+}
+
+@keyframes wave-sway {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(2deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-wave-sway {
+  animation: wave-sway 6s ease-in-out infinite;
+}
+
+.flagpole {
+  width: 16px;
+  height: 75px;
+  background:
+    linear-gradient(135deg, rgba(139,69,19,0.03) 0%, rgba(160,82,45,0.03) 20%, rgba(101,67,33,0.03) 50%, rgba(93,78,55,0.03) 80%, rgba(74,60,42,0.03) 100%),
+    radial-gradient(circle at 30% 30%, rgba(160,82,45,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(139,69,19,0.03) 0%, transparent 50%);
+  border-radius: 8px;
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.5),
+    0 3px 6px rgba(0,0,0,0.3),
+    inset 0 3px 0 rgba(255,255,255,0.4),
+    inset 0 -3px 0 rgba(0,0,0,0.5),
+    inset 4px 0 6px rgba(139,69,19,0.6),
+    inset -4px 0 6px rgba(74,60,42,0.4);
+  position: relative;
+  border: 1px solid rgba(101,67,33,0.4);
+  opacity: 1;
+  backdrop-filter: blur(1px);
+  order: 1;
+}
+
+@keyframes pole-sway {
+  0% {
+    transform: rotate(0deg) translateX(0px) translateY(0px) scale(1);
+  }
+  10% {
+    transform: rotate(8deg) translateX(3px) translateY(-1.5px) scale(1.015);
+  }
+  20% {
+    transform: rotate(10deg) translateX(4px) translateY(-2px) scale(1.02);
+  }
+  30% {
+    transform: rotate(6deg) translateX(2px) translateY(-1px) scale(1.01);
+  }
+  40% {
+    transform: rotate(0deg) translateX(0px) translateY(0.5px) scale(1);
+  }
+  50% {
+    transform: rotate(-6deg) translateX(-3px) translateY(0px) scale(0.99);
+  }
+  60% {
+    transform: rotate(-10deg) translateX(-4px) translateY(-0.5px) scale(0.985);
+  }
+  70% {
+    transform: rotate(-8deg) translateX(-3px) translateY(-1.5px) scale(0.99);
+  }
+  80% {
+    transform: rotate(-2deg) translateX(-1px) translateY(-1px) scale(1);
+  }
+  90% {
+    transform: rotate(4deg) translateX(2px) translateY(-0.5px) scale(1.01);
+  }
+  100% {
+    transform: rotate(0deg) translateX(0px) translateY(0px) scale(1);
+  }
+}
+
+.flagpole::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(45deg,
+      transparent 0%,
+      rgba(184,134,11,0.6) 15%,
+      transparent 30%,
+      rgba(160,82,45,0.7) 45%,
+      transparent 60%,
+      rgba(139,69,19,0.5) 75%,
+      transparent 90%),
+    radial-gradient(ellipse at 25% 25%, rgba(255,215,0,0.3) 0%, transparent 40%),
+    radial-gradient(ellipse at 75% 75%, rgba(184,134,11,0.25) 0%, transparent 40%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      rgba(101,67,33,0.1) 1px,
+      transparent 2px
+    );
+  pointer-events: none;
+  animation: pole-shimmer 4s ease-in-out infinite alternate;
+}
+
+.flagpole::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,215,0,0.4) 0%, transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(184,134,11,0.3) 0%, transparent 30%),
+    linear-gradient(135deg,
+      rgba(184,134,11,0.3) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgba(101,67,33,0.2) 100%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(2px);
+}
+
+@keyframes pole-shimmer {
+  0% {
+    opacity: 0.8;
+    filter: brightness(1) contrast(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.1) contrast(1.05);
+  }
+  100% {
+    opacity: 0.9;
+    filter: brightness(0.95) contrast(0.98);
+  }
+}
+
+@keyframes seal-break {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1) contrast(1);
+  }
+  20% {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 1;
+    filter: brightness(1.2) contrast(1.1) hue-rotate(10deg);
+  }
+  40% {
+    transform: scale(0.95) rotate(-3deg);
+    opacity: 0.9;
+    filter: brightness(0.8) contrast(1.2) hue-rotate(-5deg);
+  }
+  60% {
+    transform: scale(1.05) rotate(2deg);
+    opacity: 0.8;
+    filter: brightness(1.1) contrast(0.9) hue-rotate(15deg);
+  }
+  80% {
+    transform: scale(0.98) rotate(-1deg);
+    opacity: 0.6;
+    filter: brightness(0.7) contrast(1.3) hue-rotate(-10deg);
+  }
+  100% {
+    transform: scale(0.9) rotate(0deg);
+    opacity: 0;
+    filter: brightness(0.5) contrast(1.5) hue-rotate(20deg);
+  }
+}
+
+.animate-seal-break {
+  animation: seal-break 1.2s ease-in-out forwards;
+}
+
+.rotateX-30 {
+  transform: rotateX(30deg);
+}
+
+.flag-assembly {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  animation: pole-sway 8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: top center;
+}
+
+.flag-assembly > .flapping-flag {
+  order: 2;
+  margin-left: -7px;
+}
+
+/* Envelope flap opening animation */
+.flap-3d {
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: scaleY(1); /* Default: flap points down (closed) */
+}
+
+.group:hover .flap-3d {
+  transform: scaleY(-1); /* Hover: flap flips upside down, base stays in place */
+}
+
+.flap-face {
+  backface-visibility: hidden;
+}

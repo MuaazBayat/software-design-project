@@ -181,20 +181,20 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search fonts..."
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400 focus:placeholder:text-gray-300 transition-colors duration-200"
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-black dark:placeholder:text-black focus:placeholder:text-black dark:focus:placeholder:text-black transition-colors duration-200 text-black dark:text-black"
           aria-label="Search available fonts"
         />
         {query && (
           <button
             onClick={() => setQuery('')}
             aria-label="clear search"
-            className="p-1 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors duration-200"
+            className="p-1 rounded-full hover:bg-gray-200 text-black dark:text-black hover:text-black dark:hover:text-black transition-colors duration-200"
           >
             <X className="h-3 w-3" />
           </button>
         )}
         {anchorWithinSidebar && (
-          <button onClick={onClose} aria-label="close" className="p-1 rounded-full hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors duration-200"><X className="h-4 w-4"/></button>
+          <button onClick={onClose} aria-label="close" className="p-1 rounded-full hover:bg-gray-200 text-black dark:text-black hover:text-black dark:hover:text-black transition-colors duration-200"><X className="h-4 w-4"/></button>
         )}
       </div>
       <ScrollArea className="flex-1 min-h-0" onScrollCapture={handleScroll}>
@@ -297,12 +297,12 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
               >
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className={`${fp.className} font-medium leading-snug`} style={{ color: fontColor ? `rgba(${parseInt(fontColor.slice(1, 3), 16)}, ${parseInt(fontColor.slice(3, 5), 16)}, ${parseInt(fontColor.slice(5, 7), 16)}, ${fontOpacity})` : undefined }}>{fp.label}</span>
-                  <span className="text-xs text-gray-500 mt-1 leading-tight">{fp.description}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-gray-400 mt-1">{fav ? '★ Favorite' : fp.category}</span>
+                  <span className="text-xs text-black dark:text-black mt-1 leading-tight">{fp.description}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-black dark:text-black mt-1">{fav ? '★ Favorite' : fp.category}</span>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(fp.id) }}
-                  className="p-1 rounded hover:bg-gray-200 text-gray-700"
+                  className="p-1 rounded hover:bg-gray-200 text-black dark:text-black"
                   aria-label={fav ? `Remove ${fp.label} from favorites` : `Add ${fp.label} to favorites`}
                 >
                   {fav ? <Star className="h-4 w-4 fill-black" /> : <StarOff className="h-4 w-4" />}
@@ -317,7 +317,7 @@ function FontSidePanelComponent({ open, currentId, onSelect, onPreview, onClose,
           )}
         </ul>
       </ScrollArea>
-      <div className="px-3 py-2 text-[10px] flex flex-wrap gap-3 text-gray-600 bg-gray-50 border-t border-gray-100 select-none">
+      <div className="px-3 py-2 text-[10px] flex flex-wrap gap-3 text-black dark:text-black bg-gray-50 border-t border-gray-100 select-none">
         <span>Hover = preview</span>
         <span>Click = apply</span>
         <span>Enter = select</span>

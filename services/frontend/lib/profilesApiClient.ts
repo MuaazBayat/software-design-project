@@ -71,10 +71,11 @@ export class ProfilesApiClient {
   private getToken: (() => Promise<string | null>) | null;
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_CORE_URL || 'http://localhost:8000',
+    baseUrl?: string,
     getToken?: () => Promise<string | null>
   ) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // Use provided baseUrl, or env var, or default to localhost:8000
+    this.baseUrl = (baseUrl || process.env.NEXT_PUBLIC_CORE_URL || 'http://localhost:8000').replace(/\/$/, ''); // Remove trailing slash
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
