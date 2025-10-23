@@ -63,7 +63,7 @@ export default function RootLayout({
               loadOptions={{
                 apiKey: fpjsKey,
                 region: "eu",
-                scriptUrlPattern: `/api/fpjs/v3/${fpjsKey}/loader_v3.12.1.js`,
+                // Removed custom scriptUrlPattern - use default CDN
               }}
             >
               {content}

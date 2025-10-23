@@ -437,9 +437,8 @@ const CulturalExplorer = () => {
     return facts;
   }, []);
 
-  // Azure Function configuration - Your deployed serverless app
+  // Azure Function URL (configured as anonymous - no key needed!)
   const AZURE_FUNCTION_URL = 'https://culturefacts.azurewebsites.net/api/generate-facts';
-  const AZURE_FUNCTION_KEY = 'a-B04ykleZ7wtepFrGw8PfQIBffPa5ZpK4xHsgSHGPDMAzFuWSR_sQ==';
 
   // Get facts from Azure Function (with facts.json as fallback)
   const fetchInterestingFacts = useCallback(async (country: string): Promise<string[]> => {
@@ -447,16 +446,11 @@ const CulturalExplorer = () => {
     try {
       console.log(`🌐 Calling Azure Function for ${country}...`);
       
-      // Build URL with function key if available
-      const url = AZURE_FUNCTION_KEY 
-        ? `${AZURE_FUNCTION_URL}?code=${AZURE_FUNCTION_KEY}`
-        : AZURE_FUNCTION_URL;
-      
       // Create abort controller for timeout (45 seconds)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 45000);
       
-      const response = await fetch(url, {
+      const response = await fetch(AZURE_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -474,7 +468,7 @@ const CulturalExplorer = () => {
         const result = await response.json();
         if (result.success && result.data?.facts?.[country]) {
           const facts = result.data.facts[country];
-          console.log(`✅ Loaded ${facts.length} facts for ${country} from Azure Function`);
+          console.log(`✅ Loaded ${facts.length} facts for ${country} from API`);
           return facts;
         }
       }

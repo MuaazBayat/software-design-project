@@ -94,14 +94,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const syncProfile = useCallback(async () => {
     if (!isSignedIn || !user) return;
 
-    // Wait until fingerprint is ready
-    if (fpLoading) return;
-    const visitorId = fpData?.visitorId || null;
+    // Get fingerprint - use fallback if FingerprintJS failed
+    const visitorId = fpData?.visitorId || `fallback_${user.id}`;
 
-    //Check if fingerprint is banned
-    if (visitorId) {
+    // Check if fingerprint is banned (only if we have a real fingerprint)
+    if (fpData?.visitorId && !fpLoading) {
       try {
-        const fpCheck = await moderationApi.checkFingerprint(visitorId);
+        const fpCheck = await moderationApi.checkFingerprint(fpData.visitorId);
         if (fpCheck.is_banned) {
           setError(`Access denied: ${fpCheck.message}`);
           moderationApi.banClerkUser(user.id);
@@ -122,18 +121,44 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Build payload - fingerprint is required by backend
+      const payload = {
+        clerk_id: user.id,
+        anonymous_handle: user.primaryEmailAddress?.emailAddress ?? null,
+        fingerprint: visitorId, // Always include, use fallback if FingerprintJS failed
+      };
+      
+      console.log('Syncing profile with payload:', payload);
+      
       const response = await fetch(`${coreUrl}/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clerk_id: user.id,
-          anonymous_handle: user.primaryEmailAddress?.emailAddress ?? null,
-          fingerprint: visitorId,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Profile sync failed (${response.status}):`, errorText);
+        
+        // If profile already exists (409 or 422), try to fetch it instead
+        if (response.status === 422 || response.status === 409) {
+          console.log('Profile might already exist, trying GET instead...');
+          const getResponse = await fetch(`${coreUrl}/profiles/${user.id}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+          
+          if (getResponse.ok) {
+            const profileData: Profile = await getResponse.json();
+            console.log('Successfully fetched existing profile:', profileData);
+            setProfile(profileData);
+            setSynced(true);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const profileData: Profile = await response.json();
@@ -146,7 +171,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn, user, fpLoading, fpData?.visitorId]);
+  }, [isSignedIn, user, fpData?.visitorId]);
 
   const fetchMatches = useCallback(async () => {
     if (!isSignedIn || !user || !synced || !profile?.user_id) return;
@@ -183,10 +208,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   // Auto-sync when user signs in and profile hasn't been synced yet
   useEffect(() => {
-    if (isSignedIn && user && !synced && !loading && !fpLoading) {
+    if (isSignedIn && user && !synced && !loading) {
       syncProfile();
     }
-  }, [isSignedIn, user, synced, loading, fpLoading, syncProfile]);
+  }, [isSignedIn, user, synced, loading, syncProfile]);
 
   // Clear profile when user signs out
   useEffect(() => {
