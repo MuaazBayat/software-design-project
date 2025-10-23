@@ -57,7 +57,7 @@ if EXTERNAL_URL:
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=base_origins,
+    allow_origins=["*"],
     allow_credentials=True,  # Allows cookies/auth headers
     allow_methods=["POST", "OPTIONS", "GET", "PUT"],  # POST for your endpoint + OPTIONS for preflight
     allow_headers=[
